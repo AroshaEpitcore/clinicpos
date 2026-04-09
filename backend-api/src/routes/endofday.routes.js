@@ -1,0 +1,174 @@
+const router = require('express').Router();
+const { queryTenant } = require('../db');
+const { authMiddleware, requireRole } = require('../middleware/auth');
+
+router.use(authMiddleware);
+
+// ── GET /api/v1/end-of-day ────────────────────────────────────────────────────
+// List past EOD records (most recent first)
+router.get('/', requireRole('receptionist', 'admin'), async (req, res) => {
+  const tenantId = req.tenant.id;
+  const { limit = 30 } = req.query;
+  try {
+    const result = await queryTenant(tenantId, `
+      SELECT e.*, s.full_name AS closed_by_name
+      FROM end_of_day e
+      JOIN staff s ON s.id = e.closed_by
+      ORDER BY e.closing_date DESC
+      LIMIT $1
+    `, [parseInt(limit)]);
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error('GET /end-of-day', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ── GET /api/v1/end-of-day/summary/:date ─────────────────────────────────────
+// Build live summary for a date (to show before closing)
+router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, res) => {
+  const tenantId = req.tenant.id;
+  const { date } = req.params;
+  try {
+    // Check if already closed
+    const closed = await queryTenant(tenantId,
+      `SELECT * FROM end_of_day WHERE closing_date = $1`, [date]);
+    if (closed.rows.length) {
+      return res.json({ already_closed: true, data: closed.rows[0] });
+    }
+
+    // Aggregate invoices for the day
+    const totals = await queryTenant(tenantId, `
+      SELECT
+        COUNT(DISTINCT id)                                          AS total_invoices,
+        COUNT(DISTINCT patient_id)                                  AS total_patients,
+        COALESCE(SUM(total_amount), 0)                             AS total_billed,
+        COALESCE(SUM(paid_amount), 0)                              AS total_collected,
+        COALESCE(SUM(balance_due), 0)                              AS outstanding_balance
+      FROM invoices
+      WHERE DATE(created_at) = $1
+    `, [date]);
+
+    // Per-method breakdown from payment_splits
+    const splits = await queryTenant(tenantId, `
+      SELECT ps.payment_method, COALESCE(SUM(ps.amount), 0) AS total
+      FROM payment_splits ps
+      JOIN invoices i ON i.id = ps.invoice_id
+      WHERE DATE(i.created_at) = $1
+      GROUP BY ps.payment_method
+    `, [date]);
+
+    const methodMap = {};
+    for (const row of splits.rows) {
+      methodMap[row.payment_method.toLowerCase()] = parseFloat(row.total);
+    }
+
+    const summary = {
+      ...totals.rows[0],
+      cash_system:      methodMap['cash']      || 0,
+      card_total:       methodMap['card']      || 0,
+      online_total:     methodMap['online']    || 0,
+      insurance_total:  methodMap['insurance'] || 0,
+    };
+
+    res.json({ already_closed: false, data: summary });
+  } catch (err) {
+    console.error('GET /end-of-day/summary/:date', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ── GET /api/v1/end-of-day/:date ─────────────────────────────────────────────
+// Get a specific closed EOD record
+router.get('/:date', requireRole('receptionist', 'admin'), async (req, res) => {
+  const tenantId = req.tenant.id;
+  try {
+    const result = await queryTenant(tenantId, `
+      SELECT e.*, s.full_name AS closed_by_name
+      FROM end_of_day e
+      JOIN staff s ON s.id = e.closed_by
+      WHERE e.closing_date = $1
+    `, [req.params.date]);
+    if (!result.rows.length) return res.status(404).json({ message: 'No EOD record for this date' });
+    res.json({ data: result.rows[0] });
+  } catch (err) {
+    console.error('GET /end-of-day/:date', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ── POST /api/v1/end-of-day ───────────────────────────────────────────────────
+// Submit and lock end-of-day closing
+router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
+  const tenantId = req.tenant.id;
+  const { closing_date, cash_counted, notes } = req.body;
+
+  if (!closing_date || cash_counted == null) {
+    return res.status(400).json({ message: 'closing_date and cash_counted are required' });
+  }
+
+  try {
+    // Block duplicate closing
+    const dup = await queryTenant(tenantId,
+      `SELECT id FROM end_of_day WHERE closing_date = $1`, [closing_date]);
+    if (dup.rows.length) {
+      return res.status(409).json({ message: 'Day already closed' });
+    }
+
+    // Aggregate the day
+    const totals = await queryTenant(tenantId, `
+      SELECT
+        COUNT(DISTINCT id)                AS total_invoices,
+        COUNT(DISTINCT patient_id)        AS total_patients,
+        COALESCE(SUM(total_amount), 0)    AS total_billed,
+        COALESCE(SUM(paid_amount), 0)     AS total_collected,
+        COALESCE(SUM(balance_due), 0)     AS outstanding_balance
+      FROM invoices
+      WHERE DATE(created_at) = $1
+    `, [closing_date]);
+
+    const splits = await queryTenant(tenantId, `
+      SELECT ps.payment_method, COALESCE(SUM(ps.amount), 0) AS total
+      FROM payment_splits ps
+      JOIN invoices i ON i.id = ps.invoice_id
+      WHERE DATE(i.created_at) = $1
+      GROUP BY ps.payment_method
+    `, [closing_date]);
+
+    const methodMap = {};
+    for (const row of splits.rows) {
+      methodMap[row.payment_method.toLowerCase()] = parseFloat(row.total);
+    }
+
+    const t             = totals.rows[0];
+    const cash_system   = methodMap['cash']      || 0;
+    const cash_diff     = parseFloat(cash_counted) - cash_system;
+
+    const result = await queryTenant(tenantId, `
+      INSERT INTO end_of_day (
+        closing_date, total_billed, total_collected,
+        cash_system, cash_counted, cash_difference,
+        card_total, online_total, insurance_total,
+        total_patients, total_invoices, outstanding_balance,
+        notes, closed_by
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING *
+    `, [
+      closing_date,
+      t.total_billed, t.total_collected,
+      cash_system, parseFloat(cash_counted), cash_diff,
+      methodMap['card']      || 0,
+      methodMap['online']    || 0,
+      methodMap['insurance'] || 0,
+      t.total_patients, t.total_invoices, t.outstanding_balance,
+      notes || null, req.user.id,
+    ]);
+
+    res.status(201).json({ message: 'Day closed successfully', data: result.rows[0] });
+  } catch (err) {
+    console.error('POST /end-of-day', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

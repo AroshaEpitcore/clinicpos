@@ -1,0 +1,446 @@
+# Doctor POS — Core Features
+
+> **Stack:** React · Node.js · PostgreSQL  
+> **Projects:** `clinic-frontend/` · `backend-api/` · `admin-frontend/`
+
+---
+
+## 0. Role-Based Dashboards 🖥️
+
+### Purpose
+The first screen after login is different for every role. Each staff member sees only what is relevant to them — no clutter, no confusion.
+
+### Doctor Dashboard
+- Today's patient queue — token number, patient name, status, time
+- One-click to open next patient's consultation
+- Glance at patient's last visit complaint and allergies before entering the room
+- Own appointment count for today vs completed
+- Quick link to prescription pad
+
+### Receptionist Dashboard
+- Live queue across all doctors — who is waiting, who arrived, who is being seen
+- Today's totals — patients registered, appointments booked, amount collected, amount pending
+- Quick register button (new patient) and quick search (returning patient)
+- Low stock and near-expiry medicine alerts (badge)
+- Unpaid invoices count
+
+### Admin / Owner Dashboard
+- Today's revenue — collected vs pending vs total billed
+- Patient count today (walk-in vs booked, new vs returning)
+- Doctor-wise patient count for today
+- Outstanding payments list
+- Medicine stock alerts
+- End of day closing status (done / not done)
+
+### Who Sees What
+| Role | Home Screen Shows |
+|------|------------------|
+| Doctor | Own queue, next patient, quick Rx access |
+| Receptionist | Live queue all doctors, billing summary, alerts |
+| Nurse | Today's patients needing vitals, pending vitals |
+| Admin / Owner | Revenue, patient count, alerts, EOD status |
+
+---
+
+## 1. Patient Registration 👤
+
+### Purpose
+Every patient is registered once. All future visits, prescriptions, bills, and records link back to this single profile automatically.
+
+### Key Data Captured
+
+| Field | Details |
+|-------|---------|
+| Full name | First + last name |
+| Date of birth | Auto-calculates age |
+| Gender | Male / Female / Other |
+| Contact number | Primary phone |
+| Address | City, street |
+| Blood group | A+ / B+ / O+ etc. |
+| Allergies | Free text, flags on all screens |
+| Emergency contact | Name + phone |
+| National ID | For identity verification |
+| Insurance info | Provider + policy number (optional) |
+
+### Features
+- Auto-generate unique **Patient ID** (e.g. `PT-00234`) on registration
+- Search patients by name, phone, or patient ID
+- Mark patients as **walk-in** or **pre-registered**
+- Patient profile shows full history — visits, prescriptions, bills, records all in one place
+- **Data privacy protected** — staff only see what their role allows
+
+### Returning vs New Patient Flow
+Every visit starts with one question — has this patient been here before?
+
+**Returning patient (most common):**
+- Receptionist types phone number or name → system finds them instantly
+- One click → patient added to queue
+- No re-entering of details ever
+
+**New patient:**
+- Receptionist fills registration form
+- System auto-checks for **duplicate patients** before saving — warns if same phone, name, or national ID already exists
+- Patient registered → immediately added to queue
+
+### Duplicate Patient Prevention
+When registering a new patient, the system checks:
+- Same phone number
+- Same full name + date of birth
+- Same national ID
+
+If a match is found — system shows a warning with the existing patient's details and asks "Is this the same person?" Receptionist can confirm existing or proceed with new registration.
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Receptionist | Register, edit, search patients |
+| Doctor | View patient profile, cannot delete |
+| Nurse | View and update basic info |
+| Admin | Full access including delete |
+
+---
+
+## 2. Doctor Appointments 📅
+
+### Purpose
+Manage both walk-in and pre-booked appointments. Patients can also book online themselves through a patient portal.
+
+### Features
+
+#### Clinic-side (staff)
+- View appointments in **calendar view** (day / week / month)
+- Assign appointments to specific doctors
+- Set each doctor's **available time slots** and working hours
+- Mark appointment status — Pending, Confirmed, Arrived, Completed, Cancelled
+- Live **queue display** — shows waiting patients with token numbers
+- Walk-in patients added directly to the queue
+- **Emergency patient** — insert into queue immediately regardless of token order, flagged as emergency
+- **Clinic holidays** — admin sets off-days, booking is blocked on those dates automatically
+- **Appointment reminders** — system automatically sends SMS or WhatsApp to patient 24 hours before (configurable). Reduces no-shows significantly
+
+#### Patient-side (online booking)
+- Patients visit your clinic's booking page
+- Select a **doctor** from the list
+- View **available time slots** in real time
+- Book an appointment and receive SMS / email confirmation
+- View and cancel their own upcoming appointments
+- View **previous visit history** and dates
+
+#### Doctor management
+- **Multiple doctors** can exist in one clinic system
+- Each doctor has their own schedule, appointments, and patient list
+- Admin can add or remove doctors and set their specializations
+- Reports show performance per doctor (patient count, revenue)
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Receptionist | Create, edit, cancel appointments |
+| Doctor | View own appointments only |
+| Patient (online) | Book, view, cancel own appointments |
+| Admin | Full access across all doctors |
+
+---
+
+## 3. Medical Records 🩺
+
+### Purpose
+Every clinic visit creates a digital record. Doctors write notes, record diagnoses, and attach lab results. All linked to the patient profile permanently.
+
+### What Each Visit Record Contains
+
+| Field | Details |
+|-------|---------|
+| Visit date & time | Auto-recorded |
+| Attending doctor | Linked to doctor profile |
+| Chief complaint | Why the patient came in |
+| Symptoms | Free text or checklist |
+| Diagnosis | With ICD-10 code support |
+| Clinical notes | Doctor's observations |
+| Vital signs | Blood pressure, temperature, weight, pulse |
+| Lab results | Uploaded files or typed results |
+| Follow-up date | Next appointment reminder |
+
+### Features
+- Full **visit history** — all past records viewable in one timeline
+- Doctor can see **previous visits** before starting a new consultation
+- Attach files — lab reports, X-rays, scans (PDF, JPG)
+- Records are **read-only** after 24 hours (audit protection)
+- **Patient data is private** — only the treating doctor and admin can view full records
+- Receptionist sees only appointment info, not clinical notes
+
+### Data Privacy Rules
+- Medical records are encrypted in the database
+- Access logged with timestamp and staff ID (audit trail)
+- No record can be permanently deleted — only archived
+- Complies with patient data privacy standards (HIPAA-like approach)
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Doctor | Create, view, edit (within 24hr) |
+| Nurse | View and add vitals only |
+| Receptionist | View appointment info only — no clinical notes |
+| Admin | View all records, manage access |
+| Patient (online) | View their own records only |
+
+---
+
+## 4. Prescriptions 💊
+
+### Purpose
+Doctors write digital prescriptions linked to each visit. Prescriptions can be printed, downloaded as PDF, or sent to the patient digitally.
+
+### Features
+
+#### Writing a prescription
+- Doctor selects medicines from the **medicine database** (see below)
+- Set dosage, frequency, duration, and instructions per medicine
+- Add special notes or warnings (e.g. "take after food")
+- Prescription auto-links to the patient's visit record
+
+#### Medicine database (built-in store)
+- Admin can add medicines like a **medicine store inventory**
+- Each medicine has: name, generic name, brand, unit (tablet/syrup/capsule), strength
+- Medicines available in the prescription writer come from this database
+- Stock quantity tracked — alerts when a medicine is running low
+- Medicines dispensed through pharmacy are auto-deducted from stock
+- Can set selling price per medicine for billing integration
+
+#### Prescription output
+- Generate a **printable Rx** with clinic header, doctor name, registration number, and **doctor's digital signature**
+- Download as **PDF**
+- Send to patient via **SMS or WhatsApp** (medicine name, dose, instructions)
+- Prescription has a unique **Rx number** for reference
+- **Patient visit summary printout** — separate from the prescription, one page showing: diagnosis, medicines prescribed, vitals, follow-up date. Patient takes this home as a summary of their visit
+
+#### Patient view
+- Patient can see their **full medicines history** across all visits
+- Shows current medications and past prescriptions in one timeline
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Doctor | Write, edit (within visit), print prescriptions |
+| Nurse | View prescriptions, assist with dispensing |
+| Receptionist | Print prescription on request |
+| Admin | Manage medicine database and stock |
+| Patient (online) | View own prescription history |
+
+---
+
+## 5. Billing & Payments 💳
+
+### Purpose
+Every service the clinic provides generates an itemized invoice. The receptionist handles billing at the front desk. Billing links directly to the clinical record for that visit.
+
+### Invoice Contents
+
+| Item | Example |
+|------|---------|
+| Consultation fee | Dr. Silva — General Consultation |
+| Procedure charges | Blood test, dressing, injection |
+| Medicine charges | Auto-pulled from prescription |
+| Lab fees | X-ray, scan, urine test |
+| Discount | Manual or percentage-based |
+| Tax | Configurable per clinic |
+| Total due | Grand total |
+
+### Features
+
+#### Receptionist workflow
+- Receptionist opens the patient's visit after doctor completes consultation
+- Invoice is **auto-generated** from the consultation — medicines and procedures already listed
+- Receptionist reviews, adjusts if needed, and confirms
+- Accepts payment and prints or sends receipt
+
+#### Payment methods supported
+- Cash
+- Card (manual entry or integrated terminal)
+- Online / QR payment
+- Insurance (mark as pending claim)
+- Partial payment (record balance due)
+- **Split payment** — patient can pay using more than one method in a single invoice. e.g. LKR 2000 cash + LKR 3000 insurance. Each split is recorded separately with reference numbers
+
+#### Custom services
+- Admin pre-creates a list of clinic services with prices (blood test, X-ray, dressing, ECG etc.)
+- Receptionist picks from this list when building the invoice — no manual typing of amounts
+- Prices auto-fill but can be overridden if needed
+
+#### End of day closing
+- At end of clinic hours, receptionist or admin runs **end of day closing**
+- System shows: total billed, total collected, breakdown by payment method (cash / card / online / insurance)
+- Staff enters physical cash counted from the drawer
+- System highlights any **discrepancy** between counted cash and system cash total
+- Closing is locked for that date once confirmed — cannot be re-opened without admin
+- Owner sees closing summary the next morning in reports
+
+#### Invoice management
+- Unique invoice number per bill
+- View all invoices — paid, unpaid, partial
+- Send invoice to patient via email or WhatsApp
+- Reprint receipt at any time
+- Apply discounts with reason (audit logged)
+
+#### Billing links clinical records
+- Every invoice is linked to a specific visit record
+- From the invoice you can see the consultation notes and prescription
+- From the patient profile you can see all invoices across all visits
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Receptionist | Generate bills, accept payments, print receipts |
+| Doctor | View billing for own patients only |
+| Admin | Full billing access, refunds, adjustments |
+| Patient (online) | View own invoices and payment history |
+
+---
+
+## 6. Reports & History 📊
+
+### Purpose
+Give clinic owners and admins a real-time view of how the clinic is performing — financially and operationally.
+
+### Analytics Dashboard
+
+| Metric | Details |
+|--------|---------|
+| Total patients today | Walk-in + booked |
+| Total income today | Collected + pending |
+| Appointments completed | vs cancelled vs no-show |
+| New patients this month | vs returning patients |
+| Top doctor by patients | Ranking by visit count |
+| Top doctor by revenue | Ranking by billing amount |
+| Medicine stock alerts | Low stock or near-expiry |
+| Outstanding payments | Unpaid invoices total |
+
+### Report Types
+
+#### Financial reports
+- Daily / weekly / monthly income summary
+- Income breakdown by doctor, by service, by payment method
+- Pending and overdue payment list
+- Tax summary report
+- **End of day closing report** — daily cash reconciliation, discrepancy between counted cash and system total is flagged clearly
+
+#### Patient reports
+- Total patient count (new vs returning)
+- Patient demographics (age group, gender)
+- Visit frequency — most frequent patients
+- Patient-wise visit and billing history
+
+#### Doctor reports
+- Appointments per doctor per day/month
+- Revenue generated per doctor
+- Average consultation time
+
+#### Appointment reports
+- Daily appointment count
+- Cancellation and no-show rate
+- Peak hours analysis (busiest times of day)
+
+#### Medicine / pharmacy reports
+- Stock levels and low-stock alerts
+- Medicines dispensed this month
+- **Near-expiry medicines** — proactive alert badge on dashboard, not buried in a report. Shows medicines expiring within 60 days
+- Most prescribed medicines
+
+### Export options
+- Download reports as **PDF** or **Excel**
+- Filter by date range, doctor, or department
+- Schedule automatic monthly email reports to clinic owner
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Doctor | View own patient and appointment reports |
+| Admin / Owner | Full access to all reports |
+| Receptionist | View daily appointment and billing summary only |
+
+---
+
+## Role Summary (All Features)
+
+| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports |
+|------|----------|-------------|---------|--------------|---------|---------|
+| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary |
+| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports |
+| Nurse | View & update | View only | Vitals only | View only | No access | No access |
+| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access |
+| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access |
+
+---
+
+## 7. Clinic Self-Customization ⚙️
+
+### Purpose
+Each clinic that buys the software can make it look and behave like their own system — without needing you to do anything for them.
+
+### What the Clinic Can Customize
+
+#### Branding
+- Upload their own **clinic logo** — appears on dashboard, invoices, prescriptions, patient portal
+- Set clinic name, address, phone, email
+- Custom **receipt header and footer** text
+- Custom **prescription footer** (e.g. clinic registration number, tagline)
+
+#### Doctors & Staff
+- Add doctor profiles with **specialization**
+- Upload each **doctor's digital signature** (printed on prescriptions)
+- Set each **doctor's consultation fee** (auto-fills in invoices)
+- Set each **doctor's working days and hours**
+
+#### Appointments
+- Set **appointment slot duration** (10 / 15 / 30 minutes)
+- Set **maximum patients per day** per doctor
+- Enable or disable **walk-in queue**
+- Add **clinic holidays** — booking blocked on those dates
+- Set **how far ahead** patients can book online
+
+#### Billing
+- Set **currency** (LKR, USD, INR etc.)
+- Set **tax rate and tax label** (VAT / GST / none)
+- Create **custom service list** with prices (blood test, X-ray, ECG etc.)
+- Set **discount rules** (max discount %, who can apply)
+
+#### Patient Portal
+- Enable or disable **online booking**
+- Set custom **booking page welcome message**
+- Choose which doctors are **visible for online booking**
+
+#### Notifications & Alerts
+- Enable or disable **appointment reminders**
+- Set **reminder timing** (hours before appointment)
+- Customize **reminder message text**
+- Set **session timeout** duration
+
+### How Logo Upload Works
+1. Clinic admin goes to Settings → Branding
+2. Clicks Upload Logo → selects image (JPG/PNG, max 2MB)
+3. System validates file type and size
+4. File saved to `/uploads/tenants/{tenant_id}/logo.png`
+5. URL saved to `clinic_settings.clinic_logo_url`
+6. Logo appears on all screens, invoices, prescriptions, and patient portal immediately
+
+Logo is stored per tenant — completely isolated from other clinics.
+
+---
+
+## Key System Rules
+
+- **Secure login** — every staff member has their own login with username and password
+- **Role-based access** — staff only see what their role allows, enforced at both frontend and backend
+- **Audit trail** — every action (create, edit, delete) is logged with staff ID and timestamp
+- **Data isolation** — each clinic's data is completely separate from other clinics on the system
+- **No permanent deletion** — records are archived, never deleted (data protection)
+- **Encrypted storage** — sensitive medical and payment data is encrypted in the database
+- **Session timeout** — auto logout after inactivity (configurable per clinic)
+- **Offline awareness** — if internet drops, system shows a clear warning banner. No silent data loss
+- **Duplicate patient check** — system warns before creating a patient that may already exist
+- **Feature flags** — every add-on module is controlled by you (the seller) per clinic plan
+
+---
+
+*Doctor POS — Core Features v1.0*  
+*Stack: React · Node.js · PostgreSQL*
