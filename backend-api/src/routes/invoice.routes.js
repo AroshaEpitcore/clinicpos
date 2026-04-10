@@ -1,14 +1,15 @@
 const router = require('express').Router();
-const { queryTenant } = require('../db');
+const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { tenantMiddleware }            = require('../middleware/tenant');
 
-router.use(authMiddleware);
+router.use(tenantMiddleware, authMiddleware);
 
 // ── POST /api/v1/invoices ──────────────────────────────────────────────────────
 // Create invoice from a consultation. Auto-pulls doctor fee + prescribed medicines.
 router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
   const { consultation_id, notes } = req.body;
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
 
   if (!consultation_id) {
     return res.status(400).json({ message: 'consultation_id is required' });
@@ -54,14 +55,14 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
 
     // 2. Prescribed medicines (from latest prescription on this consultation)
     const rxRes = await queryTenant(tenantId, `
-      SELECT pi.quantity, pi.dosage, m.name, m.strength, m.selling_price
+      SELECT COALESCE(pi.quantity_given, 1) AS qty, pi.dosage, m.name, m.strength, m.selling_price
       FROM prescriptions pr
       JOIN prescription_items pi ON pi.prescription_id = pr.id
       JOIN medicines m            ON m.id = pi.medicine_id
       WHERE pr.consultation_id = $1 AND m.selling_price IS NOT NULL AND m.selling_price > 0
     `, [consultation_id]);
     for (const row of rxRes.rows) {
-      const qty        = row.quantity || 1;
+      const qty        = row.qty || 1;
       const unit_price = parseFloat(row.selling_price);
       items.push({
         description: `${row.name}${row.strength ? ' ' + row.strength : ''}`,
@@ -74,8 +75,10 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
 
     // Calculate totals
     const subtotal     = items.reduce((s, i) => s + i.total_price, 0);
-    const total_amount = subtotal; // tax/discount added later via update
+    const total_amount = subtotal;
     const balance_due  = total_amount;
+    // Note: if no doctor fee is set and no medicines have a price,
+    // invoice is created with LKR 0 — receptionist can add items manually.
 
     // Auto-generate invoice number INV-XXXXX
     const countRes = await queryTenant(tenantId, `SELECT COUNT(*) FROM invoices`);
@@ -104,13 +107,27 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     res.status(201).json({ message: 'Invoice created', data: { id: invoice.id, invoice_number } });
   } catch (err) {
     console.error('POST /invoices', err);
+    res.status(500).json({ message: 'Server error', detail: err.message });
+  }
+});
+
+// ── GET /api/v1/invoices/check/:consultationId ────────────────────────────────
+// Check if a consultation already has an invoice (used by frontend before creating)
+router.get('/check/:consultationId', async (req, res) => {
+  const tenantId = req.tenantSchema;
+  try {
+    const result = await queryTenant(tenantId,
+      `SELECT id, invoice_number FROM invoices WHERE consultation_id = $1`,
+      [req.params.consultationId]);
+    res.json({ exists: result.rows.length > 0, data: result.rows[0] || null });
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // ── GET /api/v1/invoices/patient/:patientId ────────────────────────────────────
 router.get('/patient/:patientId', async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   try {
     const result = await queryTenant(tenantId, `
       SELECT i.*,
@@ -132,7 +149,7 @@ router.get('/patient/:patientId', async (req, res) => {
 // ── GET /api/v1/invoices ───────────────────────────────────────────────────────
 // List invoices. Query params: date, status, patient_id, limit
 router.get('/', async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { date, status, patient_id, limit = 100 } = req.query;
 
   const conditions = [];
@@ -179,7 +196,7 @@ router.get('/', async (req, res) => {
 
 // ── GET /api/v1/invoices/:id ───────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   try {
     const invRes = await queryTenant(tenantId, `
       SELECT i.*,
@@ -219,7 +236,7 @@ router.get('/:id', async (req, res) => {
 // ── PUT /api/v1/invoices/:id/items ─────────────────────────────────────────────
 // Add a custom line item or remove an existing one
 router.put('/:id/items', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { action, item_id, description, item_type = 'service', quantity = 1, unit_price } = req.body;
 
   try {
@@ -271,7 +288,7 @@ router.put('/:id/items', requireRole('receptionist', 'admin'), async (req, res) 
 // ── POST /api/v1/invoices/:id/pay ──────────────────────────────────────────────
 // Record a payment (single method — full or partial)
 router.post('/:id/pay', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { payment_method, amount, reference } = req.body;
 
   if (!payment_method || !amount) {
@@ -302,29 +319,15 @@ router.post('/:id/pay', requireRole('receptionist', 'admin'), async (req, res) =
     await queryTenant(tenantId, `
       UPDATE invoices
       SET paid_amount=$1, balance_due=$2, payment_status=$3,
-          payment_method=$4, paid_at=CASE WHEN $3='paid' THEN NOW() ELSE paid_at END,
+          payment_method=$4, paid_at=CASE WHEN $6='paid' THEN NOW() ELSE paid_at END,
           updated_at=NOW()
       WHERE id=$5
-    `, [newPaid, balance, status, payment_method, req.params.id]);
+    `, [newPaid, balance, status, payment_method, req.params.id, status]);
 
     res.json({ message: 'Payment recorded', data: { payment_status: status, balance_due: balance } });
   } catch (err) {
     console.error('POST /invoices/:id/pay', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ── GET /api/v1/invoices/:id/check-consultation ────────────────────────────────
-// Check if a consultation already has an invoice (used by frontend before creating)
-router.get('/check/:consultationId', async (req, res) => {
-  const tenantId = req.tenant.id;
-  try {
-    const result = await queryTenant(tenantId,
-      `SELECT id, invoice_number FROM invoices WHERE consultation_id = $1`,
-      [req.params.consultationId]);
-    res.json({ exists: result.rows.length > 0, data: result.rows[0] || null });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', detail: err.message });
   }
 });
 

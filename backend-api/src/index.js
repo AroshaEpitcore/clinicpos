@@ -6,7 +6,13 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Subdomain'],
+  credentials: false,
+}));
+app.options('*', cors()); // handle pre-flight for all routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,9 +30,12 @@ app.use('/api/v1/patients',     require('./routes/patient.routes'));
 app.use('/api/v1/appointments', require('./routes/appointment.routes'));
 app.use('/api/v1/doctors',       require('./routes/doctor.routes'));
 app.use('/api/v1/consultations',  require('./routes/consultation.routes'));
-app.use('/api/v1/medicines',      require('./routes/medicine.routes'));
-app.use('/api/v1/prescriptions',  require('./routes/prescription.routes'));
-// app.use('/api/v1/invoices',     require('./routes/invoice.routes'));
+app.use('/api/v1/medicines',       require('./routes/medicine.routes'));
+app.use('/api/v1/prescriptions',   require('./routes/prescription.routes'));
+app.use('/api/v1/invoices',        require('./routes/invoice.routes'));
+app.use('/api/v1/custom-services', require('./routes/customservice.routes'));
+app.use('/api/v1/doctor-fees',     require('./routes/doctorfee.routes'));
+app.use('/api/v1/end-of-day',      require('./routes/endofday.routes'));
 // app.use('/api/v1/reports',      require('./routes/report.routes'));
 // app.use('/api/v1/settings',     require('./routes/settings.routes'));
 // app.use('/api/v1/admin',        require('./routes/admin.routes'));

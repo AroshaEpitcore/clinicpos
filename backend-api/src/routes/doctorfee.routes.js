@@ -1,13 +1,14 @@
 const router = require('express').Router();
-const { queryTenant } = require('../db');
+const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { tenantMiddleware }            = require('../middleware/tenant');
 
-router.use(authMiddleware);
+router.use(tenantMiddleware, authMiddleware);
 
 // ── GET /api/v1/doctor-fees ───────────────────────────────────────────────────
 // List all doctors with their fee (joins staff + doctor_fees)
 router.get('/', async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   try {
     const result = await queryTenant(tenantId, `
       SELECT s.id AS doctor_id, s.full_name,
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
 // ── PUT /api/v1/doctor-fees/:doctorId ────────────────────────────────────────
 // Upsert fee for a doctor (admin only)
 router.put('/:doctorId', requireRole('admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { fee_label, amount } = req.body;
   if (amount == null) return res.status(400).json({ message: 'amount is required' });
   try {

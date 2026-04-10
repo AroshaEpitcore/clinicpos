@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(node src/db/migrate_add_constraints.js)"
+      "Bash(node src/db/migrate_add_constraints.js)",
+      "Bash(node:*)",
+      "Bash(grep -v \"//\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr :4000)"
     ]
   }
 }

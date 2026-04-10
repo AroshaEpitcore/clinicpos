@@ -1,12 +1,13 @@
 const router = require('express').Router();
-const { queryTenant } = require('../db');
+const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { tenantMiddleware }            = require('../middleware/tenant');
 
-router.use(authMiddleware);
+router.use(tenantMiddleware, authMiddleware);
 
 // ── GET /api/v1/custom-services ───────────────────────────────────────────────
 router.get('/', async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { include_inactive } = req.query;
   try {
     const result = await queryTenant(tenantId, `
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
 
 // ── POST /api/v1/custom-services ─────────────────────────────────────────────
 router.post('/', requireRole('admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { name, category, description, price } = req.body;
   if (!name) return res.status(400).json({ message: 'Name is required' });
   try {
@@ -40,7 +41,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
 // ── PUT /api/v1/custom-services/:id ──────────────────────────────────────────
 router.put('/:id', requireRole('admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { name, category, description, price, is_active } = req.body;
   try {
     await queryTenant(tenantId, `
@@ -64,7 +65,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
 
 // ── DELETE /api/v1/custom-services/:id ───────────────────────────────────────
 router.delete('/:id', requireRole('admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   try {
     await queryTenant(tenantId,
       `UPDATE custom_services SET is_active = FALSE, updated_at = NOW() WHERE id = $1`,

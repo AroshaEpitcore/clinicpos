@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-08
-## Covers: Phases 1 through 2.4
+## Last updated: 2026-04-09
+## Covers: Phases 1 through 2.5
 
 ---
 
@@ -24,9 +24,11 @@ Doctor writes Consultation (vitals + diagnosis + notes)
       ↓         ← appointment auto-flips to "completed"
 Doctor writes Prescription (medicine search + dosage + print)
       ↓
-[ Phase 2.5 ] Receptionist generates Invoice → collects Payment
+Receptionist clicks "Bill" → Invoice auto-created (doctor fee + medicines)
       ↓
-[ Phase 2.5 ] End-of-Day closing by admin/receptionist
+Add extra services if needed → Record payment (Cash / Card / Online / Insurance)
+      ↓
+End-of-Day closing — cash count vs system totals, lock the day
       ↓
 [ Phase 2.6 ] Reports and analytics
 ```
@@ -72,7 +74,35 @@ Doctor writes Prescription (medicine search + dosage + print)
 - **Edit** patient details (receptionist + admin)
 - Visits tab — read-only consultation history
 - Prescriptions tab — read-only Rx history
-- Billing tab — (Phase 2.5, currently empty)
+- Billing tab — full invoice history with summary totals ✅
+
+#### Billing
+- **Bill button** appears on completed appointment rows (receptionist + admin, when consultation exists)
+- Clicking Bill → checks if invoice already exists for that consultation
+  - If yes → opens the existing invoice
+  - If no → creates new invoice (auto-pulls doctor fee from `doctor_fees` + prescribed medicines with prices)
+- **InvoiceModal** — view and manage the invoice:
+  - Line items table (consultation fee, medicines, custom services)
+  - **Add Item** — free-text or pick from custom services dropdown, set qty + price
+  - **Remove Item** — trash icon per row (blocked on paid invoices)
+  - Totals: subtotal → discount → tax → total → paid → balance
+  - **Record Payment** — select method (Cash / Card / Online / Insurance), enter amount, optional reference field
+  - Multiple payment calls allowed — each adds a split record (partial payment support)
+  - Payment history shown below totals
+- **BillingPage** (`/billing`) — daily invoice list:
+  - Date navigation, status filter tabs (All / Unpaid / Partial / Paid)
+  - Summary strip — total billed, collected, outstanding for the day
+  - Click any row → opens InvoiceModal
+
+#### End of Day
+- **End of Day** button on BillingPage header → `/billing/end-of-day`
+- Date picker (defaults to today, can go back)
+- Left panel: system totals — patients, invoices, total billed, collected, outstanding
+- Right panel: per-method breakdown + cash count input
+- Live discrepancy indicator — green (matched), amber (surplus), red (short)
+- Notes field for explanation
+- **Close Day & Lock** button → submits, locks the day, cannot re-submit
+- Past closed days show read-only summary with who closed it and when
 
 **Cannot do:** Write consultations · Write prescriptions · Access Medicine Store · Delete patients
 
@@ -139,7 +169,7 @@ Doctor writes Prescription (medicine search + dosage + print)
 
 ### Admin
 
-**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · *(Billing, Reports, Settings — Phase 2.5+)*
+**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · Billing · *(Reports, Settings — Phase 2.6+)*
 
 **Admin has all receptionist + doctor capabilities, plus:**
 
@@ -188,7 +218,7 @@ Patient (PT-XXXXX)
       ├── Overview tab    — personal / contact / emergency / insurance
       ├── Visits tab      — all consultations with vitals + diagnosis
       ├── Prescriptions tab — all Rx with every medicine item listed
-      └── Billing tab     — [Phase 2.5]
+      └── Billing tab     — invoice history, summary totals, view invoice modal ✅
 ```
 
 ---
@@ -210,6 +240,9 @@ Patient (PT-XXXXX)
 | Write prescription | ✗ | ✅ | ✗ | ✅ |
 | View / print prescriptions | ✅ | ✅ | ✅ | ✅ |
 | Medicine Store (manage) | ✗ | ✗ | ✗ | ✅ |
+| Generate / view invoice | ✅ | ✗ | ✗ | ✅ |
+| Record payment | ✅ | ✗ | ✗ | ✅ |
+| End of Day closing | ✅ | ✗ | ✗ | ✅ |
 
 ---
 
@@ -222,7 +255,7 @@ Patient (PT-XXXXX)
 | 2.2 Appointments & queue | ✅ Complete | |
 | 2.3 Consultations | ✅ Complete | |
 | 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print used; server-side PDF deferred |
-| 2.5 Billing & payments | Not started | Next phase |
+| 2.5 Billing & payments | ✅ Complete | Invoice PDF deferred to Phase 3 |
 | 2.6 Reports | Not started | |
 | 2.7 Clinic settings | Not started | |
 

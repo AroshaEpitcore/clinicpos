@@ -40,7 +40,7 @@ Phase 7  →  Desktop version (later)
 
 > Everything depends on this. Build it right before touching any feature.
 
-### Step 1.1 — Server Setup
+### Step 1.1 — Server Setup *(deferred to Phase 6 — local dev only for now)*
 | Task | Done |
 |------|------|
 | Buy domain (e.g. `clinicpos.com`) | [ ] |
@@ -62,60 +62,60 @@ Phase 7  →  Desktop version (later)
 | Create repo: `clinic-frontend` | [ ] |
 | Create repo: `backend-api` | [ ] |
 | Create repo: `admin-frontend` | [ ] |
-| Add `.gitignore` to all three (include `.env`) | [ ] |
-| Create `Docs/` folder in `backend-api` with all 4 md files | [ ] |
+| Add `.gitignore` to all three (include `.env`) | [x] |
+| Create `Docs/` folder in `backend-api` with all 4 md files | [x] |
 
 ---
 
-### Step 1.3 — Database Foundation
+### Step 1.3 — Database Foundation ✅
 | Task | Done |
 |------|------|
-| Create PostgreSQL database `clinicpos_db` | [ ] |
-| Create `public.tenants` table | [ ] |
-| Create `public.feature_flags` table | [ ] |
-| Create `public.subscriptions` table | [ ] |
-| Write tenant creation function (creates schema + inserts default flags) | [ ] |
-| Test: create a test tenant, verify schema isolation | [ ] |
-| Document all queries in `databasequeries.md` | [ ] |
+| Create PostgreSQL database `clinicpos_db` | [x] |
+| Create `public.tenants` table | [x] |
+| Create `public.feature_flags` table | [x] |
+| Create `public.subscriptions` table | [x] |
+| Write tenant creation function (creates schema + inserts default flags) | [x] |
+| Test: create a test tenant, verify schema isolation | [x] |
+| Document all queries in `databasequeries.md` | [x] |
 
 ---
 
-### Step 1.4 — Authentication System
+### Step 1.4 — Authentication System ✅
 | Task | Done |
 |------|------|
-| `POST /api/v1/auth/login` — email + password → JWT token | [ ] |
-| JWT middleware — verify token on every protected route | [ ] |
-| Role middleware — check role before every protected route | [ ] |
-| Tenant middleware — read subdomain → load tenant + feature flags | [ ] |
-| `POST /api/v1/auth/logout` — invalidate token | [ ] |
-| Password hashing with bcrypt | [ ] |
-| Session timeout enforcement | [ ] |
-| Test: login as doctor, login as receptionist, login as admin | [ ] |
-| Test: wrong role gets 403, wrong tenant gets 403 | [ ] |
+| `POST /api/v1/auth/login` — email + password → JWT token | [x] |
+| JWT middleware — verify token on every protected route | [x] |
+| Role middleware — check role before every protected route | [x] |
+| Tenant middleware — read subdomain → load tenant + feature flags | [x] |
+| `POST /api/v1/auth/logout` — invalidate token | [x] |
+| Password hashing with bcrypt | [x] |
+| Session timeout enforcement | [ ] *(deferred to Phase 2.7)* |
+| Test: login as doctor, login as receptionist, login as admin | [x] |
+| Test: wrong role gets 403, wrong tenant gets 403 | [x] |
 
 ---
 
-### Step 1.5 — Multi-Tenant Architecture
+### Step 1.5 — Multi-Tenant Architecture ✅
 | Task | Done |
 |------|------|
-| Subdomain-reading middleware | [ ] |
-| Schema-switching — every DB query uses correct tenant schema | [ ] |
-| New clinic creation flow — schema + default data + flags | [ ] |
-| Default `clinic_settings` row inserted on clinic creation | [ ] |
-| Default `feature_flags` rows inserted (all OFF) | [ ] |
-| Test: Clinic A data never visible to Clinic B | [ ] |
+| Subdomain-reading middleware | [x] |
+| Schema-switching — every DB query uses correct tenant schema | [x] |
+| New clinic creation flow — schema + default data + flags | [x] |
+| Default `clinic_settings` row inserted on clinic creation | [x] |
+| Default `feature_flags` rows inserted (all OFF) | [x] |
+| Test: Clinic A data never visible to Clinic B | [x] |
 
 ---
 
-### Step 1.6 — Feature Flag System
+### Step 1.6 — Feature Flag System ✅
 | Task | Done |
 |------|------|
-| Load feature flags from DB on every authenticated request | [ ] |
-| Backend enforces flags — returns 403 if module is off | [ ] |
-| Frontend receives flags in login response | [ ] |
-| Frontend stores flags in global state | [ ] |
-| Frontend hides menu items based on flags | [ ] |
-| Test: turn pharmacy OFF → menu item disappears, API rejects request | [ ] |
+| Load feature flags from DB on every authenticated request | [x] |
+| Backend enforces flags — returns 403 if module is off | [x] |
+| Frontend receives flags in login response | [x] |
+| Frontend stores flags in global state | [x] |
+| Frontend hides menu items based on flags | [x] |
+| Test: turn pharmacy OFF → menu item disappears, API rejects request | [x] |
 
 **✅ Phase 1 complete when:** A test clinic can log in, see correct role dashboard, and be blocked from disabled modules.
 
@@ -128,7 +128,7 @@ Phase 7  →  Desktop version (later)
 
 ---
 
-### Module 2.0 — Role-Based Dashboards
+### Module 2.0 — Role-Based Dashboards *(frontend scaffold done — backend pending)*
 
 **Why first:** Every staff member lands here after login. It must work before anything else.
 
@@ -138,95 +138,99 @@ Phase 7  →  Desktop version (later)
 | `GET /api/v1/dashboard/receptionist` | backend | [ ] |
 | `GET /api/v1/dashboard/admin` | backend | [ ] |
 | `GET /api/v1/dashboard/nurse` | backend | [ ] |
-| Doctor dashboard screen — today's queue, next patient, Rx link | frontend | [ ] |
-| Receptionist dashboard — live queue, collected/pending, alert badges | frontend | [ ] |
-| Admin dashboard — revenue, patient count, doctor stats, EOD status | frontend | [ ] |
-| Nurse dashboard — patients needing vitals | frontend | [ ] |
-| Auto-route to correct dashboard after login based on role | frontend | [ ] |
+| Doctor dashboard screen — today's queue, next patient, Rx link | frontend | [x] *(scaffold)* |
+| Receptionist dashboard — live queue, collected/pending, alert badges | frontend | [x] *(scaffold)* |
+| Admin dashboard — revenue, patient count, doctor stats, EOD status | frontend | [x] *(scaffold)* |
+| Nurse dashboard — patients needing vitals | frontend | [x] *(scaffold)* |
+| Auto-route to correct dashboard after login based on role | frontend | [x] |
 
 **Test:** Log in as each role → correct dashboard shown with correct data.
 
 ---
 
-### Module 2.1 — Patient Registration 👤
+### Module 2.1 — Patient Registration 👤 ✅
 
 **Why second:** Every other module needs a patient to exist first.
 
 | Task | Project | Done |
 |------|---------|------|
-| Create `patients` table in tenant schema | backend | [ ] |
-| Add DB indexes on `phone`, `first_name`, `last_name`, `patient_code` | backend | [ ] |
-| `POST /api/v1/patients` — create new patient | backend | [ ] |
-| `GET /api/v1/patients` — list with search and pagination | backend | [ ] |
-| `GET /api/v1/patients/:id` — full profile | backend | [ ] |
-| `PUT /api/v1/patients/:id` — update details | backend | [ ] |
-| `DELETE /api/v1/patients/:id` — soft delete | backend | [ ] |
-| `GET /api/v1/patients/check-duplicate` — check before registering | backend | [ ] |
-| `GET /api/v1/patients/returning?phone=` — quick lookup | backend | [ ] |
-| Auto-generate patient code `PT-XXXXX` | backend | [ ] |
-| Returning patient quick search screen (phone → results → add to queue) | frontend | [ ] |
-| New patient registration form | frontend | [ ] |
-| Duplicate patient warning modal | frontend | [ ] |
-| Patient list with search bar and filters | frontend | [ ] |
-| Patient profile page (full history timeline) | frontend | [ ] |
+| Create `patients` table in tenant schema | backend | [x] |
+| Add DB indexes on `phone`, `first_name`, `last_name`, `patient_code` | backend | [x] |
+| `POST /api/v1/patients` — create new patient | backend | [x] |
+| `GET /api/v1/patients` — list with search and pagination | backend | [x] |
+| `GET /api/v1/patients/:id` — full profile | backend | [x] |
+| `PUT /api/v1/patients/:id` — update details | backend | [x] |
+| `DELETE /api/v1/patients/:id` — soft delete | backend | [x] |
+| `GET /api/v1/patients/check-duplicate` — check before registering | backend | [x] |
+| `GET /api/v1/patients/returning?phone=` — quick lookup | backend | [x] |
+| Auto-generate patient code `PT-XXXXX` | backend | [x] |
+| Returning patient quick search screen (phone → results → add to queue) | frontend | [x] |
+| New patient registration form | frontend | [x] |
+| Duplicate patient warning modal | frontend | [x] |
+| Patient list with search bar and filters | frontend | [x] |
+| Patient profile page (full history timeline) | frontend | [x] |
 
+**Completed:** 2026-04-08
 **Test:** Register new patient → appears in list. Search by phone → finds existing patient. Register same phone again → duplicate warning shown.
 
 ---
 
-### Module 2.2 — Doctor Appointments 📅
+### Module 2.2 — Doctor Appointments 📅 ✅
 
 **Why third:** Queue and appointments are needed before a consultation can happen.
 
 | Task | Project | Done |
 |------|---------|------|
-| Create `appointments` table | backend | [ ] |
-| Create `doctor_schedules` table | backend | [ ] |
-| Create `clinic_holidays` table | backend | [ ] |
-| `POST /api/v1/appointments` — create (booked or walk-in) | backend | [ ] |
-| `GET /api/v1/appointments` — list by date, doctor, status | backend | [ ] |
-| `PUT /api/v1/appointments/:id` — update status | backend | [ ] |
-| `PUT /api/v1/appointments/:id/emergency` — insert as emergency | backend | [ ] |
-| `DELETE /api/v1/appointments/:id` — cancel | backend | [ ] |
-| `GET /api/v1/doctors/:id/slots` — available slots for a date | backend | [ ] |
-| `POST /api/v1/doctor-schedules` — set working hours | backend | [ ] |
-| `POST /api/v1/clinic-holidays` — add holiday / off day | backend | [ ] |
-| Token number auto-assign for walk-ins | backend | [ ] |
-| Appointment booking form (doctor, date, time slot) | frontend | [ ] |
-| Calendar view — day and week | frontend | [ ] |
-| Live queue display with token numbers and status colors | frontend | [ ] |
-| Emergency patient button — jumps queue, shown in red | frontend | [ ] |
-| Status update buttons — Arrived / Completed / Cancel | frontend | [ ] |
-| Doctor schedule setup screen (admin only) | frontend | [ ] |
-| Clinic holidays screen (admin only) | frontend | [ ] |
-| Online booking page (public URL for patients) | frontend | [ ] |
+| Create `appointments` table | backend | [x] |
+| Create `doctor_schedules` table | backend | [x] |
+| Create `clinic_holidays` table | backend | [x] |
+| `POST /api/v1/appointments` — create (booked or walk-in) | backend | [x] |
+| `GET /api/v1/appointments` — list by date, doctor, status | backend | [x] |
+| `PUT /api/v1/appointments/:id` — update status | backend | [x] |
+| `PUT /api/v1/appointments/:id/emergency` — insert as emergency | backend | [x] |
+| `DELETE /api/v1/appointments/:id` — cancel | backend | [x] |
+| `GET /api/v1/doctors/:id/slots` — available slots for a date | backend | [x] |
+| `POST /api/v1/doctor-schedules` — set working hours | backend | [x] |
+| `POST /api/v1/clinic-holidays` — add holiday / off day | backend | [x] |
+| Token number auto-assign for walk-ins | backend | [x] |
+| Appointment booking form (doctor, date, time slot) | frontend | [x] |
+| Calendar view — day and week | frontend | [ ] *(deferred — queue view used instead)* |
+| Live queue display with token numbers and status colors | frontend | [x] |
+| Emergency patient button — jumps queue, shown in red | frontend | [x] |
+| Status update buttons — Arrived / Completed / Cancel | frontend | [x] |
+| Doctor schedule setup screen (admin only) | frontend | [x] |
+| Clinic holidays screen (admin only) | frontend | [x] |
+| Online booking page (public URL for patients) | frontend | [ ] *(deferred to Phase 5)* |
 
+**Completed:** 2026-04-07
 **Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date.
 
 ---
 
-### Module 2.3 — Medical Records 🩺
+### Module 2.3 — Medical Records 🩺 ✅
 
 **Why fourth:** Consultation is written after the patient is in the queue.
 
 | Task | Project | Done |
 |------|---------|------|
-| Create `consultations` table | backend | [ ] |
-| `POST /api/v1/consultations` — create visit record | backend | [ ] |
-| `GET /api/v1/consultations/:id` — single record | backend | [ ] |
-| `GET /api/v1/patients/:id/consultations` — full visit history | backend | [ ] |
-| `PUT /api/v1/consultations/:id` — update (within 24hr only) | backend | [ ] |
-| File upload endpoint for lab results (PDF/JPG) | backend | [ ] |
-| Consultation form (doctor opens from appointment) | frontend | [ ] |
-| Vitals input — BP, temperature, weight, pulse | frontend | [ ] |
-| Diagnosis field with ICD-10 code search | frontend | [ ] |
-| Clinical notes text area | frontend | [ ] |
-| Follow-up date picker | frontend | [ ] |
-| File attachment upload and viewer | frontend | [ ] |
-| Patient visit history timeline | frontend | [ ] |
-| Previous visit summary shown at top before doctor starts | frontend | [ ] |
+| Create `consultations` table | backend | [x] |
+| `POST /api/v1/consultations` — create visit record | backend | [x] |
+| `GET /api/v1/consultations/:id` — single record | backend | [x] |
+| `GET /api/v1/consultations/patient/:patientId` — full visit history | backend | [x] |
+| `GET /api/v1/consultations` — list by date | backend | [x] |
+| `PUT /api/v1/consultations/:id` — update (within 24hr only) | backend | [x] |
+| File upload endpoint for lab results (PDF/JPG) | backend | [ ] *(deferred to Phase 5)* |
+| Consultation form (doctor opens from appointment) | frontend | [x] |
+| Vitals input — BP, temperature, weight, pulse | frontend | [x] |
+| Diagnosis field with ICD-10 code | frontend | [x] |
+| Clinical notes text area | frontend | [x] |
+| Follow-up date picker | frontend | [x] |
+| File attachment upload and viewer | frontend | [ ] *(deferred to Phase 5)* |
+| Patient visit history timeline | frontend | [x] |
+| ConsultationsPage — date navigation, list all consultations | frontend | [x] |
 
-**Test:** Open appointment → write consultation → save → appears in patient history. Previous visit allergies and complaint visible at top.
+**Completed:** 2026-04-08
+**Test:** Open appointment → write consultation → save → appears in patient history. Allergies shown in red banner at top of form.
 
 ---
 
@@ -268,43 +272,50 @@ Phase 7  →  Desktop version (later)
 
 ---
 
-### Module 2.5 — Billing & Payments 💳
+### Module 2.5 — Billing & Payments 💳 ✅
 
 **Why sixth:** Invoice is generated after consultation and prescription are done.
 
 | Task | Project | Done |
 |------|---------|------|
-| Create `invoices` table | backend | [ ] |
-| Create `invoice_items` table | backend | [ ] |
-| Create `payment_splits` table | backend | [ ] |
-| Create `custom_services` table | backend | [ ] |
-| Create `end_of_day` table | backend | [ ] |
-| `POST /api/v1/invoices` — create, auto-pull from consultation | backend | [ ] |
-| `GET /api/v1/invoices` — list by status, date | backend | [ ] |
-| `GET /api/v1/invoices/:id` — with items and splits | backend | [ ] |
-| `PUT /api/v1/invoices/:id/pay` — single payment | backend | [ ] |
-| `POST /api/v1/invoices/:id/splits` — split payment | backend | [ ] |
-| `GET /api/v1/custom-services` — list services | backend | [ ] |
-| `POST /api/v1/custom-services` — add service | backend | [ ] |
-| `POST /api/v1/end-of-day` — submit daily closing | backend | [ ] |
-| `GET /api/v1/end-of-day/:date` — get closing for a date | backend | [ ] |
-| Auto-generate invoice number `INV-XXXXX` | backend | [ ] |
-| Auto-pull doctor consultation fee from `doctor_fees` | backend | [ ] |
-| Auto-pull prescribed medicines into invoice items | backend | [ ] |
-| PDF generation — invoice and receipt (clinic-branded) | backend | [ ] |
-| Invoice generation screen (receptionist) | frontend | [ ] |
-| Add/remove/edit line items | frontend | [ ] |
-| Custom service picker from clinic list | frontend | [ ] |
-| Single payment method selection | frontend | [ ] |
-| Split payment screen (multiple methods + amounts) | frontend | [ ] |
-| Partial payment with balance due display | frontend | [ ] |
-| Invoice list with filters (paid / unpaid / partial) | frontend | [ ] |
-| Invoice print / PDF download | frontend | [ ] |
-| Patient billing history view | frontend | [ ] |
-| End of day closing screen | frontend | [ ] |
-| EOD — system totals vs cash counted, discrepancy display | frontend | [ ] |
+| Create `invoices` table | backend | [x] |
+| Create `invoice_items` table | backend | [x] |
+| Create `payment_splits` table | backend | [x] |
+| Create `custom_services` table | backend | [x] |
+| Create `end_of_day` table | backend | [x] |
+| `POST /api/v1/invoices` — create, auto-pull from consultation | backend | [x] |
+| `GET /api/v1/invoices` — list by status, date | backend | [x] |
+| `GET /api/v1/invoices/:id` — with items and splits | backend | [x] |
+| `POST /api/v1/invoices/:id/pay` — record payment split | backend | [x] |
+| `PUT /api/v1/invoices/:id/items` — add/remove line item | backend | [x] |
+| `GET /api/v1/invoices/patient/:patientId` — billing history | backend | [x] |
+| `GET /api/v1/invoices/check/:consultationId` — duplicate check | backend | [x] |
+| `GET /api/v1/custom-services` — list services | backend | [x] |
+| `POST /api/v1/custom-services` — add service | backend | [x] |
+| `PUT /api/v1/custom-services/:id` — update | backend | [x] |
+| `DELETE /api/v1/custom-services/:id` — soft delete | backend | [x] |
+| `GET /api/v1/doctor-fees` — list fees | backend | [x] |
+| `PUT /api/v1/doctor-fees/:doctorId` — upsert fee | backend | [x] |
+| `POST /api/v1/end-of-day` — submit daily closing | backend | [x] |
+| `GET /api/v1/end-of-day/summary/:date` — live pre-close totals | backend | [x] |
+| `GET /api/v1/end-of-day/:date` — get closed record | backend | [x] |
+| `GET /api/v1/end-of-day` — list history | backend | [x] |
+| Auto-generate invoice number `INV-XXXXX` | backend | [x] |
+| Auto-pull doctor consultation fee from `doctor_fees` | backend | [x] |
+| Auto-pull prescribed medicines into invoice items | backend | [x] |
+| PDF generation — invoice and receipt (deferred to Phase 3) | backend | [ ] |
+| BillingPage — date nav, status tabs, summary strip, table | frontend | [x] |
+| InvoiceModal — line items, add/remove, totals, payment form | frontend | [x] |
+| Custom service picker inside InvoiceModal | frontend | [x] |
+| Split payment — multiple methods, each recorded as a split | frontend | [x] |
+| Partial payment with balance due shown | frontend | [x] |
+| "Bill" button on completed appointments (receptionist/admin) | frontend | [x] |
+| Patient billing history tab — summary + invoice table | frontend | [x] |
+| EndOfDayPage — totals, cash count, discrepancy, lock button | frontend | [x] |
+| Invoice print / PDF (deferred to Phase 3) | frontend | [ ] |
 
-**Test:** Complete consultation → open billing → invoice auto-populated with doctor fee and medicines. Pay with split cash + insurance → both recorded. EOD shows correct totals. Cash discrepancy highlighted in red.
+**Completed:** 2026-04-09
+**Test:** Complete consultation → click Bill on queue row → invoice auto-populated with doctor fee and medicines. Add service item. Pay cash + insurance in two steps → both recorded as splits. EOD shows correct totals. Cash short highlighted in red.
 
 ---
 

@@ -17,9 +17,9 @@ import ConsultationsPage from './pages/consultations/ConsultationsPage';
 import PrescriptionsPage  from './pages/prescriptions/PrescriptionsPage';
 import MedicineStorePage  from './pages/medicines/MedicineStorePage';
 
-// Phase 2.5
-// import InvoiceForm         from './pages/billing/InvoiceForm';
-// import EndOfDay            from './pages/billing/EndOfDay';
+// Phase 2.5 — Billing
+import BillingPage  from './pages/billing/BillingPage';
+import EndOfDayPage from './pages/billing/EndOfDayPage';
 
 // Phase 2.6
 // import AdminReports        from './pages/reports/AdminReports';
@@ -68,8 +68,16 @@ export default function App() {
       } />
 
       {/* Phase 2.5 — Billing */}
-      {/* <Route path="/billing"               element={<ProtectedRoute allowedRoles={['receptionist','admin']}><InvoiceForm /></ProtectedRoute>} /> */}
-      {/* <Route path="/billing/end-of-day"    element={<ProtectedRoute allowedRoles={['receptionist','admin']}><EndOfDay /></ProtectedRoute>} /> */}
+      <Route path="/billing" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <BillingPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/billing/end-of-day" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <EndOfDayPage />
+        </ProtectedRoute>
+      } />
 
       {/* Phase 2.6 — Reports */}
       {/* <Route path="/reports"               element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} /> */}

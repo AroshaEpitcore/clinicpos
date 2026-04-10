@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Calendar, Clock, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Calendar, Clock, Printer, Receipt } from 'lucide-react';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
 import { Button }        from '../../components/ui/Button';
@@ -13,7 +13,9 @@ import { ManageScheduleModal } from './admin/ManageScheduleModal';
 import { HolidaysModal }       from './admin/HolidaysModal';
 import { ConsultationModal }   from '../consultations/ConsultationModal';
 import { PrescriptionModal }   from '../prescriptions/PrescriptionModal';
+import { InvoiceModal }        from '../billing/components/InvoiceModal';
 import { appointmentsApi, doctorsApi } from '../../api/appointments';
+import { invoicesApi }         from '../../api/invoices';
 import { useAuth }       from '../../store/AuthContext';
 import { formatDate }    from '../../utils/format';
 
@@ -65,6 +67,7 @@ export default function AppointmentsPage() {
   const [holidaysModalOpen,   setHolidaysModalOpen]   = useState(false);
   const [consultTarget,       setConsultTarget]       = useState(null);
   const [rxTarget,            setRxTarget]            = useState(null); // appointment obj for prescription
+  const [billInvoiceId,       setBillInvoiceId]       = useState(null); // invoice id to open
 
   // Status change confirm
   const [pendingAction, setPendingAction] = useState(null); // { appointment, newStatus }
@@ -113,6 +116,26 @@ export default function AppointmentsPage() {
       toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setActioning(false);
+    }
+  }
+
+  async function handleBill(appt) {
+    try {
+      // If consultation exists, check for or create an invoice
+      if (!appt.consultation_id) {
+        toast.error('No consultation found for this appointment.');
+        return;
+      }
+      const check = await invoicesApi.checkConsult(appt.consultation_id);
+      if (check.data.exists) {
+        setBillInvoiceId(check.data.data.id);
+      } else {
+        const res = await invoicesApi.create({ consultation_id: appt.consultation_id });
+        setBillInvoiceId(res.data.data.id);
+        toast.success(`Invoice ${res.data.data.invoice_number} created`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || err.response?.data?.message || 'Could not open invoice.');
     }
   }
 
@@ -273,6 +296,7 @@ export default function AppointmentsPage() {
               onMakeEmergency={() => setEmergencyTarget(appt)}
               onConsult={() => setConsultTarget(appt)}
             onWriteRx={() => setRxTarget(appt)}
+            onBill={() => handleBill(appt)}
             />
           ))}
         </div>
@@ -309,6 +333,14 @@ export default function AppointmentsPage() {
         onSuccess={() => load(true)}
         appointment={rxTarget}
       />
+
+      {billInvoiceId && (
+        <InvoiceModal
+          invoiceId={billInvoiceId}
+          onClose={() => setBillInvoiceId(null)}
+          onSuccess={() => { setBillInvoiceId(null); load(true); }}
+        />
+      )}
 
       {/* Status change confirm */}
       <ConfirmDialog
@@ -347,12 +379,14 @@ export default function AppointmentsPage() {
   );
 }
 
-function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onConsult, onWriteRx }) {
+function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onConsult, onWriteRx, onBill }) {
   const actions = STATUS_ACTIONS[appt.status] || [];
-  const isEmergency = appt.type === 'emergency';
-  const isDoctor = user?.role === 'doctor' || user?.role === 'admin';
-  const canConsult  = isDoctor && appt.status === 'arrived';
-  const canWriteRx  = isDoctor && appt.status === 'completed';
+  const isEmergency   = appt.type === 'emergency';
+  const isDoctor      = user?.role === 'doctor' || user?.role === 'admin';
+  const isReceptionist = user?.role === 'receptionist' || user?.role === 'admin';
+  const canConsult    = isDoctor      && appt.status === 'arrived';
+  const canWriteRx    = isDoctor      && appt.status === 'completed';
+  const canBill       = isReceptionist && appt.status === 'completed' && !!appt.consultation_id;
 
   return (
     <div className={`flex items-center gap-4 px-4 py-3 rounded-[var(--radius)] border transition-colors ${
@@ -407,6 +441,11 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
         {canWriteRx && (
           <Button size="sm" variant="secondary" onClick={onWriteRx}>
             <Printer className="w-3.5 h-3.5 mr-1" /> Write Rx
+          </Button>
+        )}
+        {canBill && (
+          <Button size="sm" variant="secondary" onClick={onBill}>
+            <Receipt className="w-3.5 h-3.5 mr-1" /> Bill
           </Button>
         )}
 

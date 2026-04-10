@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 2.5 — Billing & Payments
-**Last updated:** 2026-04-08
-**Next up:** Phase 2.5 — Invoice generation, payment recording, end-of-day closing
+**Currently working on:** Phase 2.6 — Reports
+**Last updated:** 2026-04-09
+**Next up:** Phase 2.6 — Admin analytics dashboard, daily/monthly reports, EOD history
 
 ---
 
@@ -45,7 +45,7 @@
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1 | Foundation — server, auth, multi-tenant setup | ✅ Complete |
-| Phase 2 | Core clinic app — 6 main features | In Progress (2.1–2.4 complete) |
+| Phase 2 | Core clinic app — 6 main features | In Progress (2.1–2.5 complete) |
 | Phase 3 | Super admin panel | Not started |
 | Phase 4 | Add-on modules | Not started |
 | Phase 5 | Beta and launch | Not started |
@@ -330,45 +330,46 @@ custom_domain  — clinic uses their own domain
 **Project:** `clinic-frontend` + `backend-api`
 
 #### Backend
-- [ ] `POST /api/v1/invoices` — create invoice (auto-pull from consultation)
-- [ ] `GET /api/v1/invoices` — list invoices (filter by status, date, doctor)
-- [ ] `GET /api/v1/invoices/:id` — get invoice with all items and payment splits
-- [ ] `PUT /api/v1/invoices/:id/pay` — record single payment method
-- [ ] `POST /api/v1/invoices/:id/splits` — record split payment (multiple methods)
-- [ ] `GET /api/v1/patients/:id/invoices` — full patient billing history
-- [ ] `GET /api/v1/custom-services` — list clinic's custom service items
-- [ ] `POST /api/v1/custom-services` — add new custom service (admin)
-- [ ] `PUT /api/v1/custom-services/:id` — update service / price
-- [ ] `GET /api/v1/end-of-day/:date` — get EOD record for a date
-- [ ] `POST /api/v1/end-of-day` — submit daily closing with cash count
-- [ ] Auto-generate invoice number (INV-XXXXX)
-- [ ] Auto-pull consultation fee (from `doctor_fees`) and medicines into invoice on creation
-- [ ] Auto-pull custom services selected during consultation into invoice
-- [ ] PDF generation for invoice and receipt (with clinic logo, header, footer)
-- [ ] Create tenant schema tables: `invoices`, `invoice_items`, `payment_splits`, `custom_services`, `end_of_day`
+- [x] `POST /api/v1/invoices` — create from consultation; auto-pulls doctor fee + prescribed medicines; blocks duplicates (409); auto-generates INV-XXXXX
+- [x] `GET /api/v1/invoices` — list by date + status filter + patient_id filter
+- [x] `GET /api/v1/invoices/:id` — full invoice with items + payment splits
+- [x] `POST /api/v1/invoices/:id/pay` — record a payment split (any method); updates paid_amount, balance_due, payment_status
+- [x] `PUT /api/v1/invoices/:id/items` — add or remove a line item; recalculates totals
+- [x] `GET /api/v1/invoices/patient/:patientId` — full billing history for a patient
+- [x] `GET /api/v1/invoices/check/:consultationId` — check if invoice already exists for a consultation
+- [x] `GET /api/v1/custom-services` — list active custom services
+- [x] `POST /api/v1/custom-services` — add custom service (admin)
+- [x] `PUT /api/v1/custom-services/:id` — update (admin)
+- [x] `DELETE /api/v1/custom-services/:id` — soft delete (admin)
+- [x] `GET /api/v1/doctor-fees` — list all doctors with their consultation fee
+- [x] `PUT /api/v1/doctor-fees/:doctorId` — upsert doctor fee (admin)
+- [x] `GET /api/v1/end-of-day/summary/:date` — live totals for a date (pre-close view)
+- [x] `GET /api/v1/end-of-day/:date` — get a specific closed EOD record
+- [x] `GET /api/v1/end-of-day` — list past EOD records
+- [x] `POST /api/v1/end-of-day` — submit and lock day closing
+- [x] Auto-generate invoice number (INV-XXXXX)
+- [x] Auto-pull doctor consultation fee from `doctor_fees` on invoice creation
+- [x] Auto-pull prescribed medicines (with prices) from `prescription_items` on invoice creation
+- [ ] PDF generation for invoice/receipt (deferred to Phase 3 with clinic branding)
 
 #### Frontend
-- [ ] Invoice generation screen (receptionist — auto-populated from consultation)
-- [ ] Add / remove / edit invoice line items manually if needed
-- [ ] Custom service picker — select from clinic's pre-defined service list
-- [ ] Single payment method selection
-- [ ] Split payment screen — add multiple methods with amounts and references
-- [ ] Partial payment recording with balance due shown clearly
-- [ ] Invoice list with status filters (paid / unpaid / partial) and date filter
-- [ ] Invoice print / PDF download (clinic-branded)
-- [ ] Patient billing history view with total spent
-- [ ] End of day closing screen (receptionist / admin)
-  - [ ] Shows system totals per payment method
-  - [ ] Cash count input field
-  - [ ] Discrepancy shown clearly (green if matched, red if difference)
-  - [ ] Notes field for explanation
-  - [ ] Confirm and lock button
+- [x] BillingPage — date navigation, status filter tabs (All/Unpaid/Partial/Paid), summary strip (billed/collected/outstanding), invoice table
+- [x] InvoiceModal — patient header, line items table, add item (with custom service picker dropdown), remove item, totals breakdown, payment history, record payment form (Cash/Card/Online/Insurance with reference field)
+- [x] Split payment — each payment call adds a split record; multiple payments shown in history
+- [x] Partial payment — balance_due updates correctly; status shows "partial" until fully paid
+- [x] EndOfDayPage — date picker, system totals, per-method breakdown, cash count input, live discrepancy indicator (green/amber/red), notes field, lock button, closed-day read-only view
+- [x] "Bill" button on completed appointments queue row (receptionist + admin) — creates or opens existing invoice
+- [x] Patient profile Billing tab — invoice history table with summary totals, view invoice in modal
+- [x] `api/invoices.js` — invoicesApi, customServicesApi, doctorFeesApi, endOfDayApi
+- [x] `appointment.routes.js` updated — `consultation_id` now included in list query
+- [ ] Invoice print / PDF (deferred to Phase 3)
+- [ ] Doctor fees management screen in Settings (deferred to Phase 2.7)
+- [ ] Custom services management screen in Settings (deferred to Phase 2.7)
 
-**Status:** Not started  
-**Started on:** —  
-**Completed on:** —  
-**Stopped at:** —  
-**Notes:** Split payment is common — half cash half insurance is the most frequent case. EOD closing is a daily must-have for every clinic owner.
+**Status:** ✅ Complete
+**Started on:** 2026-04-09
+**Completed on:** 2026-04-09
+**Notes:** Invoice auto-creates from appointment queue (Bill button) or can be viewed from Billing page. Payment supports multiple methods in sequence (split). EOD locks the day — cannot be re-submitted. Invoice PDF deferred until clinic branding (logo, header/footer) is set up in Phase 3.
 
 ---
 
@@ -526,6 +527,7 @@ custom_domain  — clinic uses their own domain
 | 2026-04-08 | Phase 2.3 Medical Records — consultation routes, ConsultationModal, VisitsTab on patient profile | Complete | Start Phase 2.4 Prescriptions |
 | 2026-04-08 | UI/UX fine-tune pass — sidebar collapse, toast improvements, modal sizing, inline form validation, ConsultationsPage + route | Complete | Start Phase 2.4 Prescriptions |
 | 2026-04-08 | Phase 2.4 Prescriptions — medicines + prescriptions backend routes, PrescriptionModal, PrescriptionsPage, MedicineStorePage, PatientProfile Rx tab, browser print | Complete | Start Phase 2.5 Billing |
+| 2026-04-09 | Phase 2.5 Billing — invoice + custom-services + doctor-fees + end-of-day backend, BillingPage, InvoiceModal, EndOfDayPage, Bill button on queue, PatientProfile billing tab | Complete | Start Phase 2.6 Reports |
 
 ---
 

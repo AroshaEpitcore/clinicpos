@@ -13,8 +13,11 @@ import { EditPatientModal } from './components/EditPatientModal';
 import { patientsApi }         from '../../api/patients';
 import { consultationsApi }    from '../../api/consultations';
 import { prescriptionsApi }    from '../../api/prescriptions';
+import { invoicesApi }         from '../../api/invoices';
 import { formatDate, formatAge, formatCurrency } from '../../utils/format';
 import { useAuth }             from '../../store/AuthContext';
+import { InvoiceModal }        from '../billing/components/InvoiceModal';
+import { PaymentStatusBadge }  from '../billing/BillingPage';
 
 export default function PatientProfile() {
   const { id }   = useParams();
@@ -167,9 +170,7 @@ export default function PatientProfile() {
       {activeTab === 'overview' && <OverviewTab patient={patient} />}
       {activeTab === 'visits'   && <VisitsTab patientId={patient.id} />}
       {activeTab === 'prescriptions' && <PrescriptionsTab patientId={patient.id} />}
-      {activeTab === 'billing' && (
-        <EmptyState title="No invoices yet" description="Billing history will appear here. (Phase 2.5)" />
-      )}
+      {activeTab === 'billing' && <BillingTab patientId={patient.id} />}
 
       {showEdit && (
         <EditPatientModal
@@ -386,6 +387,109 @@ function VisitsTab({ patientId }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function BillingTab({ patientId }) {
+  const [invoices,     setInvoices]     = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [openInvoice,  setOpenInvoice]  = useState(null);
+
+  useEffect(() => {
+    invoicesApi.getByPatient(patientId)
+      .then(res => setInvoices(res.data.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <LoadingState message="Loading billing history..." />;
+  if (invoices.length === 0) return (
+    <EmptyState title="No invoices yet" description="Billing history will appear here after the first invoice is generated." />
+  );
+
+  const totalBilled    = invoices.reduce((s, i) => s + parseFloat(i.total_amount  || 0), 0);
+  const totalPaid      = invoices.reduce((s, i) => s + parseFloat(i.paid_amount   || 0), 0);
+  const totalBalance   = invoices.reduce((s, i) => s + parseFloat(i.balance_due   || 0), 0);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <p className="text-xs text-[var(--color-text-secondary)]">Total Billed</p>
+          <p className="text-base font-bold text-[var(--color-text)] mt-0.5">{formatCurrency(totalBilled)}</p>
+        </div>
+        <div className="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <p className="text-xs text-[var(--color-text-secondary)]">Total Paid</p>
+          <p className="text-base font-bold text-[var(--color-success,#16a34a)] mt-0.5">{formatCurrency(totalPaid)}</p>
+        </div>
+        <div className="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <p className="text-xs text-[var(--color-text-secondary)]">Outstanding</p>
+          <p className={`text-base font-bold mt-0.5 ${totalBalance > 0 ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
+            {formatCurrency(totalBalance)}
+          </p>
+        </div>
+      </div>
+
+      {/* Invoice list */}
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Invoice</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Date</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Total</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Paid</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Balance</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Status</th>
+              <th className="px-4 py-2.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map(inv => (
+              <tr key={inv.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors">
+                <td className="px-4 py-2.5">
+                  <p className="text-sm font-semibold text-[var(--color-primary)]">{inv.invoice_number}</p>
+                </td>
+                <td className="px-4 py-2.5">
+                  <p className="text-sm text-[var(--color-text-secondary)]">{formatDate(inv.created_at)}</p>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className="text-sm font-semibold text-[var(--color-text)]">{formatCurrency(inv.total_amount)}</span>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className="text-sm text-[var(--color-success,#16a34a)]">{formatCurrency(inv.paid_amount)}</span>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className={`text-sm font-medium ${parseFloat(inv.balance_due) > 0 ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-secondary)]'}`}>
+                    {formatCurrency(inv.balance_due)}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <PaymentStatusBadge status={inv.payment_status} />
+                </td>
+                <td className="px-4 py-2.5">
+                  <button
+                    onClick={() => setOpenInvoice(inv.id)}
+                    className="text-xs text-[var(--color-primary)] hover:underline"
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {openInvoice && (
+        <InvoiceModal
+          invoiceId={openInvoice}
+          onClose={() => setOpenInvoice(null)}
+          onSuccess={() => setOpenInvoice(null)}
+        />
+      )}
     </div>
   );
 }

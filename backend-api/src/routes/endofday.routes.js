@@ -1,13 +1,14 @@
 const router = require('express').Router();
-const { queryTenant } = require('../db');
+const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { tenantMiddleware }            = require('../middleware/tenant');
 
-router.use(authMiddleware);
+router.use(tenantMiddleware, authMiddleware);
 
 // ── GET /api/v1/end-of-day ────────────────────────────────────────────────────
 // List past EOD records (most recent first)
 router.get('/', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { limit = 30 } = req.query;
   try {
     const result = await queryTenant(tenantId, `
@@ -27,7 +28,7 @@ router.get('/', requireRole('receptionist', 'admin'), async (req, res) => {
 // ── GET /api/v1/end-of-day/summary/:date ─────────────────────────────────────
 // Build live summary for a date (to show before closing)
 router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { date } = req.params;
   try {
     // Check if already closed
@@ -81,7 +82,7 @@ router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, r
 // ── GET /api/v1/end-of-day/:date ─────────────────────────────────────────────
 // Get a specific closed EOD record
 router.get('/:date', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   try {
     const result = await queryTenant(tenantId, `
       SELECT e.*, s.full_name AS closed_by_name
@@ -100,7 +101,7 @@ router.get('/:date', requireRole('receptionist', 'admin'), async (req, res) => {
 // ── POST /api/v1/end-of-day ───────────────────────────────────────────────────
 // Submit and lock end-of-day closing
 router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
-  const tenantId = req.tenant.id;
+  const tenantId = req.tenantSchema;
   const { closing_date, cash_counted, notes } = req.body;
 
   if (!closing_date || cash_counted == null) {
