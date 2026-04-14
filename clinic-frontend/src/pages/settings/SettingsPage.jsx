@@ -104,8 +104,10 @@ function ClinicTab({ settings, onSave, saving }) {
     setUploadingLogo(true);
     try {
       const res = await settingsApi.uploadLogo(file);
-      setLogoPreview(res.data.data.url);
-      updateClinic({ logo_url: res.data.data.url });
+      // Append cache-buster so browser re-fetches even if filename is unchanged
+      const freshUrl = `${res.data.data.url}?v=${Date.now()}`;
+      setLogoPreview(freshUrl);
+      updateClinic({ logo_url: freshUrl });
       toast.success('Logo uploaded');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Upload failed');
@@ -138,7 +140,7 @@ function ClinicTab({ settings, onSave, saving }) {
           <div className="flex flex-col gap-2">
             <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleLogoChange} />
             <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()} loading={uploadingLogo}>
-              <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload Logo
+              <Upload className="w-3.5 h-3.5 mr-1.5" /> {logoPreview ? 'Replace Logo' : 'Upload Logo'}
             </Button>
             {logoPreview && (
               <button onClick={handleLogoDelete} className="flex items-center gap-1 text-xs text-[var(--color-danger)] hover:underline">

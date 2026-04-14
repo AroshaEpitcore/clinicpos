@@ -331,6 +331,9 @@ router.post('/tenants/:id/impersonate', async (req, res) => {
     const featureFlags = {};
     flags.rows.forEach(f => { featureFlags[f.module] = f.enabled; });
 
+    const settingsRes = await queryTenant(schemaName, `SELECT clinic_logo_url, currency FROM clinic_settings LIMIT 1`);
+    const clinicSettings = settingsRes.rows[0] || {};
+
     const secret = process.env.JWT_SECRET;
     const token  = jwt.sign(
       {
@@ -350,11 +353,13 @@ router.post('/tenants/:id/impersonate', async (req, res) => {
       message: `Impersonation token for ${tenant.rows[0].clinic_name}`,
       data: {
         token,
-        subdomain: tenant.rows[0].subdomain,
+        subdomain:   tenant.rows[0].subdomain,
         clinic_name: tenant.rows[0].clinic_name,
-        staff: s,
+        logo_url:    clinicSettings.clinic_logo_url || null,
+        currency:    clinicSettings.currency        || 'LKR',
+        staff:         s,
         feature_flags: featureFlags,
-        impersonated: true,
+        impersonated:  true,
       },
     });
   } catch (err) {

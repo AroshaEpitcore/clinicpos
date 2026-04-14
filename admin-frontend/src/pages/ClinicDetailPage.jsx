@@ -170,7 +170,7 @@ export default function ClinicDetailPage() {
       // Store the impersonation token in clinic-frontend storage keys
       localStorage.setItem('clinic_token',    d.token);
       localStorage.setItem('clinic_user',     JSON.stringify({ ...d.staff, impersonated: true, impersonatedBy: 'superadmin' }));
-      localStorage.setItem('clinic_info',     JSON.stringify({ name: d.clinic_name, logo_url: null, currency: 'LKR' }));
+      localStorage.setItem('clinic_info',     JSON.stringify({ name: d.clinic_name, logo_url: d.logo_url || null, currency: d.currency || 'LKR' }));
       localStorage.setItem('clinic_flags',    JSON.stringify(d.feature_flags));
       localStorage.setItem('clinic_subdomain', d.subdomain);
 
@@ -179,9 +179,10 @@ export default function ClinicDetailPage() {
       const params = new URLSearchParams({
         token:       d.token,
         clinic_name: d.clinic_name,
+        logo_url:    d.logo_url    || '',
         user:        JSON.stringify(d.staff),
         flags:       JSON.stringify(d.feature_flags),
-        currency:    'LKR',
+        currency:    d.currency    || 'LKR',
       });
       window.open(`http://localhost:5173/impersonate?${params.toString()}`, '_blank');
     } catch (err) {

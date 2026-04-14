@@ -381,9 +381,14 @@ Phase 7  →  Desktop version (later)
 | Logo appears on invoice PDF / prescription PDF | frontend | [x] |
 | Doctor signature appears on prescription PDF | frontend | [x] |
 | "PDF" download button per Rx on PrescriptionsPage | frontend | [x] |
+| `GET /api/v1/doctor-fees` returns `signature_url` for each doctor | backend | [x] *(fixed 2026-04-14 — was missing from SELECT)* |
 
 **Completed:** 2026-04-14
 **Test:** Upload logo → preview shown. Set doctor fee → appears on next invoice. Add custom service → appears in InvoiceModal picker. Change currency → reflected in billing settings. Download PDF on invoice → branded PDF with logo, line items, payment history. Download PDF on prescription → logo, medicines table, doctor signature.
+
+**Deferred (column ready, UI/logic not yet built):**
+- `patient_portal_enabled` — DB column ✅, backend GET/PUT ✅, **no UI toggle yet** — add to Security tab in Phase 5 when patient portal is built
+- `duplicate_check_enabled` — DB column ✅, **backend does not read/write it**, **no UI** — implement duplicate patient check logic + Settings UI toggle in Phase 5
 
 **✅ Phase 3 complete.**
 
