@@ -21,11 +21,11 @@ import MedicineStorePage  from './pages/medicines/MedicineStorePage';
 import BillingPage  from './pages/billing/BillingPage';
 import EndOfDayPage from './pages/billing/EndOfDayPage';
 
-// Phase 2.6
-// import AdminReports        from './pages/reports/AdminReports';
+// Phase 2.6 — Reports
+import ReportsPage from './pages/reports/ReportsPage';
 
-// Phase 2.7
-// import ClinicSettings      from './pages/settings/ClinicSettings';
+// Phase 2.7 — Settings
+import SettingsPage from './pages/settings/SettingsPage';
 
 export default function App() {
   return (
@@ -80,10 +80,18 @@ export default function App() {
       } />
 
       {/* Phase 2.6 — Reports */}
-      {/* <Route path="/reports"               element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} /> */}
+      <Route path="/reports" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ReportsPage />
+        </ProtectedRoute>
+      } />
 
       {/* Phase 2.7 — Settings */}
-      {/* <Route path="/settings"              element={<ProtectedRoute allowedRoles={['admin']}><ClinicSettings /></ProtectedRoute>} /> */}
+      <Route path="/settings" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <SettingsPage />
+        </ProtectedRoute>
+      } />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

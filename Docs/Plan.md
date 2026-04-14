@@ -128,23 +128,22 @@ Phase 7  →  Desktop version (later)
 
 ---
 
-### Module 2.0 — Role-Based Dashboards *(frontend scaffold done — backend pending)*
+### Module 2.0 — Role-Based Dashboards ✅
 
 **Why first:** Every staff member lands here after login. It must work before anything else.
 
 | Task | Project | Done |
 |------|---------|------|
-| `GET /api/v1/dashboard/doctor` | backend | [ ] |
-| `GET /api/v1/dashboard/receptionist` | backend | [ ] |
-| `GET /api/v1/dashboard/admin` | backend | [ ] |
-| `GET /api/v1/dashboard/nurse` | backend | [ ] |
-| Doctor dashboard screen — today's queue, next patient, Rx link | frontend | [x] *(scaffold)* |
-| Receptionist dashboard — live queue, collected/pending, alert badges | frontend | [x] *(scaffold)* |
-| Admin dashboard — revenue, patient count, doctor stats, EOD status | frontend | [x] *(scaffold)* |
-| Nurse dashboard — patients needing vitals | frontend | [x] *(scaffold)* |
+| Doctor dashboard — today's queue stats + appointment list (uses existing `/appointments`) | frontend | [x] |
+| Receptionist dashboard — live queue table + billing summary (uses `/appointments` + `/end-of-day/summary`) | frontend | [x] |
+| Admin dashboard — revenue stats + monthly chart + doctor table (uses `/reports/daily` + `/reports/monthly` + `/reports/doctors`) | frontend | [x] |
+| Nurse dashboard — all patients in clinic today with status (uses `/appointments`) | frontend | [x] |
 | Auto-route to correct dashboard after login based on role | frontend | [x] |
 
-**Test:** Log in as each role → correct dashboard shown with correct data.
+*Note: No dedicated `/dashboard/*` backend routes needed — dashboards compose from existing report + appointment APIs.*
+
+**Completed:** 2026-04-14
+**Test:** Log in as each role → correct dashboard shown with real data from today.
 
 ---
 
@@ -254,7 +253,7 @@ Phase 7  →  Desktop version (later)
 | `GET /api/v1/medicines/low-stock` | backend | [x] |
 | `GET /api/v1/medicines/near-expiry` | backend | [x] |
 | Auto-generate Rx number `RX-XXXXX` | backend | [x] |
-| PDF generation — server-side (deferred; browser print used instead) | backend | [ ] |
+| PDF generation — server-side (`GET /prescriptions/:id/pdf`) | backend | [x] |
 | Stock auto-deduct on dispensing (deferred to pharmacy module) | backend | [ ] |
 | Prescription writer — "Write Rx" from completed appointment (doctor/admin) | frontend | [x] |
 | Medicine search with live auto-suggest, debounced per row | frontend | [x] |
@@ -303,7 +302,7 @@ Phase 7  →  Desktop version (later)
 | Auto-generate invoice number `INV-XXXXX` | backend | [x] |
 | Auto-pull doctor consultation fee from `doctor_fees` | backend | [x] |
 | Auto-pull prescribed medicines into invoice items | backend | [x] |
-| PDF generation — invoice and receipt (deferred to Phase 3) | backend | [ ] |
+| PDF generation — invoice and receipt (`GET /invoices/:id/pdf`) | backend | [x] |
 | BillingPage — date nav, status tabs, summary strip, table | frontend | [x] |
 | InvoiceModal — line items, add/remove, totals, payment form | frontend | [x] |
 | Custom service picker inside InvoiceModal | frontend | [x] |
@@ -312,77 +311,80 @@ Phase 7  →  Desktop version (later)
 | "Bill" button on completed appointments (receptionist/admin) | frontend | [x] |
 | Patient billing history tab — summary + invoice table | frontend | [x] |
 | EndOfDayPage — totals, cash count, discrepancy, lock button | frontend | [x] |
-| Invoice print / PDF (deferred to Phase 3) | frontend | [ ] |
+| Invoice "Download PDF" button in InvoiceModal | frontend | [x] |
 
 **Completed:** 2026-04-09
 **Test:** Complete consultation → click Bill on queue row → invoice auto-populated with doctor fee and medicines. Add service item. Pay cash + insurance in two steps → both recorded as splits. EOD shows correct totals. Cash short highlighted in red.
 
 ---
 
-### Module 2.6 — Reports & History 📊
+### Module 2.6 — Reports & History 📊 ✅
 
 **Why last in Phase 2:** Needs all data from previous modules to exist first.
 
 | Task | Project | Done |
 |------|---------|------|
-| `GET /api/v1/reports/daily` | backend | [ ] |
-| `GET /api/v1/reports/monthly` | backend | [ ] |
-| `GET /api/v1/reports/doctors` | backend | [ ] |
-| `GET /api/v1/reports/medicines` | backend | [ ] |
-| `GET /api/v1/reports/patients` | backend | [ ] |
-| `GET /api/v1/reports/appointments` | backend | [ ] |
-| `GET /api/v1/reports/end-of-day/history` | backend | [ ] |
-| PDF export for all reports | backend | [ ] |
-| Excel export for all reports | backend | [ ] |
-| Admin analytics dashboard screen | frontend | [ ] |
-| Daily summary widgets | frontend | [ ] |
-| Monthly revenue chart | frontend | [ ] |
-| Doctor performance table | frontend | [ ] |
-| Medicine stock and expiry report | frontend | [ ] |
-| EOD closing history list | frontend | [ ] |
-| Date range filter on all reports | frontend | [ ] |
-| Export buttons (PDF + Excel) | frontend | [ ] |
+| `GET /api/v1/reports/daily` | backend | [x] |
+| `GET /api/v1/reports/monthly` | backend | [x] |
+| `GET /api/v1/reports/doctors` | backend | [x] |
+| `GET /api/v1/reports/medicines` | backend | [x] |
+| `GET /api/v1/reports/patients` | backend | [x] |
+| `GET /api/v1/reports/appointments` | backend | [x] |
+| `GET /api/v1/reports/end-of-day/history` | backend | [x] |
+| PDF export for all reports | backend | [ ] *(deferred to Phase 3)* |
+| Excel / CSV export for all reports | backend | [x] *(CSV download in frontend)* |
+| Admin analytics dashboard screen | frontend | [x] |
+| Daily summary widgets | frontend | [x] |
+| Monthly revenue chart | frontend | [x] |
+| Doctor performance table | frontend | [x] |
+| Medicine stock and expiry report | frontend | [x] |
+| EOD closing history list | frontend | [x] |
+| Date range filter on all reports | frontend | [x] |
+| Export CSV button on all report tabs | frontend | [x] |
+| Scheduled monthly email report toggle | frontend | [ ] *(deferred to Phase 5)* |
 
-**Test:** All report screens load with correct data. Export produces valid PDF and Excel files. Date filter narrows results correctly.
+**Completed:** 2026-04-10
+**Test:** All report tabs load with correct data. CSV export downloads. Date filter narrows results. Monthly bar charts render. Medicine low-stock and expiry lists highlighted correctly.
 
 **✅ Phase 2 complete when:** A full patient visit cycle works end to end — register patient → appointment → consultation → prescription → invoice → payment → report shows the data.
 
 ---
 
-## Phase 3 — Clinic Self-Customization ⚙️
+## Phase 3 — Clinic Self-Customization ⚙️ *(moved to Module 2.7 — complete)*
 
 > This makes each clinic feel like the software is theirs.
 
 | Task | Project | Done |
 |------|---------|------|
-| `GET /api/v1/settings` — get clinic settings | backend | [ ] |
-| `PUT /api/v1/settings` — update settings | backend | [ ] |
-| `POST /api/v1/settings/logo` — upload clinic logo | backend | [ ] |
-| `DELETE /api/v1/settings/logo` — remove logo | backend | [ ] |
-| `POST /api/v1/staff/:id/signature` — upload doctor signature | backend | [ ] |
-| `GET /api/v1/doctor-fees` — list fees | backend | [ ] |
-| `PUT /api/v1/doctor-fees/:id` — update fee | backend | [ ] |
-| File validation — JPG/PNG only, max 2MB | backend | [ ] |
-| Save files to `/uploads/tenants/{tenant_id}/` | backend | [ ] |
-| Serve logo and signature via secure URL | backend | [ ] |
-| Clinic settings screen — Branding tab | frontend | [ ] |
-| Logo upload with live preview and remove button | frontend | [ ] |
-| Clinic settings — Documents tab (headers, footers) | frontend | [ ] |
-| Clinic settings — Billing tab (currency, tax, discounts) | frontend | [ ] |
-| Clinic settings — Appointments tab (slot duration, max per day, walk-in toggle) | frontend | [ ] |
-| Clinic settings — Notifications tab (reminder on/off, timing, message) | frontend | [ ] |
-| Clinic settings — Security tab (session timeout) | frontend | [ ] |
-| Clinic settings — Patient portal tab (enable/disable, welcome message) | frontend | [ ] |
-| Doctor profile page — signature upload | frontend | [ ] |
-| Doctor fees screen (set consultation fee per doctor) | frontend | [ ] |
-| Custom services management screen | frontend | [ ] |
-| Clinic holidays management screen | frontend | [ ] |
-| Logo appears on — dashboard header, invoice PDF, prescription PDF, patient portal | frontend | [ ] |
-| Doctor signature appears on — prescription PDF print | frontend | [ ] |
+| `GET /api/v1/settings` — get clinic settings | backend | [x] |
+| `PUT /api/v1/settings` — update settings | backend | [x] |
+| `POST /api/v1/settings/logo` — upload clinic logo | backend | [x] |
+| `DELETE /api/v1/settings/logo` — remove logo | backend | [x] |
+| `POST /api/v1/settings/staff/:id/signature` — upload doctor signature | backend | [x] |
+| `DELETE /api/v1/settings/staff/:id/signature` — remove signature | backend | [x] |
+| `GET /api/v1/doctor-fees` — list fees | backend | [x] *(built in Phase 2.5)* |
+| `PUT /api/v1/doctor-fees/:id` — update fee | backend | [x] *(built in Phase 2.5)* |
+| File validation — JPG/PNG only, max 2MB | backend | [x] |
+| Save files to `/uploads/tenants/{schema}/` | backend | [x] |
+| Serve logo and signature via static `/uploads` URL | backend | [x] |
+| Clinic settings screen — Branding tab (name, logo, address, phone, email) | frontend | [x] |
+| Logo upload with live preview and remove button | frontend | [x] |
+| Clinic settings — Documents tab (receipt header/footer, prescription footer) | frontend | [x] |
+| Clinic settings — Billing tab (currency, tax rate, tax label) | frontend | [x] |
+| Clinic settings — Appointments tab (slot duration, max per day, walk-in toggle) | frontend | [x] |
+| Clinic settings — Notifications tab (reminder toggle, hours, message template) | frontend | [x] |
+| Clinic settings — Security tab (session timeout) | frontend | [x] |
+| Doctor fees screen (set consultation fee per doctor) | frontend | [x] |
+| Custom services management screen (add/edit/remove) | frontend | [x] |
+| Clinic holidays management screen | frontend | [x] *(already in AppointmentsPage — HolidaysModal)* |
+| Logo appears on invoice PDF / prescription PDF | frontend | [x] |
+| Doctor signature appears on prescription PDF | frontend | [x] |
+| "PDF" download button per Rx on PrescriptionsPage | frontend | [x] |
 
-**Test:** Upload logo → appears on dashboard and invoice PDF. Upload doctor signature → appears on printed prescription. Change receipt footer → appears on next generated invoice.
+**Completed:** 2026-04-14
+**Test:** Upload logo → preview shown. Set doctor fee → appears on next invoice. Add custom service → appears in InvoiceModal picker. Change currency → reflected in billing settings. Download PDF on invoice → branded PDF with logo, line items, payment history. Download PDF on prescription → logo, medicines table, doctor signature.
 
-**✅ Phase 3 complete when:** A clinic can fully brand the system as their own without your help.
+**✅ Phase 3 complete.**
 
 ---
 

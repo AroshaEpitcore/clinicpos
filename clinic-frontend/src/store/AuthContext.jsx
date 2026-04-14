@@ -34,6 +34,12 @@ export function AuthProvider({ children }) {
     setClinic(clinicData   || null);
   }
 
+  function updateClinic(partial) {
+    const updated = { ...(clinic || {}), ...partial };
+    localStorage.setItem('clinic', JSON.stringify(updated));
+    setClinic(updated);
+  }
+
   function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -46,7 +52,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, tenantFlags, clinic, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, tenantFlags, clinic, loading, login, logout, updateClinic }}>
       {children}
     </AuthContext.Provider>
   );

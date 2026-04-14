@@ -5,8 +5,9 @@ import {
   Settings, LogOut, Stethoscope, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuth } from '../../store/AuthContext';
-import { toast } from 'sonner';
+import { useAuth }   from '../../store/AuthContext';
+import { mediaUrl }  from '../../utils/mediaUrl';
+import { toast }     from 'sonner';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard',     roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
@@ -52,7 +53,7 @@ export function Sidebar({ collapsed, onToggle }) {
         style={{ height: 'var(--topbar-height)' }}
       >
         {clinic?.logo_url ? (
-          <img src={clinic.logo_url} alt="Clinic logo" className="h-8 w-8 rounded object-contain shrink-0" />
+          <img src={mediaUrl(clinic.logo_url)} alt="Clinic logo" className="h-8 w-8 rounded object-contain shrink-0" />
         ) : (
           <div className="h-8 w-8 rounded bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-bold shrink-0">
             {clinic?.name?.charAt(0) || 'C'}

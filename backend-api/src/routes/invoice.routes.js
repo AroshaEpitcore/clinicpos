@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const { tenantMiddleware }            = require('../middleware/tenant');
+const { generateInvoicePDF }          = require('../utils/pdfGenerator');
 
 router.use(tenantMiddleware, authMiddleware);
 
@@ -175,7 +176,7 @@ router.get('/', async (req, res) => {
     const result = await queryTenant(tenantId, `
       SELECT i.id, i.invoice_number, i.payment_status,
              i.total_amount, i.paid_amount, i.balance_due,
-             i.created_at,
+             i.created_at, i.patient_id,
              p.first_name, p.last_name, p.patient_code,
              s.full_name AS doctor_name,
              c.id AS consultation_id
@@ -328,6 +329,55 @@ router.post('/:id/pay', requireRole('receptionist', 'admin'), async (req, res) =
   } catch (err) {
     console.error('POST /invoices/:id/pay', err);
     res.status(500).json({ message: 'Server error', detail: err.message });
+  }
+});
+
+// ── GET /api/v1/invoices/:id/pdf ───────────────────────────────────────────────
+router.get('/:id/pdf', async (req, res) => {
+  const tenantId = req.tenantSchema;
+  try {
+    const invRes = await queryTenant(tenantId, `
+      SELECT i.*,
+             p.first_name, p.last_name, p.patient_code, p.phone, p.date_of_birth, p.allergies,
+             s.full_name AS generated_by_name,
+             ds.full_name AS doctor_name
+      FROM invoices i
+      JOIN patients p ON p.id = i.patient_id
+      JOIN staff    s ON s.id = i.generated_by
+      LEFT JOIN consultations c ON c.id = i.consultation_id
+      LEFT JOIN staff ds        ON ds.id = c.doctor_id
+      WHERE i.id = $1
+    `, [req.params.id]);
+    if (!invRes.rows.length) return res.status(404).json({ message: 'Invoice not found' });
+
+    const invoice = invRes.rows[0];
+
+    const itemsRes = await queryTenant(tenantId,
+      `SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY item_type, description`,
+      [invoice.id]);
+
+    const splitsRes = await queryTenant(tenantId, `
+      SELECT ps.*, s.full_name AS recorded_by_name
+      FROM payment_splits ps
+      LEFT JOIN staff s ON s.id = ps.recorded_by
+      WHERE ps.invoice_id = $1
+      ORDER BY ps.recorded_at
+    `, [invoice.id]);
+
+    const settingsRes = await queryTenant(tenantId,
+      `SELECT * FROM clinic_settings LIMIT 1`, []);
+    const settings = settingsRes.rows[0] || {};
+
+    generateInvoicePDF(res, {
+      invoice,
+      items:        itemsRes.rows,
+      splits:       splitsRes.rows,
+      settings,
+      tenantSchema: tenantId,
+    });
+  } catch (err) {
+    console.error('GET /invoices/:id/pdf', err);
+    if (!res.headersSent) res.status(500).json({ message: 'Server error', detail: err.message });
   }
 });
 

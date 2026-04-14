@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, ChevronDown, Download } from 'lucide-react';
 import { Modal }        from '../../../components/ui/Modal';
 import { Button }       from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/Spinner';
@@ -22,6 +22,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
   const [showAddItem,  setShowAddItem]  = useState(false);
   const [showPay,      setShowPay]      = useState(false);
   const [saving,       setSaving]       = useState(false);
+  const [downloading,  setDownloading]  = useState(false);
 
   // Add item form
   const [newItem, setNewItem] = useState({ description: '', item_type: 'service', quantity: 1, unit_price: '' });
@@ -114,6 +115,23 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
     setServicePickerOpen(false);
   }
 
+  async function handleDownloadPdf() {
+    setDownloading(true);
+    try {
+      const res = await invoicesApi.downloadPdf(invoiceId);
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a   = document.createElement('a');
+      a.href    = url;
+      a.download = `${invoice?.invoice_number || 'invoice'}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Could not generate PDF.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const isPaid = invoice?.payment_status === 'paid';
 
   return (
@@ -125,11 +143,18 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
       footer={
         <div className="flex items-center justify-between w-full">
           <Button variant="secondary" onClick={onClose}>Close</Button>
-          {!isPaid && invoice && (
-            <Button onClick={() => setShowPay(true)}>
-              Record Payment
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {invoice && (
+              <Button variant="secondary" onClick={handleDownloadPdf} loading={downloading}>
+                <Download className="w-4 h-4 mr-1" /> PDF
+              </Button>
+            )}
+            {!isPaid && invoice && (
+              <Button onClick={() => setShowPay(true)}>
+                Record Payment
+              </Button>
+            )}
+          </div>
         </div>
       }
     >

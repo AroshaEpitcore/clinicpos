@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 2.6 — Reports
-**Last updated:** 2026-04-09
-**Next up:** Phase 2.6 — Admin analytics dashboard, daily/monthly reports, EOD history
+**Currently working on:** Phase 4 — Super Admin Panel
+**Last updated:** 2026-04-14
+**Next up:** Phase 4 — Super admin login (separate JWT), clinic list, create/suspend clinic, feature flag toggles, super admin dashboard
 
 ---
 
@@ -45,8 +45,9 @@
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1 | Foundation — server, auth, multi-tenant setup | ✅ Complete |
-| Phase 2 | Core clinic app — 6 main features | In Progress (2.1–2.5 complete) |
-| Phase 3 | Super admin panel | Not started |
+| Phase 2 | Core clinic app — all modules (2.0–2.7) | ✅ Complete |
+| Phase 3 | PDF generation (invoice + prescription) | ✅ Complete |
+| Phase 4 | Super admin panel | Not started |
 | Phase 4 | Add-on modules | Not started |
 | Phase 5 | Beta and launch | Not started |
 | Phase 6 | Desktop version | Not started |
@@ -161,26 +162,20 @@ custom_domain  — clinic uses their own domain
 > ⚠️ **Customization reminder:** Before building any module below — confirm the feature flag exists, the backend checks it, and the frontend respects it. See Rule 11 in `INSTRUCTION.md`.
 
 ### 2.0 Role-Based Dashboards 🖥️
-**Project:** `clinic-frontend` + `backend-api`
+**Project:** `clinic-frontend`
 
-#### Backend
-- [ ] `GET /api/v1/dashboard/doctor` — today's queue, patient count, completed
-- [ ] `GET /api/v1/dashboard/receptionist` — all queues, billing summary, alerts
-- [ ] `GET /api/v1/dashboard/admin` — revenue, patient count, doctor stats, EOD status
-- [ ] `GET /api/v1/dashboard/nurse` — patients needing vitals today
-
-#### Frontend
-- [x] Doctor dashboard screen — scaffold with stat cards and empty queue (TODO: wire up API)
-- [x] Receptionist dashboard screen — scaffold with stat cards and empty queue (TODO: wire up API)
-- [x] Admin dashboard screen — scaffold with stat cards and empty charts (TODO: wire up API)
-- [x] Nurse dashboard screen — scaffold with empty vitals list (TODO: wire up API)
+- [x] Doctor dashboard — stat cards (total/waiting/arrived/completed) + appointment list (uses `/appointments?date&doctor_id`)
+- [x] Receptionist dashboard — stat cards + live queue table + billing summary (uses `/appointments` + `/end-of-day/summary`)
+- [x] Admin dashboard — stat cards + monthly revenue bar chart + doctor performance table (uses `/reports/daily` + `/reports/monthly` + `/reports/doctors`)
+- [x] Nurse dashboard — patients in clinic today with status + patient profile links (uses `/appointments`)
 - [x] Dashboard auto-selects based on logged-in role — DashboardRouter reads user.role
 
-**Status:** Frontend scaffold done — needs backend API to show real data
+*No dedicated `/dashboard/*` backend routes needed — dashboards compose from existing APIs.*
+
+**Status:** ✅ Complete
 **Started on:** 2026-04-07
-**Completed on:** —
-**Stopped at:** Dashboard screens show empty states. Wire up after backend dashboard routes are built.
-**Notes:** DashboardRouter at `/dashboard` reads role from AuthContext and renders the correct screen.
+**Completed on:** 2026-04-14
+**Notes:** All 4 dashboards show live data. Admin uses reports API (admin-only). Other roles use appointments + end-of-day APIs.
 
 ---
 
@@ -301,7 +296,7 @@ custom_domain  — clinic uses their own domain
 - [x] `GET /api/v1/medicines/low-stock` — medicines at or below reorder level
 - [x] `GET /api/v1/medicines/near-expiry` — medicines expiring within 60 days
 - [x] Auto-generate Rx number (RX-XXXXX from COUNT+1)
-- [ ] PDF generation — server-side (deferred; using browser print for now)
+- [x] PDF generation — server-side (`GET /prescriptions/:id/pdf` + `GET /invoices/:id/pdf` via pdfkit)
 - [ ] Stock auto-deduct when medicine is dispensed (deferred to pharmacy module)
 - [ ] Expiry alert notifications (deferred to Phase 4)
 
@@ -350,7 +345,7 @@ custom_domain  — clinic uses their own domain
 - [x] Auto-generate invoice number (INV-XXXXX)
 - [x] Auto-pull doctor consultation fee from `doctor_fees` on invoice creation
 - [x] Auto-pull prescribed medicines (with prices) from `prescription_items` on invoice creation
-- [ ] PDF generation for invoice/receipt (deferred to Phase 3 with clinic branding)
+- [x] PDF generation for invoice/receipt (`GET /invoices/:id/pdf` + Download PDF button in InvoiceModal)
 
 #### Frontend
 - [x] BillingPage — date navigation, status filter tabs (All/Unpaid/Partial/Paid), summary strip (billed/collected/outstanding), invoice table
@@ -362,7 +357,7 @@ custom_domain  — clinic uses their own domain
 - [x] Patient profile Billing tab — invoice history table with summary totals, view invoice in modal
 - [x] `api/invoices.js` — invoicesApi, customServicesApi, doctorFeesApi, endOfDayApi
 - [x] `appointment.routes.js` updated — `consultation_id` now included in list query
-- [ ] Invoice print / PDF (deferred to Phase 3)
+- [x] Invoice PDF — "Download PDF" button in InvoiceModal, opens branded A4 PDF
 - [ ] Doctor fees management screen in Settings (deferred to Phase 2.7)
 - [ ] Custom services management screen in Settings (deferred to Phase 2.7)
 
@@ -401,11 +396,10 @@ custom_domain  — clinic uses their own domain
 - [ ] Export to Excel button
 - [ ] Scheduled monthly email report toggle (admin setting)
 
-**Status:** Not started  
-**Started on:** —  
-**Completed on:** —  
-**Stopped at:** —  
-**Notes:** EOD history is important — owner must be able to review any past day's closing record.
+**Status:** ✅ Complete
+**Started on:** 2026-04-10
+**Completed on:** 2026-04-10
+**Notes:** PDF and Excel export deferred to Phase 3. CSV export available on all tabs. Scheduled monthly email deferred to Phase 5. Recharts used for bar charts (already installed). All 7 routes + 7 frontend tabs built.
 
 ---
 
@@ -438,11 +432,10 @@ custom_domain  — clinic uses their own domain
 - [ ] Doctor fees screen — set consultation fee per doctor
 - [ ] Clinic holidays screen — add/remove blocked dates
 
-**Status:** Not started  
-**Started on:** —  
-**Completed on:** —  
-**Stopped at:** —  
-**Notes:** Logo and signature upload are the most visible customization features — clinics judge the software by whether it looks like theirs.
+**Status:** ✅ Complete
+**Started on:** 2026-04-14
+**Completed on:** 2026-04-14
+**Notes:** Settings page has 8 tabs. Logo upload uses multer (JPG/PNG, max 2MB), stored at `/uploads/tenants/{schema}/logo.ext`. Doctor signature stored at `/uploads/tenants/{schema}/signatures/{staffId}.ext`. Doctor fees and custom services use the existing Phase 2.5 APIs. Clinic holidays management already exists in AppointmentsPage (HolidaysModal).
 
 ---
 
@@ -495,7 +488,8 @@ custom_domain  — clinic uses their own domain
 
 | # | Date found | Description | Severity | Status |
 |---|-----------|-------------|----------|--------|
-| — | — | No issues logged yet | — | — |
+| 1 | 2026-04-10 | Invoice creation: `prescription_items` column queried as `quantity` but actual column name is `quantity_given` → 500 on Bill button | High | ✅ Fixed — changed to `COALESCE(pi.quantity_given, 1) AS qty` in `invoice.routes.js` |
+| 2 | 2026-04-10 | Payment UPDATE: `$3` used twice in same query (both `payment_status=$3` and `CASE WHEN $3='paid'`) → PostgreSQL "inconsistent types" 500 error; payment_splits record inserted but invoice not updated | High | ✅ Fixed — pass `status` as `$6` separately: `CASE WHEN $6='paid'` with extra param |
 
 ---
 
@@ -528,6 +522,14 @@ custom_domain  — clinic uses their own domain
 | 2026-04-08 | UI/UX fine-tune pass — sidebar collapse, toast improvements, modal sizing, inline form validation, ConsultationsPage + route | Complete | Start Phase 2.4 Prescriptions |
 | 2026-04-08 | Phase 2.4 Prescriptions — medicines + prescriptions backend routes, PrescriptionModal, PrescriptionsPage, MedicineStorePage, PatientProfile Rx tab, browser print | Complete | Start Phase 2.5 Billing |
 | 2026-04-09 | Phase 2.5 Billing — invoice + custom-services + doctor-fees + end-of-day backend, BillingPage, InvoiceModal, EndOfDayPage, Bill button on queue, PatientProfile billing tab | Complete | Start Phase 2.6 Reports |
+| 2026-04-10 | Phase 2.5 bug fixes — fixed Bill button 500 (prescription_items column name), fixed Confirm Payment 500 (PostgreSQL $3 type conflict in UPDATE), improved error responses with `detail` field | Bugs fixed — 2.5 fully working | Start Phase 2.6 Reports |
+| 2026-04-10 | Phase 2.6 Reports — 7 backend routes (daily/monthly/doctors/medicines/patients/appointments/EOD history), ReportsPage with 7 tabs, recharts bar charts, CSV export | Complete | Start Phase 2.7 Clinic Settings |
+| 2026-04-14 | Bug fixes — BillingPage patient name link navigated to `/patients/undefined` (missing `i.patient_id` in SELECT), ReportsPage PageHeader wrong import path fixed | Complete | Start Phase 2.7 Clinic Settings |
+| 2026-04-14 | Phase 2.7 Settings — settings.routes.js (GET/PUT/logo upload+delete/signature upload+delete), SettingsPage with 8 tabs (Clinic, Documents, Billing, Appointments, Notifications, Security, Doctor Fees, Custom Services) | Complete | Start Phase 3 Super Admin |
+| 2026-04-14 | Bug fix — sidebar logo/name not updating after upload; added `updateClinic()` to AuthContext, called on logo upload/delete and clinic name save | Complete | Start Phase 3 Super Admin |
+| 2026-04-14 | Phase 3 PDF generation — `pdfkit` installed; `pdfGenerator.js` with `generateInvoicePDF` + `generatePrescriptionPDF`; `GET /invoices/:id/pdf` + `GET /prescriptions/:id/pdf` routes; Download PDF button in InvoiceModal; PDF button per row in PrescriptionsPage; A4 branded PDF with logo, clinic info, tables, doctor signature | Complete | Start Phase 4 Super Admin |
+| 2026-04-14 | Fix prescription Print — rewrote `printPrescription.js` to use full clinic_settings (name/address/phone/email/logo/footer); PrescriptionsPage now loads settings via `settingsApi.get()` and passes to print function; logo and signature rendered as full-URL `<img>` tags | Complete | — |
+| 2026-04-14 | Phase 2.0 Dashboards wired — AdminDashboard (reports API: daily stats + monthly bar chart + doctor table), DoctorDashboard (appointments by doctor_id: queue list + stats), ReceptionistDashboard (appointments + EOD summary: live queue table + billing stats), NurseDashboard (appointments: all patients today with status); no new backend routes needed | Complete | Start Phase 4 Super Admin |
 
 ---
 

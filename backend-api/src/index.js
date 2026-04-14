@@ -36,8 +36,8 @@ app.use('/api/v1/invoices',        require('./routes/invoice.routes'));
 app.use('/api/v1/custom-services', require('./routes/customservice.routes'));
 app.use('/api/v1/doctor-fees',     require('./routes/doctorfee.routes'));
 app.use('/api/v1/end-of-day',      require('./routes/endofday.routes'));
-// app.use('/api/v1/reports',      require('./routes/report.routes'));
-// app.use('/api/v1/settings',     require('./routes/settings.routes'));
+app.use('/api/v1/reports',         require('./routes/report.routes'));
+app.use('/api/v1/settings',        require('./routes/settings.routes'));
 // app.use('/api/v1/admin',        require('./routes/admin.routes'));
 
 // 404 handler

@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-09
-## Covers: Phases 1 through 2.5
+## Last updated: 2026-04-14
+## Covers: Phases 1 through 3 (all modules complete, dashboards live)
 
 ---
 
@@ -42,6 +42,11 @@ End-of-Day closing — cash count vs system totals, lock the day
 ### Receptionist
 
 **Sidebar access:** Dashboard · Patients · Appointments · Prescriptions
+
+#### Dashboard
+- Stat cards: Total appointments today, Waiting, Collected Today, Outstanding payments
+- Live queue table for all doctors (token, patient, doctor, time, status)
+- Quick-action buttons: Search Patient → Patients page, Manage Queue → Appointments page
 
 #### Patient Registration
 - Search by phone on the Patients page — "Returning Patient" quick lookup bar
@@ -112,6 +117,11 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 **Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions
 
+#### Dashboard
+- Greeting with doctor's name (morning/afternoon/evening)
+- Stat cards: Total Today, Waiting, Arrived, Completed — filtered to this doctor
+- Today's queue list (token, patient name+code, time, status) — click row → Appointments page
+
 #### Queue View
 - Sees today's appointments, can filter to own name via doctor tab
 - Cannot add to queue or change appointment status
@@ -157,6 +167,11 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 **Sidebar access:** Dashboard · Patients · Appointments · Prescriptions
 
+#### Dashboard
+- Stat cards: With Doctor (arrived), Waiting, Completed
+- Full list of all patients in clinic today (all statuses) with token, name, doctor, time, status
+- Click patient row → navigates to patient profile
+
 #### What Nurses Can Do
 - Browse patient list and open patient profiles (read-only)
 - View all tabs on patient profile — overview, visits, prescriptions, billing
@@ -169,7 +184,14 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 ### Admin
 
-**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · Billing · *(Reports, Settings — Phase 2.6+)*
+**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · Billing · Reports · Settings
+
+#### Dashboard
+- Stat cards: Total Billed, Collected, Patients Today, EOD Status — all from today's report
+- Monthly revenue bar chart (billed vs collected per day)
+- Doctor performance table (consultations, patients, revenue per doctor) for today
+- Appointment summary strip (Total / Waiting / Arrived / Completed / Cancelled)
+- Quick link → Full Reports page
 
 **Admin has all receptionist + doctor capabilities, plus:**
 
@@ -195,8 +217,29 @@ End-of-Day closing — cash count vs system totals, lock the day
   - Moves patient to top of queue with emergency badge
   - Confirm dialog before action
 
+#### Reports (admin-only)
+- **Reports page** (`/reports`) — 7 tabs, all admin-only:
+  - **Daily** — date picker; appointments breakdown, revenue summary, payment method totals, top diagnoses; CSV export
+  - **Monthly** — month/year selector; daily bar chart (billed vs collected + appointments vs completed); monthly totals
+  - **Doctors** — date range; per-doctor consultations, patients seen, revenue billed/collected; CSV export
+  - **Medicines** — instant load; overview stats (active/low/near-expiry/expired); sub-tabs: Low Stock, Near Expiry, Top Prescribed; CSV export
+  - **Patients** — date range; total registered, new in period, gender split, age group breakdown, top diagnoses
+  - **Appointments** — date range; status + type breakdown; busiest day-of-week bar chart
+  - **EOD History** — date range; table of all closing records with cash discrepancy highlighted (green/amber/red); CSV export
+
 #### Patient Management (admin-only)
 - **Delete patient** — soft delete, confirm dialog, redirects to patient list after
+
+#### Clinic Settings (admin-only)
+- **Settings page** (`/settings`) — 8 tabs:
+  - **Clinic** — clinic name, address, phone, email; logo upload (JPG/PNG ≤2MB) with live preview and remove button
+  - **Documents** — receipt header, receipt footer, prescription footer text
+  - **Billing** — currency code, tax label, tax rate (%)
+  - **Appointments** — slot duration (10/15/20/30/45/60 min), max patients/day, walk-in toggle
+  - **Notifications** — reminder toggle, hours before, message template (Phase 5 sends SMS)
+  - **Security** — session timeout duration
+  - **Doctor Fees** — inline edit fee label + amount per doctor; auto-applied to new invoices
+  - **Custom Services** — add/edit/remove services (name, category, price); appear in InvoiceModal item picker
 
 **Cannot do:** Nothing is blocked for admin within current phases
 
@@ -243,6 +286,7 @@ Patient (PT-XXXXX)
 | Generate / view invoice | ✅ | ✗ | ✗ | ✅ |
 | Record payment | ✅ | ✗ | ✗ | ✅ |
 | End of Day closing | ✅ | ✗ | ✗ | ✅ |
+| View reports | ✗ | ✗ | ✗ | ✅ |
 
 ---
 
@@ -250,14 +294,15 @@ Patient (PT-XXXXX)
 
 | Module | Status | Notes |
 |--------|--------|-------|
-| 2.0 Role dashboards | Scaffold only | Backend API not yet connected |
+| 2.0 Role dashboards | ✅ Complete | Live data — uses existing report + appointment APIs |
 | 2.1 Patient registration | ✅ Complete | |
 | 2.2 Appointments & queue | ✅ Complete | |
 | 2.3 Consultations | ✅ Complete | |
 | 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print used; server-side PDF deferred |
 | 2.5 Billing & payments | ✅ Complete | Invoice PDF deferred to Phase 3 |
-| 2.6 Reports | Not started | |
-| 2.7 Clinic settings | Not started | |
+| 2.6 Reports | ✅ Complete | PDF export deferred to Phase 3; CSV available now |
+| 2.7 Clinic settings | ✅ Complete | Logo/signature upload; 8-tab settings page; doctor fees; custom services |
+| 3 PDF generation | ✅ Complete | Invoice PDF (`/invoices/:id/pdf`) + Prescription PDF (`/prescriptions/:id/pdf`) via pdfkit; Download buttons in UI |
 
 ---
 
@@ -265,14 +310,16 @@ Patient (PT-XXXXX)
 
 | Item | Deferred to |
 |------|------------|
-| Dashboard stat cards wired to real API data | Phase 2.0 cleanup |
-| Server-side PDF generation | Phase 3 (with logo + signature) |
+| Dashboard stat cards wired to real API data | ✅ Done (Phase 2.0 — 2026-04-14) |
+| Server-side PDF generation | ✅ Done (Phase 3) |
 | Stock auto-deduct on dispensing | Phase 5 (pharmacy module) |
 | Expiry alert notifications | Phase 4 |
-| Doctor signature upload | Phase 3 (clinic settings) |
-| Clinic logo on print / PDF | Phase 3 (clinic settings) |
+| Doctor signature upload | ✅ Done (Phase 2.7 + 3) |
+| Clinic logo on print / PDF | ✅ Done (Phase 3) |
 | Online patient booking | Phase 5 |
 | Appointment SMS/WhatsApp reminders | Phase 5 |
+| Scheduled monthly email report | Phase 5 |
+| Reports PDF export | Phase 3 (with clinic branding) |
 
 ---
 

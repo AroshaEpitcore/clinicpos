@@ -1,7 +1,8 @@
 const express = require('express');
-const { queryTenant }                 = require('../config/db');
-const { authMiddleware, requireRole } = require('../middleware/auth');
-const { tenantMiddleware }            = require('../middleware/tenant');
+const { queryTenant }                  = require('../config/db');
+const { authMiddleware, requireRole }  = require('../middleware/auth');
+const { tenantMiddleware }             = require('../middleware/tenant');
+const { generatePrescriptionPDF }      = require('../utils/pdfGenerator');
 
 const router = express.Router();
 router.use(tenantMiddleware, authMiddleware);
@@ -224,6 +225,58 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /api/v1/prescriptions/:id/pdf ─────────────────────────────────────────
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const prescRes = await queryTenant(
+      req.tenantSchema,
+      `SELECT
+         pr.id, pr.rx_number, pr.created_at, pr.notes,
+         p.first_name, p.last_name,
+         p.patient_code, p.date_of_birth, p.gender, p.phone, p.allergies,
+         p.id AS patient_id,
+         s.full_name AS doctor_name, s.specialization,
+         s.registration_no, s.signature_url
+       FROM prescriptions pr
+       JOIN patients p ON p.id = pr.patient_id
+       JOIN staff    s ON s.id = pr.doctor_id
+       WHERE pr.id = $1`,
+      [req.params.id]
+    );
+    if (!prescRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Prescription not found' });
+    }
+
+    const itemsRes = await queryTenant(
+      req.tenantSchema,
+      `SELECT
+         pi.id, pi.dosage, pi.frequency, pi.duration, pi.instructions, pi.quantity_given,
+         m.name AS medicine_name, m.generic_name, m.strength, m.unit
+       FROM prescription_items pi
+       JOIN medicines m ON m.id = pi.medicine_id
+       WHERE pi.prescription_id = $1
+       ORDER BY pi.id`,
+      [req.params.id]
+    );
+
+    const settingsRes = await queryTenant(
+      req.tenantSchema,
+      `SELECT * FROM clinic_settings LIMIT 1`, []
+    );
+    const settings = settingsRes.rows[0] || {};
+
+    generatePrescriptionPDF(res, {
+      prescription: prescRes.rows[0],
+      items:        itemsRes.rows,
+      settings,
+      tenantSchema: req.tenantSchema,
+    });
+  } catch (err) {
+    console.error('GET /prescriptions/:id/pdf', err);
+    if (!res.headersSent) res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 

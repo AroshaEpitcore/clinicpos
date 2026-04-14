@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Printer, Pill } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Printer, Pill, Download } from 'lucide-react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { EmptyState }   from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/Spinner';
 import { prescriptionsApi }  from '../../api/prescriptions';
-import { printPrescription } from '../../utils/printPrescription';
+import { settingsApi }        from '../../api/settings';
+import { printPrescription }  from '../../utils/printPrescription';
 import { formatDate, toInputDate } from '../../utils/format';
-import { useAuth } from '../../store/AuthContext';
 import { toast } from 'sonner';
 
 function stepDate(dateStr, days) {
@@ -19,13 +19,14 @@ function stepDate(dateStr, days) {
 
 export default function PrescriptionsPage() {
   const navigate = useNavigate();
-  const { clinic } = useAuth();
   const today = toInputDate(new Date());
 
   const [date,          setDate]          = useState(today);
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading,       setLoading]       = useState(false);
   const [printing,      setPrinting]      = useState(null); // id being printed
+  const [downloading,   setDownloading]   = useState(null); // id being downloaded
+  const [clinicSettings, setClinicSettings] = useState(null);
 
   const load = useCallback(async (d) => {
     setLoading(true);
@@ -41,15 +42,37 @@ export default function PrescriptionsPage() {
 
   useEffect(() => { load(date); }, [date, load]);
 
+  // Load clinic settings once for print/PDF
+  useEffect(() => {
+    settingsApi.get().then(r => setClinicSettings(r.data.data)).catch(() => {});
+  }, []);
+
   async function handlePrint(id) {
     setPrinting(id);
     try {
       const res = await prescriptionsApi.getById(id);
-      printPrescription(res.data.data, clinic);
+      printPrescription(res.data.data, clinicSettings || {});
     } catch {
       toast.error('Could not load prescription for printing.');
     } finally {
       setPrinting(null);
+    }
+  }
+
+  async function handleDownloadPdf(rx) {
+    setDownloading(rx.id);
+    try {
+      const res = await prescriptionsApi.downloadPdf(rx.id);
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a   = document.createElement('a');
+      a.href    = url;
+      a.download = `${rx.rx_number}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Could not generate PDF.');
+    } finally {
+      setDownloading(null);
     }
   }
 
@@ -139,7 +162,7 @@ export default function PrescriptionsPage() {
                 {new Date(rx.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </p>
 
-              {/* Print button */}
+              {/* Print + PDF buttons */}
               <button
                 onClick={() => handlePrint(rx.id)}
                 disabled={printing === rx.id}
@@ -147,6 +170,14 @@ export default function PrescriptionsPage() {
               >
                 <Printer className="w-3.5 h-3.5" />
                 {printing === rx.id ? 'Loading...' : 'Print'}
+              </button>
+              <button
+                onClick={() => handleDownloadPdf(rx)}
+                disabled={downloading === rx.id}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] border border-[var(--color-border)] text-xs font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {downloading === rx.id ? 'Generating...' : 'PDF'}
               </button>
             </div>
           ))}

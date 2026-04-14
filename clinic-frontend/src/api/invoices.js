@@ -9,6 +9,7 @@ export const invoicesApi = {
   addItem:         (id, data)      => api.put(`/invoices/${id}/items`, { action: 'add',    ...data }),
   removeItem:      (id, itemId)    => api.put(`/invoices/${id}/items`, { action: 'remove', item_id: itemId }),
   pay:             (id, data)      => api.post(`/invoices/${id}/pay`, data),
+  downloadPdf:     (id)            => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),
 };
 
 export const customServicesApi = {

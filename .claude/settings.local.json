@@ -6,7 +6,8 @@
       "Bash(node:*)",
       "Bash(grep -v \"//\")",
       "Bash(netstat -ano)",
-      "Bash(findstr :4000)"
+      "Bash(findstr :4000)",
+      "Bash(grep -n \"doctor_id\\\\|uuid\\\\|\\\\$2\" \"C:/clinicpos/backend-api/src/routes/appointment.routes.js\")"
     ]
   }
 }

@@ -1,49 +1,139 @@
-import { PageLayout } from '../../components/layout/PageLayout';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Card } from '../../components/ui/Card';
-import { EmptyState } from '../../components/ui/EmptyState';
-import { Button } from '../../components/ui/Button';
-import { Users } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Clock, DollarSign, AlertCircle } from 'lucide-react';
+import { PageLayout }       from '../../components/layout/PageLayout';
+import { PageHeader }       from '../../components/ui/PageHeader';
+import { Button }           from '../../components/ui/Button';
+import { Card }             from '../../components/ui/Card';
+import { LoadingState }     from '../../components/ui/Spinner';
+import { appointmentsApi }  from '../../api/appointments';
+import { endOfDayApi }      from '../../api/invoices';
+import { formatCurrency, toInputDate } from '../../utils/format';
+
+const STATUS_STYLES = {
+  pending:   'bg-amber-50 text-amber-700',
+  confirmed: 'bg-blue-50 text-blue-700',
+  arrived:   'bg-purple-50 text-purple-700',
+  completed: 'bg-green-50 text-green-700',
+};
 
 export default function ReceptionistDashboard() {
+  const navigate = useNavigate();
+  const today    = toInputDate(new Date());
+
+  const [appointments, setAppointments] = useState([]);
+  const [summary,      setSummary]      = useState(null);
+  const [loading,      setLoading]      = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [apptRes, sumRes] = await Promise.all([
+        appointmentsApi.list({ date: today }),
+        endOfDayApi.getSummary(today).catch(() => ({ data: null })),
+      ]);
+      setAppointments(apptRes.data.data || []);
+      setSummary(sumRes.data?.data || null);
+    } catch {
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [today]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const total     = appointments.length;
+  const waiting   = appointments.filter(a => ['pending','confirmed'].includes(a.status)).length;
+  const arrived   = appointments.filter(a => a.status === 'arrived').length;
+  const collected   = summary ? parseFloat(summary.total_collected    || 0) : 0;
+  const outstanding = summary ? parseFloat(summary.outstanding_balance || 0) : 0;
+
   return (
     <PageLayout title="Dashboard">
       <PageHeader
         title="Reception Desk"
-        subtitle="Live queue and today's summary"
+        subtitle={`Today — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
         actions={
           <>
-            {/* TODO Phase 2.1 — wire up patient search / register */}
-            <Button variant="secondary" disabled>Search Patient</Button>
-            <Button disabled>+ Register Patient</Button>
+            <Button variant="secondary" onClick={() => navigate('/patients')}>Search Patient</Button>
+            <Button onClick={() => navigate('/appointments')}>Manage Queue →</Button>
           </>
         }
       />
 
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Appointments" value="—" />
-        <StatCard label="Waiting"            value="—" />
-        <StatCard label="Collected Today"    value="—" />
-        <StatCard label="Pending Payments"   value="—" />
+        <StatCard icon={Users}       iconColor="text-blue-600"   iconBg="bg-blue-50"   label="Total Appointments" value={total} sub={`${arrived} arrived`} />
+        <StatCard icon={Clock}       iconColor="text-amber-600"  iconBg="bg-amber-50"  label="Waiting"           value={waiting} />
+        <StatCard icon={DollarSign}  iconColor="text-green-600"  iconBg="bg-green-50"  label="Collected Today"   value={formatCurrency(collected)} />
+        <StatCard icon={AlertCircle} iconColor="text-red-500"    iconBg="bg-red-50"    label="Outstanding"       value={formatCurrency(outstanding)} />
       </div>
 
       <Card title="Live Queue — All Doctors">
-        {/* TODO Phase 2.0 — wire up GET /api/v1/dashboard/receptionist */}
-        <EmptyState
-          icon={Users}
-          title="Queue is empty"
-          description="Patients added to the queue will appear here in real time."
-        />
+        {loading ? (
+          <LoadingState message="Loading queue..." />
+        ) : appointments.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-secondary)] py-8 text-center">Queue is empty today.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">#</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Patient</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Doctor</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Time</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map(appt => (
+                  <tr
+                    key={appt.id}
+                    className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] cursor-pointer transition-colors"
+                    onClick={() => navigate('/appointments')}
+                  >
+                    <td className="py-2.5 px-3">
+                      <span className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-[var(--color-primary-light)] text-xs font-bold text-[var(--color-primary)]">
+                        {appt.token_number}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <p className="font-semibold text-[var(--color-text)]">{appt.first_name} {appt.last_name}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)]">{appt.patient_code}</p>
+                    </td>
+                    <td className="py-2.5 px-3 text-[var(--color-text-secondary)]">Dr. {appt.doctor_name}</td>
+                    <td className="py-2.5 px-3 text-[var(--color-text-secondary)]">
+                      {appt.appointment_time ? appt.appointment_time.slice(0, 5) : 'Walk-in'}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[appt.status] || 'bg-gray-50 text-gray-600'}`}>
+                        {appt.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </PageLayout>
   );
 }
 
-function StatCard({ label, value }) {
+function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
   return (
-    <Card>
-      <p className="text-xs text-[var(--color-text-secondary)] mb-1">{label}</p>
-      <p className="text-2xl font-bold text-[var(--color-text)]">{value}</p>
-    </Card>
+    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-xs text-[var(--color-text-secondary)] font-medium">{label}</p>
+        <div className={`w-8 h-8 rounded-[var(--radius)] ${iconBg} flex items-center justify-center`}>
+          <Icon className={`w-4 h-4 ${iconColor}`} />
+        </div>
+      </div>
+      <p className="text-xl font-bold text-[var(--color-text)]">{value}</p>
+      {sub && <p className="text-xs text-[var(--color-text-secondary)] mt-1">{sub}</p>}
+    </div>
   );
 }
