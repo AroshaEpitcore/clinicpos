@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
-import LoginPage       from './pages/auth/LoginPage';
-import DashboardRouter from './pages/dashboard/DashboardRouter';
+import LoginPage        from './pages/auth/LoginPage';
+import ImpersonatePage  from './pages/auth/ImpersonatePage';
+import DashboardRouter  from './pages/dashboard/DashboardRouter';
 
 // Phase 2.1 — Patients
 import PatientList    from './pages/patients/PatientList';
@@ -31,7 +32,8 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login"       element={<LoginPage />} />
+      <Route path="/impersonate" element={<ImpersonatePage />} />
 
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

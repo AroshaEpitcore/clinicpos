@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   const tenantId = req.tenantSchema;
   try {
     const result = await queryTenant(tenantId, `
-      SELECT s.id AS doctor_id, s.full_name,
+      SELECT s.id AS doctor_id, s.full_name, s.specialization, s.signature_url,
              COALESCE(df.fee_label, 'Consultation Fee') AS fee_label,
              COALESCE(df.amount, 0)                     AS amount
       FROM staff s
@@ -19,10 +19,10 @@ router.get('/', async (req, res) => {
       WHERE s.role = 'doctor' AND s.is_active = TRUE
       ORDER BY s.full_name
     `);
-    res.json({ data: result.rows });
+    res.json({ status: 'success', data: result.rows });
   } catch (err) {
     console.error('GET /doctor-fees', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -31,7 +31,9 @@ router.get('/', async (req, res) => {
 router.put('/:doctorId', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const { fee_label, amount } = req.body;
-  if (amount == null) return res.status(400).json({ message: 'amount is required' });
+  if (amount == null) {
+    return res.status(400).json({ status: 'error', message: 'amount is required' });
+  }
   try {
     await queryTenant(tenantId, `
       INSERT INTO doctor_fees (doctor_id, fee_label, amount)
@@ -41,10 +43,10 @@ router.put('/:doctorId', requireRole('admin'), async (req, res) => {
             amount     = EXCLUDED.amount,
             updated_at = NOW()
     `, [req.params.doctorId, fee_label || 'Consultation Fee', amount]);
-    res.json({ message: 'Fee updated' });
+    res.json({ status: 'success', message: 'Fee updated' });
   } catch (err) {
     console.error('PUT /doctor-fees/:doctorId', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 

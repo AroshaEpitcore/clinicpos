@@ -72,6 +72,14 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
   }
 
   try {
+    // Block walk-ins if the setting is disabled
+    if (type === 'walkin') {
+      const cfg = await queryTenant(req.tenantSchema, `SELECT allow_walk_ins FROM clinic_settings LIMIT 1`);
+      if (cfg.rows.length && cfg.rows[0].allow_walk_ins === false) {
+        return res.status(403).json({ status: 'error', message: 'Walk-in appointments are not allowed at this clinic. Please book a time slot.' });
+      }
+    }
+
     // Block booking on holidays
     const holiday = await queryTenant(
       req.tenantSchema,

@@ -16,6 +16,7 @@ import { PrescriptionModal }   from '../prescriptions/PrescriptionModal';
 import { InvoiceModal }        from '../billing/components/InvoiceModal';
 import { appointmentsApi, doctorsApi } from '../../api/appointments';
 import { invoicesApi }         from '../../api/invoices';
+import { settingsApi }         from '../../api/settings';
 import { useAuth }       from '../../store/AuthContext';
 import { formatDate }    from '../../utils/format';
 
@@ -77,9 +78,12 @@ export default function AppointmentsPage() {
   const [emergencyTarget, setEmergencyTarget] = useState(null);
   const [emergencyLoading,setEmergencyLoading]= useState(false);
 
-  // Load doctors once
+  const [allowWalkIns, setAllowWalkIns] = useState(true);
+
+  // Load doctors + settings once
   useEffect(() => {
     doctorsApi.list().then(res => setDoctors(res.data.data));
+    settingsApi.get().then(res => setAllowWalkIns(res.data.data?.allow_walk_ins !== false));
   }, []);
 
   const load = useCallback(async (silent = false) => {
@@ -308,6 +312,7 @@ export default function AppointmentsPage() {
         onClose={() => setApptModalOpen(false)}
         onSuccess={() => load(true)}
         defaultDate={date}
+        allowWalkIns={allowWalkIns}
       />
 
       <ManageScheduleModal

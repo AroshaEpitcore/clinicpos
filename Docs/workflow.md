@@ -7,7 +7,8 @@
 ---
 
 ## Last updated: 2026-04-14
-## Covers: Phases 1 through 3 (all modules complete, dashboards live)
+## Covers: Phases 1–4 complete (core). Phase 5 (Add-on modules) not yet started.
+## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
 
@@ -60,9 +61,9 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Date navigation (prev/next arrows, date picker, back-to-today button)
 - Doctor filter tabs appear automatically when multiple doctors are in the queue
 - **Add to Queue** — opens AppointmentModal with three modes:
-  - **Walk-in** — token number auto-assigned, time slot optional
+  - **Walk-in** — token number auto-assigned, time slot optional *(tab hidden if Allow Walk-ins is OFF in Settings → Appointments)*
   - **Book** — date + doctor + time slot grid (blocked on holidays / no schedule)
-  - **Emergency** — bypasses slot, jumps to top of queue with red badge
+  - **Emergency** — bypasses slot, jumps to top of queue with red badge *(always available regardless of walk-in setting)*
 - Inside the modal: "Search Existing" tab (phone lookup) or "New Patient" tab (inline mini registration)
 - Status action buttons per queue row:
   - `Pending / Confirmed` → **Arrived**, **Cancel**
@@ -235,10 +236,10 @@ End-of-Day closing — cash count vs system totals, lock the day
   - **Clinic** — clinic name, address, phone, email; logo upload (JPG/PNG ≤2MB) with live preview and remove button
   - **Documents** — receipt header, receipt footer, prescription footer text
   - **Billing** — currency code, tax label, tax rate (%)
-  - **Appointments** — slot duration (10/15/20/30/45/60 min), max patients/day, walk-in toggle
+  - **Appointments** — slot duration (10/15/20/30/45/60 min), max patients/day, walk-in toggle *(enforced: hides Walk-in tab + backend blocks creation)*
   - **Notifications** — reminder toggle, hours before, message template (Phase 5 sends SMS)
   - **Security** — session timeout duration
-  - **Doctor Fees** — inline edit fee label + amount per doctor; auto-applied to new invoices
+  - **Doctor Fees** — inline edit fee label + amount per doctor; auto-applied to new invoices; signature upload per doctor (JPG/PNG ≤2MB) — appears on prescription PDFs
   - **Custom Services** — add/edit/remove services (name, category, price); appear in InvoiceModal item picker
 
 **Cannot do:** Nothing is blocked for admin within current phases
@@ -298,28 +299,77 @@ Patient (PT-XXXXX)
 | 2.1 Patient registration | ✅ Complete | |
 | 2.2 Appointments & queue | ✅ Complete | |
 | 2.3 Consultations | ✅ Complete | |
-| 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print used; server-side PDF deferred |
-| 2.5 Billing & payments | ✅ Complete | Invoice PDF deferred to Phase 3 |
-| 2.6 Reports | ✅ Complete | PDF export deferred to Phase 3; CSV available now |
-| 2.7 Clinic settings | ✅ Complete | Logo/signature upload; 8-tab settings page; doctor fees; custom services |
-| 3 PDF generation | ✅ Complete | Invoice PDF (`/invoices/:id/pdf`) + Prescription PDF (`/prescriptions/:id/pdf`) via pdfkit; Download buttons in UI |
+| 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print + server-side PDF both done |
+| 2.5 Billing & payments | ✅ Complete | Invoice PDF done in Phase 3 |
+| 2.6 Reports | ✅ Complete | 7 tabs, CSV export; PDF export deferred to Phase 5 |
+| 2.7 Clinic settings | ✅ Complete | Logo/signature upload; 8-tab settings page; doctor fees; custom services; syncs public.tenants on name change |
+| 3 PDF generation | ✅ Complete | Invoice PDF + Prescription PDF via pdfkit; Download buttons in UI |
+| 4 Super Admin Panel | ✅ Complete (core) | Login, clinic list/create/edit/suspend/activate, feature flag toggles, impersonation; health/audit deferred to Phase 5 |
 
 ---
 
-## Deferred Items (not yet built)
+## Phase 4 — Super Admin Panel
 
-| Item | Deferred to |
-|------|------------|
-| Dashboard stat cards wired to real API data | ✅ Done (Phase 2.0 — 2026-04-14) |
-| Server-side PDF generation | ✅ Done (Phase 3) |
-| Stock auto-deduct on dispensing | Phase 5 (pharmacy module) |
-| Expiry alert notifications | Phase 4 |
-| Doctor signature upload | ✅ Done (Phase 2.7 + 3) |
+**App:** `admin-frontend` (runs on port 5174) + `backend-api`
+
+### Super Admin Login
+- Separate login page at `http://localhost:5174/login`
+- Credentials stored in `backend-api/.env`: `ADMIN_EMAIL` + `ADMIN_PASSWORD`
+- Issues JWT with `role: 'superadmin'`, verified by `adminAuth.js` middleware
+- Separate `ADMIN_JWT_SECRET` (falls back to `JWT_SECRET` if not set)
+
+### Dashboard
+- Stat cards: Total Clinics, Active, On Trial, Suspended
+- MRR from active subscriptions
+- Recent clinics list (last 8) → click to open clinic detail
+
+### Clinic List (`/clinics`)
+- Search by name, subdomain, or email
+- Filter tabs: All / Active / Trial / Suspended
+- Columns: clinic name, subdomain, owner email, plan badge, status badge, created date, active flags count
+- Click row → Clinic Detail
+
+### Create New Clinic
+- Form: clinic name (auto-generates subdomain slug), subdomain, owner email/phone, plan, trial days
+- On save: inserts `public.tenants` + default feature flags (all OFF) + creates full tenant schema + inserts `clinic_settings`
+
+### Clinic Detail (`/clinics/:id`)
+- Stats: staff count, patient count (queried live from tenant schema)
+- Edit modal: name, email, phone, plan
+- **Suspend** button — locks all staff out immediately (tenant middleware blocks `status = 'suspended'`)
+- **Activate** button — restores access
+- **Login as Clinic** — generates a 2h clinic-scoped JWT, opens `clinic-frontend/impersonate?token=...` in new tab; "Impersonating" amber badge shown in TopBar
+
+### Feature Flags
+- Live toggle switches per module: pharmacy, lab, insurance, online_booking, multi_branch, custom_domain
+- Toggle saves instantly via `PUT /api/v1/admin/feature-flags/:tenantId`
+- Changes take effect on next clinic staff request (no restart needed)
+
+---
+
+## Deferred Items
+
+| Item | Status |
+|------|--------|
+| Dashboard stat cards wired to real API data | ✅ Done (Phase 2.0) |
+| Server-side PDF generation (invoice + prescription) | ✅ Done (Phase 3) |
+| Doctor signature upload | ✅ Done (Phase 2.7) |
 | Clinic logo on print / PDF | ✅ Done (Phase 3) |
+| Super admin feature flag toggles | ✅ Done (Phase 4) |
+| Low stock / near-expiry alert badges on dashboard | Deferred — use Reports medicines tab |
+| Stock auto-deduct on dispensing | Phase 5 (pharmacy module) |
+| Expiry alert notifications | Phase 5 |
 | Online patient booking | Phase 5 |
 | Appointment SMS/WhatsApp reminders | Phase 5 |
 | Scheduled monthly email report | Phase 5 |
-| Reports PDF export | Phase 3 (with clinic branding) |
+| Reports PDF export | Phase 5 |
+| Super admin system health (CPU/memory/uptime) | Phase 5 |
+| Super admin audit log viewer | Phase 5 |
+| Super admin trial management UI | Phase 5 |
+| Session timeout enforcement (backend) | Phase 5 — UI setting exists but JWT expiry not yet driven by it |
+| `patient_portal_enabled` setting UI | Phase 5 — column + backend ready; no UI toggle yet (toggle will live in Security tab when patient portal is built) |
+| `duplicate_check_enabled` setting | Phase 5 — DB column exists (warn on duplicate patient name/DOB); backend API does not yet read or write it; no UI |
+| Calendar view (day/week) for appointments | Deferred — queue view covers the need |
 
 ---
 

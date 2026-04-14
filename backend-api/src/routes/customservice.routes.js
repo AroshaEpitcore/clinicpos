@@ -15,10 +15,10 @@ router.get('/', async (req, res) => {
       WHERE ($1::boolean OR is_active = TRUE)
       ORDER BY category, name
     `, [include_inactive === 'true']);
-    res.json({ data: result.rows });
+    res.json({ status: 'success', data: result.rows });
   } catch (err) {
     console.error('GET /custom-services', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -26,16 +26,16 @@ router.get('/', async (req, res) => {
 router.post('/', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const { name, category, description, price } = req.body;
-  if (!name) return res.status(400).json({ message: 'Name is required' });
+  if (!name) return res.status(400).json({ status: 'error', message: 'Name is required' });
   try {
     const result = await queryTenant(tenantId, `
       INSERT INTO custom_services (name, category, description, price, created_by)
       VALUES ($1,$2,$3,$4,$5) RETURNING *
     `, [name, category || null, description || null, price || 0, req.user.id]);
-    res.status(201).json({ message: 'Service created', data: result.rows[0] });
+    res.status(201).json({ status: 'success', message: 'Service created', data: result.rows[0] });
   } catch (err) {
     console.error('POST /custom-services', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -56,10 +56,10 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
     `, [name || null, category || null, description || null,
         price != null ? price : null, is_active != null ? is_active : null,
         req.params.id]);
-    res.json({ message: 'Service updated' });
+    res.json({ status: 'success', message: 'Service updated' });
   } catch (err) {
     console.error('PUT /custom-services/:id', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -70,10 +70,10 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     await queryTenant(tenantId,
       `UPDATE custom_services SET is_active = FALSE, updated_at = NOW() WHERE id = $1`,
       [req.params.id]);
-    res.json({ message: 'Service removed' });
+    res.json({ status: 'success', message: 'Service removed' });
   } catch (err) {
     console.error('DELETE /custom-services/:id', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 

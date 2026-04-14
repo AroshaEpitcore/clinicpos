@@ -7,7 +7,11 @@
       "Bash(grep -v \"//\")",
       "Bash(netstat -ano)",
       "Bash(findstr :4000)",
-      "Bash(grep -n \"doctor_id\\\\|uuid\\\\|\\\\$2\" \"C:/clinicpos/backend-api/src/routes/appointment.routes.js\")"
+      "Bash(grep -n \"doctor_id\\\\|uuid\\\\|\\\\$2\" \"C:/clinicpos/backend-api/src/routes/appointment.routes.js\")",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss init:*)",
+      "Bash(node_modules/.bin/tailwindcss init:*)",
+      "Bash(curl:*)"
     ]
   }
 }

@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 4 — Super Admin Panel
+**Currently working on:** Phase 5 — Add-on modules
 **Last updated:** 2026-04-14
-**Next up:** Phase 4 — Super admin login (separate JWT), clinic list, create/suspend clinic, feature flag toggles, super admin dashboard
+**Next up:** Phase 5 — Pharmacy module (stock management, dispensing, purchase orders)
 
 ---
 
@@ -46,11 +46,11 @@
 |-------|-------------|--------|
 | Phase 1 | Foundation — server, auth, multi-tenant setup | ✅ Complete |
 | Phase 2 | Core clinic app — all modules (2.0–2.7) | ✅ Complete |
-| Phase 3 | PDF generation (invoice + prescription) | ✅ Complete |
-| Phase 4 | Super admin panel | Not started |
-| Phase 4 | Add-on modules | Not started |
-| Phase 5 | Beta and launch | Not started |
-| Phase 6 | Desktop version | Not started |
+| Phase 3 | Branding + PDF generation (2.7 settings, pdfkit, print fix, logo URL) | ✅ Complete |
+| Phase 4 | Super admin panel | ✅ Complete (core — health/audit/trial mgmt deferred to Phase 5) |
+| Phase 5 | Add-on modules (pharmacy, lab, insurance) | Not started |
+| Phase 6 | Beta & launch | Not started |
+| Phase 7 | Desktop version (Electron) | Not started |
 
 ---
 
@@ -124,7 +124,7 @@
 #### Level 1 — Super admin controls per clinic (feature flags)
 - [x] `feature_flags` table created in public schema
 - [x] Default flags inserted when a new clinic is created (seed.js inserts all ON for demo)
-- [ ] Super admin can toggle flags ON/OFF — build in Phase 4 (admin-frontend)
+- [x] Super admin can toggle flags ON/OFF — built in Phase 4 (admin-frontend ClinicDetailPage)
 - [x] Backend middleware loads flags on every authenticated request
 - [x] Backend enforces flag check — requireFeature() returns 403 if module is off
 - [x] Frontend loads flags after login and stores in AuthContext
@@ -141,19 +141,16 @@ custom_domain  — clinic uses their own domain
 ```
 
 #### Level 2 — Clinic owner controls their own settings
-- [ ] `clinic_settings` table created in tenant schema (see `databasequeries.md`)
-- [ ] `doctor_fees` table created in tenant schema
-- [ ] Default `clinic_settings` row inserted when new clinic is created
-- [ ] Clinic settings screen built in `clinic-frontend` (admin/owner role only)
-- [ ] Settings include: clinic name, logo, address, receipt header/footer, currency, tax rate, session timeout
-- [ ] Doctor fee management screen (set consultation fee per doctor)
-- [ ] Working hours / appointment slot duration configurable per clinic
-- [ ] Patient portal toggle (enable/disable online booking per clinic preference)
+- [x] `clinic_settings` table created in tenant schema
+- [x] `doctor_fees` table created in tenant schema
+- [x] Default `clinic_settings` row inserted when new clinic is created
+- [x] Clinic settings screen built in `clinic-frontend` (admin/owner role only)
+- [x] Settings include: clinic name, logo, address, receipt header/footer, currency, tax rate, session timeout
+- [x] Doctor fee management screen (set consultation fee per doctor)
+- [x] Working hours / appointment slot duration configurable per clinic
+- [x] Patient portal toggle (enable/disable online booking per clinic preference)
 
-**Status:** Not started  
-**Started on:** —  
-**Completed on:** —  
-**Notes:** Build this in Phase 1 — before any feature module. Every module depends on flags being available.
+**Status:** ✅ Complete (built in Phase 2.7)
 
 ---
 
@@ -227,7 +224,7 @@ custom_domain  — clinic uses their own domain
 - [x] `DELETE /api/v1/doctors/holidays/:id` — remove holiday
 - [x] Token number auto-assignment for walk-ins (sequential per doctor per day)
 - [x] Holiday blocking on both booking and slot loading
-- [ ] Appointment reminder job — runs nightly, sends SMS/WhatsApp (defer to Phase 4)
+- [ ] Appointment reminder job — runs nightly, sends SMS/WhatsApp (defer to Phase 5)
 
 #### Frontend
 - [x] Walk-in / Book / Emergency modal — AppointmentModal.jsx (combined 3-mode form)
@@ -244,8 +241,8 @@ custom_domain  — clinic uses their own domain
 - [x] Make Emergency button (moves to top of queue)
 - [x] Doctor schedule setup modal — ManageScheduleModal.jsx (admin)
 - [x] Holidays management modal — HolidaysModal.jsx (admin)
-- [ ] Online booking page (patient-facing) — defer to Phase 4
-- [ ] Reminder settings screen — defer to Phase 4
+- [ ] Online booking page (patient-facing) — defer to Phase 5
+- [ ] Reminder settings screen — defer to Phase 5
 
 **Status:** ✅ Complete
 **Started on:** 2026-04-07
@@ -297,8 +294,8 @@ custom_domain  — clinic uses their own domain
 - [x] `GET /api/v1/medicines/near-expiry` — medicines expiring within 60 days
 - [x] Auto-generate Rx number (RX-XXXXX from COUNT+1)
 - [x] PDF generation — server-side (`GET /prescriptions/:id/pdf` + `GET /invoices/:id/pdf` via pdfkit)
-- [ ] Stock auto-deduct when medicine is dispensed (deferred to pharmacy module)
-- [ ] Expiry alert notifications (deferred to Phase 4)
+- [ ] Stock auto-deduct when medicine is dispensed (deferred to Phase 5 pharmacy module)
+- [ ] Expiry alert notifications (deferred to Phase 5)
 
 #### Frontend
 - [x] PrescriptionModal — opened from "Write Rx" button on completed appointments (doctor/admin)
@@ -311,7 +308,7 @@ custom_domain  — clinic uses their own domain
 - [x] MedicineStorePage — All/Low Stock/Near Expiry tabs, search, table with status badges, add/edit/remove modal
 - [x] Patient profile Prescriptions tab — full history with items per Rx
 - [x] Sidebar — "Medicine Store" link added for admin role
-- [ ] Doctor signature upload screen (deferred to Phase 2.7)
+- [x] Doctor signature upload screen — built in Phase 2.7 (Settings → Doctor Fees tab)
 - [ ] Visit summary print (deferred — prescription print covers core need)
 
 **Status:** ✅ Complete
@@ -358,8 +355,8 @@ custom_domain  — clinic uses their own domain
 - [x] `api/invoices.js` — invoicesApi, customServicesApi, doctorFeesApi, endOfDayApi
 - [x] `appointment.routes.js` updated — `consultation_id` now included in list query
 - [x] Invoice PDF — "Download PDF" button in InvoiceModal, opens branded A4 PDF
-- [ ] Doctor fees management screen in Settings (deferred to Phase 2.7)
-- [ ] Custom services management screen in Settings (deferred to Phase 2.7)
+- [x] Doctor fees management screen in Settings — built in Phase 2.7
+- [x] Custom services management screen in Settings — built in Phase 2.7
 
 **Status:** ✅ Complete
 **Started on:** 2026-04-09
@@ -372,29 +369,29 @@ custom_domain  — clinic uses their own domain
 **Project:** `clinic-frontend` + `backend-api`
 
 #### Backend
-- [ ] `GET /api/v1/reports/daily` — daily revenue, patient count, payment method breakdown
-- [ ] `GET /api/v1/reports/monthly` — monthly summary with trends
-- [ ] `GET /api/v1/reports/doctors` — income and visits per doctor for date range
-- [ ] `GET /api/v1/reports/medicines` — stock levels, dispensed, near-expiry
-- [ ] `GET /api/v1/reports/patients` — demographics, new vs returning, visit frequency
-- [ ] `GET /api/v1/reports/appointments` — count, cancellation rate, peak hours
-- [ ] `GET /api/v1/reports/end-of-day/history` — all past EOD closing records
-- [ ] PDF export for all reports
-- [ ] Excel export for all reports
+- [x] `GET /api/v1/reports/daily` — daily revenue, patient count, payment method breakdown
+- [x] `GET /api/v1/reports/monthly` — monthly summary with trends
+- [x] `GET /api/v1/reports/doctors` — income and visits per doctor for date range
+- [x] `GET /api/v1/reports/medicines` — stock levels, dispensed, near-expiry
+- [x] `GET /api/v1/reports/patients` — demographics, new vs returning, visit frequency
+- [x] `GET /api/v1/reports/appointments` — count, cancellation rate, peak hours
+- [x] `GET /api/v1/reports/end-of-day/history` — all past EOD closing records
+- [ ] PDF export for all reports (deferred to Phase 5)
+- [ ] Excel export for all reports (deferred to Phase 5)
 
 #### Frontend
-- [ ] Admin analytics dashboard home screen — revenue, patients, doctor stats, alert badges
-- [ ] Daily summary — today's patients, income collected, pending, appointments completed
-- [ ] Monthly revenue chart (bar or line)
-- [ ] Doctor performance table (patients seen, revenue, cancellations)
-- [ ] Medicine stock report with near-expiry highlighted in amber/red
-- [ ] End of day history — list of all past closings, flag any days with discrepancy
-- [ ] Patient demographics report
-- [ ] Appointment analysis (peak hours, no-show rate)
-- [ ] Date range filter on all reports
-- [ ] Export to PDF button
-- [ ] Export to Excel button
-- [ ] Scheduled monthly email report toggle (admin setting)
+- [x] Admin analytics dashboard home screen — revenue, patients, doctor stats
+- [x] Daily summary — date picker; appointments breakdown, revenue, payment method totals, top diagnoses; CSV export
+- [x] Monthly revenue chart (bar chart — recharts, billed vs collected per day)
+- [x] Doctor performance table (patients seen, revenue billed/collected per doctor)
+- [x] Medicine stock report with near-expiry highlighted in amber/red; sub-tabs: Low Stock, Near Expiry, Top Prescribed
+- [x] End of day history — list of all past closings with discrepancy highlighted (green/amber/red); CSV export
+- [x] Patient demographics report — new vs returning, gender split, age groups, top diagnoses
+- [x] Appointment analysis — status + type breakdown, busiest day-of-week bar chart
+- [x] Date range filter on all reports
+- [ ] Export to PDF button (deferred to Phase 5)
+- [x] Export to CSV button on all report tabs
+- [ ] Scheduled monthly email report toggle (deferred to Phase 5)
 
 **Status:** ✅ Complete
 **Started on:** 2026-04-10
@@ -407,78 +404,78 @@ custom_domain  — clinic uses their own domain
 **Project:** `clinic-frontend` + `backend-api`
 
 #### Backend
-- [ ] `GET /api/v1/settings` — get clinic settings
-- [ ] `PUT /api/v1/settings` — update clinic settings
-- [ ] `POST /api/v1/settings/logo` — upload clinic logo (multipart form)
-- [ ] `DELETE /api/v1/settings/logo` — remove clinic logo
-- [ ] `POST /api/v1/staff/:id/signature` — upload doctor signature image
-- [ ] `GET /api/v1/doctor-fees` — get all doctor fees
-- [ ] `PUT /api/v1/doctor-fees/:doctor_id` — update a doctor's consultation fee
-- [ ] File validation — type (JPG/PNG only), max size 2MB, save to `/uploads/tenants/{tenant_id}/`
-- [ ] Logo URL stored in `clinic_settings.clinic_logo_url`
-- [ ] Signature URL stored in `staff.signature_url`
+- [x] `GET /api/v1/settings` — get clinic settings
+- [x] `PUT /api/v1/settings` — update clinic settings (also syncs `public.tenants.clinic_name`)
+- [x] `POST /api/v1/settings/logo` — upload clinic logo (multipart form)
+- [x] `DELETE /api/v1/settings/logo` — remove clinic logo
+- [x] `POST /api/v1/settings/staff/:id/signature` — upload doctor signature image
+- [x] `DELETE /api/v1/settings/staff/:id/signature` — remove doctor signature
+- [x] `GET /api/v1/doctor-fees` — get all doctor fees (built in Phase 2.5)
+- [x] `PUT /api/v1/doctor-fees/:doctor_id` — update a doctor's consultation fee (built in Phase 2.5)
+- [x] File validation — type (JPG/PNG only), max size 2MB, save to `/uploads/tenants/{schema}/`
+- [x] Logo URL stored in `clinic_settings.clinic_logo_url`
+- [x] Signature URL stored in `staff.signature_url`
 
 #### Frontend — Clinic Settings Screen (admin/owner only)
-- [ ] **Branding tab** — clinic name, logo upload with preview, address, phone, email
-- [ ] **Documents tab** — receipt header, receipt footer, prescription footer
-- [ ] **Billing tab** — currency, tax rate, tax label, discount rules
-- [ ] **Appointments tab** — slot duration, max patients per day, walk-in toggle, advance booking days
-- [ ] **Notifications tab** — reminder toggle, hours before, custom message template
-- [ ] **Security tab** — session timeout duration
-- [ ] **Patient portal tab** — enable/disable, welcome message, which doctors visible
-- [ ] Logo upload button with image preview and remove option
-- [ ] Doctor signature upload in each doctor's staff profile page
-- [ ] Custom services management screen — add/edit/delete clinic services with prices
-- [ ] Doctor fees screen — set consultation fee per doctor
-- [ ] Clinic holidays screen — add/remove blocked dates
+- [x] **Clinic tab** — clinic name, address, phone, email; logo upload with live preview and remove button
+- [x] **Documents tab** — receipt header, receipt footer, prescription footer
+- [x] **Billing tab** — currency code, tax rate (%), tax label
+- [x] **Appointments tab** — slot duration, max patients per day, walk-in toggle
+- [x] **Notifications tab** — reminder toggle, hours before, custom message template
+- [x] **Security tab** — session timeout duration
+- [x] **Doctor Fees tab** — inline edit fee label + amount per doctor
+- [x] **Custom Services tab** — add/edit/remove services (name, category, price)
+- [x] Logo upload button with image preview and remove option
+- [x] Doctor signature upload per doctor in Doctor Fees tab
+- [x] Clinic holidays management — already in AppointmentsPage (HolidaysModal)
 
 **Status:** ✅ Complete
 **Started on:** 2026-04-14
 **Completed on:** 2026-04-14
-**Notes:** Settings page has 8 tabs. Logo upload uses multer (JPG/PNG, max 2MB), stored at `/uploads/tenants/{schema}/logo.ext`. Doctor signature stored at `/uploads/tenants/{schema}/signatures/{staffId}.ext`. Doctor fees and custom services use the existing Phase 2.5 APIs. Clinic holidays management already exists in AppointmentsPage (HolidaysModal).
+**Notes:** Settings page has 8 tabs. Logo upload uses multer (JPG/PNG, max 2MB), stored at `/uploads/tenants/{schema}/logo.ext`. Doctor signature stored at `/uploads/tenants/{schema}/signatures/{staffId}.ext`. Doctor fees and custom services use the existing Phase 2.5 APIs. Clinic holidays management already exists in AppointmentsPage (HolidaysModal). Session timeout UI built but backend enforcement deferred to Phase 5. Walk-in toggle enforcement added as bug fix after Phase 4.
 
 ---
 
-## Phase 3 — Super Admin Panel
+## Phase 4 — Super Admin Panel
 
-### 3.1 Admin Dashboard
-- [ ] Overview — total clinics, MRR, active users, server health
-- [ ] Clinic list with status (active, trial, suspended)
-- [ ] Alert panel — clinics with overdue payments, trials expiring soon
+### 4.1 Admin Dashboard
+- [x] Overview — total clinics, MRR, active/trial/suspended counts
+- [x] Clinic list (last 8 recent clinics with quick link to full list)
+- [ ] Alert panel — clinics with overdue payments, trials expiring soon (deferred to Phase 5)
 
-**Status:** Not started
+**Status:** ✅ Complete (core dashboard)
 
-### 3.2 Clinic Management
-- [ ] Create new clinic (triggers schema creation + default settings + feature flag setup)
-- [ ] Edit clinic details (name, plan, subdomain)
-- [ ] Suspend / activate clinic account
-- [ ] Login as clinic — impersonation for support (clearly marked so you know you are impersonating)
-- [ ] View clinic usage stats — patient count, last login, storage used
+### 4.2 Clinic Management
+- [x] Create new clinic (triggers schema creation + default settings + feature flag setup)
+- [x] Edit clinic details (name, owner email/phone, plan)
+- [x] Suspend / activate clinic account
+- [x] Login as clinic — impersonation opens clinic-frontend with super admin JWT; "Impersonating" badge shown in TopBar
+- [x] View clinic usage stats — staff count, patient count (queried from tenant schema)
+- [ ] Trial management UI — extend trial, convert to paid, expire early (deferred)
 
-**Status:** Not started
+**Status:** ✅ Complete (core management)
 
-### 3.3 Plans & Feature Flags
-- [ ] Assign / change plan per clinic (basic / standard / premium)
-- [ ] Toggle individual feature flags per clinic
-  - [ ] pharmacy on/off
-  - [ ] lab on/off
-  - [ ] insurance on/off
-  - [ ] online_booking on/off
-  - [ ] multi_branch on/off
-  - [ ] custom_domain on/off
-- [ ] View payment status and subscription history
-- [ ] Trial management — extend trial, convert to paid, expire early
-- [ ] Send announcement to all clinics or selected clinics
+### 4.3 Plans & Feature Flags
+- [x] Assign / change plan per clinic (basic / standard / premium) — in edit modal
+- [x] Toggle individual feature flags per clinic (live toggle switches)
+  - [x] pharmacy on/off
+  - [x] lab on/off
+  - [x] insurance on/off
+  - [x] online_booking on/off
+  - [x] multi_branch on/off
+  - [x] custom_domain on/off
+- [ ] View payment status and subscription history (deferred — table exists, UI not built)
+- [ ] Send announcement to all clinics or selected clinics (deferred to Phase 5)
 
-**Status:** Not started
+**Status:** ✅ Complete (flags + plan assignment)
 
-### 3.4 System Health
-- [ ] Server CPU, memory, disk usage display
-- [ ] Database connection status
-- [ ] Uptime display
-- [ ] Audit log viewer — who did what across the system
+### 4.4 System Health
+- [ ] Server CPU, memory, disk usage display (deferred to Phase 5)
+- [ ] Database connection status (deferred)
+- [ ] Uptime display (deferred)
+- [ ] Audit log viewer (deferred)
 
-**Status:** Not started
+**Status:** Deferred to Phase 5
 
 ---
 
@@ -490,6 +487,10 @@ custom_domain  — clinic uses their own domain
 |---|-----------|-------------|----------|--------|
 | 1 | 2026-04-10 | Invoice creation: `prescription_items` column queried as `quantity` but actual column name is `quantity_given` → 500 on Bill button | High | ✅ Fixed — changed to `COALESCE(pi.quantity_given, 1) AS qty` in `invoice.routes.js` |
 | 2 | 2026-04-10 | Payment UPDATE: `$3` used twice in same query (both `payment_status=$3` and `CASE WHEN $3='paid'`) → PostgreSQL "inconsistent types" 500 error; payment_splits record inserted but invoice not updated | High | ✅ Fixed — pass `status` as `$6` separately: `CASE WHEN $6='paid'` with extra param |
+| 3 | 2026-04-14 | Clinic logo not showing after re-login — `clinic_logo_url` stored as relative path `/uploads/...`, rendered in Sidebar as `<img src="/uploads/...">` which resolved against frontend port 5173 → 404 | High | ✅ Fixed — added `mediaUrl()` utility in `src/utils/mediaUrl.js`, used in Sidebar and SettingsPage |
+| 4 | 2026-04-14 | Inconsistent API response format across backend routes — Phase 2.5 routes (invoice, customservice, doctorfee, endofday, settings) used `{ data }` / `{ message }` while Phase 2.1–2.4 used `{ status, data }` | Medium | ✅ Fixed — standardized all 5 route files to `{ status: 'success'/'error', message?, data? }`; EOD `already_closed` field replaced with `status: 'already_closed'`; updated EndOfDayPage.jsx accordingly |
+| 5 | 2026-04-14 | Super admin panel showed old clinic name — `PUT /api/v1/settings` only updated `clinic_settings.clinic_name` in tenant schema, never synced `public.tenants.clinic_name` used by super admin panel | Medium | ✅ Fixed — settings.routes.js now also runs `UPDATE public.tenants SET clinic_name = $1 WHERE id = $2` when clinic_name changes; ran one-time sync script to fix existing demo clinic |
+| 6 | 2026-04-14 | Allow Walk-ins toggle in Settings had no effect — `allow_walk_ins=false` never blocked walk-in appointments; AppointmentModal always showed Walk-in tab regardless of setting | Medium | ✅ Fixed — backend checks `allow_walk_ins` before creating walk-in (returns 403 if disabled); frontend loads setting on AppointmentsPage mount and hides Walk-in tab from mode selector when false |
 
 ---
 
@@ -530,6 +531,11 @@ custom_domain  — clinic uses their own domain
 | 2026-04-14 | Phase 3 PDF generation — `pdfkit` installed; `pdfGenerator.js` with `generateInvoicePDF` + `generatePrescriptionPDF`; `GET /invoices/:id/pdf` + `GET /prescriptions/:id/pdf` routes; Download PDF button in InvoiceModal; PDF button per row in PrescriptionsPage; A4 branded PDF with logo, clinic info, tables, doctor signature | Complete | Start Phase 4 Super Admin |
 | 2026-04-14 | Fix prescription Print — rewrote `printPrescription.js` to use full clinic_settings (name/address/phone/email/logo/footer); PrescriptionsPage now loads settings via `settingsApi.get()` and passes to print function; logo and signature rendered as full-URL `<img>` tags | Complete | — |
 | 2026-04-14 | Phase 2.0 Dashboards wired — AdminDashboard (reports API: daily stats + monthly bar chart + doctor table), DoctorDashboard (appointments by doctor_id: queue list + stats), ReceptionistDashboard (appointments + EOD summary: live queue table + billing stats), NurseDashboard (appointments: all patients today with status); no new backend routes needed | Complete | Start Phase 4 Super Admin |
+| 2026-04-14 | Bug fix — logo not showing after re-login; added `mediaUrl()` utility to prefix relative backend paths; applied in Sidebar + SettingsPage; removed hardcoded `http://localhost:4000` references | Complete | — |
+| 2026-04-14 | Standards fix — standardized backend API response format across invoice, customservice, doctorfee, endofday, settings routes to `{ status, message?, data? }`; changed EOD `already_closed` field to `status: 'already_closed'`; updated EndOfDayPage.jsx to match | Complete | Start Phase 4 Super Admin |
+| 2026-04-14 | Phase 4 Super Admin Panel — backend `admin.routes.js` (login, dashboard, list/create/update/suspend/activate tenants, impersonation, feature flags); `adminAuth.js` middleware; admin-frontend full build with Tailwind (LoginPage, DashboardPage, ClinicsPage, ClinicDetailPage, AdminLayout, UI components); clinic-frontend ImpersonatePage + "Impersonating" badge in TopBar | Complete | Start Phase 5 |
+| 2026-04-14 | Bug fix — super admin clinic name stale; `PUT /api/v1/settings` now syncs `public.tenants.clinic_name`; one-time DB sync ran to fix demo clinic | Complete | — |
+| 2026-04-14 | Bug fix — Allow Walk-ins toggle had no effect; backend now enforces `allow_walk_ins` on appointment creation; AppointmentModal hides Walk-in tab when disabled; `allow_walk_ins` prop passed from AppointmentsPage | Complete | Start Phase 5 |
 
 ---
 

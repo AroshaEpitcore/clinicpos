@@ -13,7 +13,7 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
 
   if (!consultation_id) {
-    return res.status(400).json({ message: 'consultation_id is required' });
+    return res.status(400).json({ status: 'error', message: 'consultation_id is required' });
   }
 
   try {
@@ -21,7 +21,11 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     const dup = await queryTenant(tenantId,
       `SELECT id FROM invoices WHERE consultation_id = $1`, [consultation_id]);
     if (dup.rows.length) {
-      return res.status(409).json({ message: 'Invoice already exists for this consultation', invoice_id: dup.rows[0].id });
+      return res.status(409).json({
+        status: 'error',
+        message: 'Invoice already exists for this consultation',
+        data: { id: dup.rows[0].id },
+      });
     }
 
     // Load consultation + patient + doctor
@@ -34,7 +38,9 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       JOIN staff    s ON s.id = c.doctor_id
       WHERE c.id = $1
     `, [consultation_id]);
-    if (!cRes.rows.length) return res.status(404).json({ message: 'Consultation not found' });
+    if (!cRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Consultation not found' });
+    }
     const consult = cRes.rows[0];
 
     // Build line items array
@@ -78,8 +84,6 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     const subtotal     = items.reduce((s, i) => s + i.total_price, 0);
     const total_amount = subtotal;
     const balance_due  = total_amount;
-    // Note: if no doctor fee is set and no medicines have a price,
-    // invoice is created with LKR 0 — receptionist can add items manually.
 
     // Auto-generate invoice number INV-XXXXX
     const countRes = await queryTenant(tenantId, `SELECT COUNT(*) FROM invoices`);
@@ -105,10 +109,14 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       `, [invoice.id, item.description, item.item_type, item.quantity, item.unit_price, item.total_price]);
     }
 
-    res.status(201).json({ message: 'Invoice created', data: { id: invoice.id, invoice_number } });
+    res.status(201).json({
+      status: 'success',
+      message: 'Invoice created',
+      data: { id: invoice.id, invoice_number },
+    });
   } catch (err) {
     console.error('POST /invoices', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 
@@ -120,9 +128,14 @@ router.get('/check/:consultationId', async (req, res) => {
     const result = await queryTenant(tenantId,
       `SELECT id, invoice_number FROM invoices WHERE consultation_id = $1`,
       [req.params.consultationId]);
-    res.json({ exists: result.rows.length > 0, data: result.rows[0] || null });
+    res.json({
+      status: 'success',
+      exists: result.rows.length > 0,
+      data:   result.rows[0] || null,
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('GET /invoices/check', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -140,10 +153,10 @@ router.get('/patient/:patientId', async (req, res) => {
       WHERE i.patient_id = $1
       ORDER BY i.created_at DESC
     `, [req.params.patientId]);
-    res.json({ data: result.rows });
+    res.json({ status: 'success', data: result.rows });
   } catch (err) {
     console.error('GET /invoices/patient/:id', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -188,10 +201,10 @@ router.get('/', async (req, res) => {
       ORDER BY i.created_at DESC
       LIMIT $${params.length}
     `, params);
-    res.json({ data: result.rows });
+    res.json({ status: 'success', data: result.rows });
   } catch (err) {
     console.error('GET /invoices', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -211,7 +224,9 @@ router.get('/:id', async (req, res) => {
       LEFT JOIN staff ds        ON ds.id = c.doctor_id
       WHERE i.id = $1
     `, [req.params.id]);
-    if (!invRes.rows.length) return res.status(404).json({ message: 'Invoice not found' });
+    if (!invRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+    }
 
     const invoice = invRes.rows[0];
 
@@ -227,10 +242,13 @@ router.get('/:id', async (req, res) => {
       ORDER BY ps.recorded_at
     `, [invoice.id]);
 
-    res.json({ data: { ...invoice, items: itemsRes.rows, splits: splitsRes.rows } });
+    res.json({
+      status: 'success',
+      data: { ...invoice, items: itemsRes.rows, splits: splitsRes.rows },
+    });
   } catch (err) {
     console.error('GET /invoices/:id', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -243,14 +261,16 @@ router.put('/:id/items', requireRole('receptionist', 'admin'), async (req, res) 
   try {
     const invRes = await queryTenant(tenantId,
       `SELECT * FROM invoices WHERE id = $1`, [req.params.id]);
-    if (!invRes.rows.length) return res.status(404).json({ message: 'Invoice not found' });
+    if (!invRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+    }
     if (invRes.rows[0].payment_status === 'paid') {
-      return res.status(400).json({ message: 'Cannot modify a paid invoice' });
+      return res.status(400).json({ status: 'error', message: 'Cannot modify a paid invoice' });
     }
 
     if (action === 'add') {
       if (!description || !unit_price) {
-        return res.status(400).json({ message: 'description and unit_price are required' });
+        return res.status(400).json({ status: 'error', message: 'description and unit_price are required' });
       }
       const total_price = parseFloat(quantity) * parseFloat(unit_price);
       await queryTenant(tenantId, `
@@ -258,11 +278,11 @@ router.put('/:id/items', requireRole('receptionist', 'admin'), async (req, res) 
         VALUES ($1,$2,$3,$4,$5,$6)
       `, [req.params.id, description, item_type, quantity, unit_price, total_price]);
     } else if (action === 'remove') {
-      if (!item_id) return res.status(400).json({ message: 'item_id required for remove' });
+      if (!item_id) return res.status(400).json({ status: 'error', message: 'item_id required for remove' });
       await queryTenant(tenantId,
         `DELETE FROM invoice_items WHERE id = $1 AND invoice_id = $2`, [item_id, req.params.id]);
     } else {
-      return res.status(400).json({ message: 'action must be add or remove' });
+      return res.status(400).json({ status: 'error', message: 'action must be add or remove' });
     }
 
     // Recalculate totals
@@ -279,10 +299,10 @@ router.put('/:id/items', requireRole('receptionist', 'admin'), async (req, res) 
       WHERE id=$4
     `, [subtotal, total_amount, balance_due, req.params.id]);
 
-    res.json({ message: 'Invoice updated' });
+    res.json({ status: 'success', message: 'Invoice updated' });
   } catch (err) {
     console.error('PUT /invoices/:id/items', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -293,16 +313,18 @@ router.post('/:id/pay', requireRole('receptionist', 'admin'), async (req, res) =
   const { payment_method, amount, reference } = req.body;
 
   if (!payment_method || !amount) {
-    return res.status(400).json({ message: 'payment_method and amount are required' });
+    return res.status(400).json({ status: 'error', message: 'payment_method and amount are required' });
   }
 
   try {
     const invRes = await queryTenant(tenantId,
       `SELECT * FROM invoices WHERE id = $1`, [req.params.id]);
-    if (!invRes.rows.length) return res.status(404).json({ message: 'Invoice not found' });
+    if (!invRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+    }
     const inv = invRes.rows[0];
     if (inv.payment_status === 'paid') {
-      return res.status(400).json({ message: 'Invoice is already fully paid' });
+      return res.status(400).json({ status: 'error', message: 'Invoice is already fully paid' });
     }
 
     const payAmt  = parseFloat(amount);
@@ -325,10 +347,14 @@ router.post('/:id/pay', requireRole('receptionist', 'admin'), async (req, res) =
       WHERE id=$5
     `, [newPaid, balance, status, payment_method, req.params.id, status]);
 
-    res.json({ message: 'Payment recorded', data: { payment_status: status, balance_due: balance } });
+    res.json({
+      status: 'success',
+      message: 'Payment recorded',
+      data: { payment_status: status, balance_due: balance },
+    });
   } catch (err) {
     console.error('POST /invoices/:id/pay', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 
@@ -348,7 +374,9 @@ router.get('/:id/pdf', async (req, res) => {
       LEFT JOIN staff ds        ON ds.id = c.doctor_id
       WHERE i.id = $1
     `, [req.params.id]);
-    if (!invRes.rows.length) return res.status(404).json({ message: 'Invoice not found' });
+    if (!invRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+    }
 
     const invoice = invRes.rows[0];
 
@@ -377,7 +405,9 @@ router.get('/:id/pdf', async (req, res) => {
     });
   } catch (err) {
     console.error('GET /invoices/:id/pdf', err);
-    if (!res.headersSent) res.status(500).json({ message: 'Server error', detail: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+    }
   }
 });
 

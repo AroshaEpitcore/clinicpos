@@ -57,7 +57,7 @@ export default function EndOfDayPage() {
   }
 
   const s              = summary?.data;
-  const alreadyClosed  = summary?.already_closed;
+  const alreadyClosed  = summary?.status === 'already_closed';
   const cashDiff       = s ? parseFloat(cashCounted || 0) - parseFloat(s.cash_system || 0) : 0;
   const diffPositive   = cashDiff > 0;
   const diffNeutral    = cashDiff === 0;

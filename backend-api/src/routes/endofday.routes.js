@@ -18,15 +18,16 @@ router.get('/', requireRole('receptionist', 'admin'), async (req, res) => {
       ORDER BY e.closing_date DESC
       LIMIT $1
     `, [parseInt(limit)]);
-    res.json({ data: result.rows });
+    res.json({ status: 'success', data: result.rows });
   } catch (err) {
     console.error('GET /end-of-day', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
 // ── GET /api/v1/end-of-day/summary/:date ─────────────────────────────────────
-// Build live summary for a date (to show before closing)
+// Build live summary for a date (to show before closing).
+// Returns status: 'already_closed' if the day is locked, 'success' otherwise.
 router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const { date } = req.params;
@@ -35,7 +36,7 @@ router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, r
     const closed = await queryTenant(tenantId,
       `SELECT * FROM end_of_day WHERE closing_date = $1`, [date]);
     if (closed.rows.length) {
-      return res.json({ already_closed: true, data: closed.rows[0] });
+      return res.json({ status: 'already_closed', data: closed.rows[0] });
     }
 
     // Aggregate invoices for the day
@@ -66,16 +67,16 @@ router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, r
 
     const summary = {
       ...totals.rows[0],
-      cash_system:      methodMap['cash']      || 0,
-      card_total:       methodMap['card']      || 0,
-      online_total:     methodMap['online']    || 0,
-      insurance_total:  methodMap['insurance'] || 0,
+      cash_system:     methodMap['cash']      || 0,
+      card_total:      methodMap['card']      || 0,
+      online_total:    methodMap['online']    || 0,
+      insurance_total: methodMap['insurance'] || 0,
     };
 
-    res.json({ already_closed: false, data: summary });
+    res.json({ status: 'success', data: summary });
   } catch (err) {
     console.error('GET /end-of-day/summary/:date', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -90,11 +91,13 @@ router.get('/:date', requireRole('receptionist', 'admin'), async (req, res) => {
       JOIN staff s ON s.id = e.closed_by
       WHERE e.closing_date = $1
     `, [req.params.date]);
-    if (!result.rows.length) return res.status(404).json({ message: 'No EOD record for this date' });
-    res.json({ data: result.rows[0] });
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'No EOD record for this date' });
+    }
+    res.json({ status: 'success', data: result.rows[0] });
   } catch (err) {
     console.error('GET /end-of-day/:date', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
@@ -105,7 +108,7 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
   const { closing_date, cash_counted, notes } = req.body;
 
   if (!closing_date || cash_counted == null) {
-    return res.status(400).json({ message: 'closing_date and cash_counted are required' });
+    return res.status(400).json({ status: 'error', message: 'closing_date and cash_counted are required' });
   }
 
   try {
@@ -113,7 +116,7 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     const dup = await queryTenant(tenantId,
       `SELECT id FROM end_of_day WHERE closing_date = $1`, [closing_date]);
     if (dup.rows.length) {
-      return res.status(409).json({ message: 'Day already closed' });
+      return res.status(409).json({ status: 'error', message: 'Day already closed' });
     }
 
     // Aggregate the day
@@ -141,9 +144,9 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       methodMap[row.payment_method.toLowerCase()] = parseFloat(row.total);
     }
 
-    const t             = totals.rows[0];
-    const cash_system   = methodMap['cash']      || 0;
-    const cash_diff     = parseFloat(cash_counted) - cash_system;
+    const t           = totals.rows[0];
+    const cash_system = methodMap['cash'] || 0;
+    const cash_diff   = parseFloat(cash_counted) - cash_system;
 
     const result = await queryTenant(tenantId, `
       INSERT INTO end_of_day (
@@ -165,10 +168,14 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       notes || null, req.user.id,
     ]);
 
-    res.status(201).json({ message: 'Day closed successfully', data: result.rows[0] });
+    res.status(201).json({
+      status: 'success',
+      message: 'Day closed successfully',
+      data: result.rows[0],
+    });
   } catch (err) {
     console.error('POST /end-of-day', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 

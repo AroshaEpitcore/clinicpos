@@ -1,8 +1,8 @@
-import { Bell } from 'lucide-react';
+import { Bell, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../store/AuthContext';
 
 export function TopBar({ title, sidebarWidth }) {
-  const { clinic } = useAuth();
+  const { clinic, user } = useAuth();
 
   return (
     <header
@@ -17,6 +17,12 @@ export function TopBar({ title, sidebarWidth }) {
       </h2>
 
       <div className="flex items-center gap-3">
+        {user?.impersonated && (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
+            <ShieldAlert className="w-3.5 h-3.5" />
+            Impersonating
+          </span>
+        )}
         <button className="relative text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
           <Bell className="w-5 h-5" />
         </button>

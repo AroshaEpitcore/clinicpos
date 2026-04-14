@@ -2,7 +2,7 @@ const router  = require('express').Router();
 const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
-const { queryTenant }                 = require('../config/db');
+const { queryTenant, queryPublic }    = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const { tenantMiddleware }            = require('../middleware/tenant');
 
@@ -17,7 +17,7 @@ function makeStorage(subdir) {
       cb(null, dir);
     },
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
+      const ext  = path.extname(file.originalname).toLowerCase();
       // subdir '' → logo file; subdir 'signatures' → staffId.ext
       const base = subdir === 'signatures'
         ? (req.params.staffId || Date.now())
@@ -43,11 +43,13 @@ router.get('/', async (req, res) => {
   const tenantId = req.tenantSchema;
   try {
     const result = await queryTenant(tenantId, `SELECT * FROM clinic_settings LIMIT 1`);
-    if (!result.rows.length) return res.status(404).json({ message: 'Settings not found' });
-    res.json({ data: result.rows[0] });
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Settings not found' });
+    }
+    res.json({ status: 'success', data: result.rows[0] });
   } catch (err) {
     console.error('GET /settings', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 
@@ -100,19 +102,27 @@ router.put('/', requireRole('admin'), async (req, res) => {
       patient_portal_enabled    != null ? patient_portal_enabled    : null,
     ]);
 
+    // Keep public.tenants in sync when clinic_name changes
+    if (clinic_name && req.tenant?.id) {
+      await queryPublic(
+        `UPDATE public.tenants SET clinic_name = $1, updated_at = NOW() WHERE id = $2`,
+        [clinic_name, req.tenant.id]
+      );
+    }
+
     const result = await queryTenant(tenantId, `SELECT * FROM clinic_settings LIMIT 1`);
-    res.json({ message: 'Settings saved', data: result.rows[0] });
+    res.json({ status: 'success', message: 'Settings saved', data: result.rows[0] });
   } catch (err) {
     console.error('PUT /settings', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 
 // ── POST /api/v1/settings/logo ────────────────────────────────────────────────
 router.post('/logo', requireRole('admin'), (req, res, next) => {
   uploadLogo.single('logo')(req, res, async (err) => {
-    if (err) return res.status(400).json({ message: err.message });
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (err) return res.status(400).json({ status: 'error', message: err.message });
+    if (!req.file) return res.status(400).json({ status: 'error', message: 'No file uploaded' });
 
     const tenantId = req.tenantSchema;
     const url = `/uploads/tenants/${tenantId}/${req.file.filename}`;
@@ -122,10 +132,10 @@ router.post('/logo', requireRole('admin'), (req, res, next) => {
         UPDATE clinic_settings
         SET clinic_logo_url = $1, clinic_logo_filename = $2, updated_at = NOW()
       `, [url, req.file.filename]);
-      res.json({ message: 'Logo uploaded', data: { url } });
+      res.json({ status: 'success', message: 'Logo uploaded', data: { url } });
     } catch (dbErr) {
       console.error('POST /settings/logo', dbErr);
-      res.status(500).json({ message: 'Server error', detail: dbErr.message });
+      res.status(500).json({ status: 'error', message: 'Server error', detail: dbErr.message });
     }
   });
 });
@@ -146,18 +156,18 @@ router.delete('/logo', requireRole('admin'), async (req, res) => {
     await queryTenant(tenantId, `
       UPDATE clinic_settings SET clinic_logo_url = NULL, clinic_logo_filename = NULL, updated_at = NOW()
     `);
-    res.json({ message: 'Logo removed' });
+    res.json({ status: 'success', message: 'Logo removed' });
   } catch (err) {
     console.error('DELETE /settings/logo', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 
 // ── POST /api/v1/settings/staff/:staffId/signature ───────────────────────────
 router.post('/staff/:staffId/signature', requireRole('admin'), (req, res) => {
   uploadSignature.single('signature')(req, res, async (err) => {
-    if (err) return res.status(400).json({ message: err.message });
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (err) return res.status(400).json({ status: 'error', message: err.message });
+    if (!req.file) return res.status(400).json({ status: 'error', message: 'No file uploaded' });
 
     const tenantId = req.tenantSchema;
     const url = `/uploads/tenants/${tenantId}/signatures/${req.file.filename}`;
@@ -166,10 +176,10 @@ router.post('/staff/:staffId/signature', requireRole('admin'), (req, res) => {
       await queryTenant(tenantId,
         `UPDATE staff SET signature_url = $1, updated_at = NOW() WHERE id = $2`,
         [url, req.params.staffId]);
-      res.json({ message: 'Signature uploaded', data: { url } });
+      res.json({ status: 'success', message: 'Signature uploaded', data: { url } });
     } catch (dbErr) {
       console.error('POST /settings/staff/:id/signature', dbErr);
-      res.status(500).json({ message: 'Server error', detail: dbErr.message });
+      res.status(500).json({ status: 'error', message: 'Server error', detail: dbErr.message });
     }
   });
 });
@@ -190,10 +200,10 @@ router.delete('/staff/:staffId/signature', requireRole('admin'), async (req, res
     await queryTenant(tenantId,
       `UPDATE staff SET signature_url = NULL, updated_at = NOW() WHERE id = $1`,
       [req.params.staffId]);
-    res.json({ message: 'Signature removed' });
+    res.json({ status: 'success', message: 'Signature removed' });
   } catch (err) {
     console.error('DELETE /settings/staff/:id/signature', err);
-    res.status(500).json({ message: 'Server error', detail: err.message });
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
 

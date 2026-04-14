@@ -22,8 +22,10 @@ const GENDER_OPTIONS = [
   { value: 'other',  label: 'Other' },
 ];
 
-export function AppointmentModal({ open, onClose, onSuccess, defaultDate }) {
+export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowWalkIns = true }) {
   const today = defaultDate || new Date().toISOString().split('T')[0];
+
+  const availableModes = MODES.filter(m => m.value !== 'walkin' || allowWalkIns);
 
   const [mode,         setMode]         = useState('walkin');
   const [doctors,      setDoctors]      = useState([]);
@@ -64,10 +66,12 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate }) {
 
   useEffect(() => {
     if (!open) return;
+    // If walk-ins are disabled and current mode is walkin, switch to booked
+    if (!allowWalkIns && mode === 'walkin') setMode('booked');
     doctorsApi.list().then(res => {
       setDoctors(res.data.data.map(d => ({ value: d.id, label: `${d.full_name}${d.specialization ? ` — ${d.specialization}` : ''}` })));
     });
-  }, [open]);
+  }, [open, allowWalkIns]);
 
   useEffect(() => {
     if (mode !== 'booked' || !doctorId || !apptDate) { setSlots([]); return; }
@@ -202,7 +206,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate }) {
     setHasSearched(false);
     setSlots([]);
     setSelectedSlot('');
-    setMode('walkin');
+    setMode(allowWalkIns ? 'walkin' : 'booked');
     setNewFirst(''); setNewLast(''); setNewPhone(''); setNewGender(''); setNewDob('');
     setNewDuplicates([]); setNewConfirmed(false);
     setFieldErrors({});
@@ -230,7 +234,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate }) {
     >
       {/* Mode toggle */}
       <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden mb-5">
-        {MODES.map(m => (
+        {availableModes.map(m => (
           <button
             key={m.value}
             type="button"

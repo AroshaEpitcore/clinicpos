@@ -1,21 +1,34 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AdminAuthProvider, useAdminAuth } from './store/AdminAuthContext';
+import AdminLayout from './components/layout/AdminLayout';
+import LoginPage        from './pages/LoginPage';
+import DashboardPage    from './pages/DashboardPage';
+import ClinicsPage      from './pages/ClinicsPage';
+import ClinicDetailPage from './pages/ClinicDetailPage';
 
-// Pages (create these as you build Phase 4 — Super Admin Panel)
-// import AdminLoginPage from './pages/AdminLoginPage';
-// import AdminDashboard from './pages/AdminDashboard';
-// import ClinicList from './pages/ClinicList';
-// import ClinicDetail from './pages/ClinicDetail';
-// import FeatureFlags from './pages/FeatureFlags';
+function ProtectedRoute({ children }) {
+  const { admin } = useAdminAuth();
+  if (!admin) return <Navigate to="/login" replace />;
+  return <AdminLayout>{children}</AdminLayout>;
+}
 
-function App() {
+function AppRoutes() {
+  const { admin } = useAdminAuth();
   return (
     <Routes>
-      <Route path="/" element={<div style={{ padding: 40, fontFamily: 'sans-serif' }}>
-        <h1>ClinicPOS — Super Admin Panel</h1>
-        <p>Project is set up. Build this in Phase 4 (after clinic-frontend and backend-api are done).</p>
-      </div>} />
+      <Route path="/login" element={admin ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/clinics" element={<ProtectedRoute><ClinicsPage /></ProtectedRoute>} />
+      <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetailPage /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AdminAuthProvider>
+      <AppRoutes />
+    </AdminAuthProvider>
+  );
+}

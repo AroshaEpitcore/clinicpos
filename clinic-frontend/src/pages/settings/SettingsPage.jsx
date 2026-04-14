@@ -366,10 +366,12 @@ function SecurityTab({ settings, onSave, saving }) {
 
 // ── Doctor Fees tab ───────────────────────────────────────────────────────────
 function DoctorFeesTab() {
-  const [doctors, setDoctors]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [editing, setEditing]   = useState(null); // { doctorId, fee_label, amount }
-  const [saving,  setSaving]    = useState(false);
+  const [doctors,   setDoctors]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [editing,   setEditing]   = useState(null); // { doctorId, fee_label, amount }
+  const [saving,    setSaving]    = useState(false);
+  const [sigUploading, setSigUploading] = useState({}); // { [doctorId]: bool }
+  const sigInputRef = useRef({});
 
   useEffect(() => {
     doctorFeesApi.list()
@@ -396,12 +398,41 @@ function DoctorFeesTab() {
     }
   }
 
+  async function handleSignatureUpload(doctorId, file) {
+    if (!file) return;
+    setSigUploading(p => ({ ...p, [doctorId]: true }));
+    try {
+      const res = await settingsApi.uploadSignature(doctorId, file);
+      setDoctors(prev => prev.map(d => d.doctor_id === doctorId
+        ? { ...d, signature_url: res.data.data.url } : d));
+      toast.success('Signature uploaded');
+    } catch {
+      toast.error('Could not upload signature');
+    } finally {
+      setSigUploading(p => ({ ...p, [doctorId]: false }));
+    }
+  }
+
+  async function handleSignatureDelete(doctorId) {
+    setSigUploading(p => ({ ...p, [doctorId]: true }));
+    try {
+      await settingsApi.deleteSignature(doctorId);
+      setDoctors(prev => prev.map(d => d.doctor_id === doctorId
+        ? { ...d, signature_url: null } : d));
+      toast.success('Signature removed');
+    } catch {
+      toast.error('Could not remove signature');
+    } finally {
+      setSigUploading(p => ({ ...p, [doctorId]: false }));
+    }
+  }
+
   if (loading) return <LoadingState message="Loading doctor fees..." />;
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-[var(--color-text-secondary)]">
-        Set the consultation fee for each doctor. This fee is automatically added as the first line item when a new invoice is generated.
+        Set the consultation fee for each doctor. Upload a signature image (JPG/PNG) to appear on printed and PDF prescriptions.
       </p>
       <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
         <table className="w-full">
@@ -410,16 +441,19 @@ function DoctorFeesTab() {
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Doctor</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Fee Label</th>
               <th className="text-right px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Amount</th>
+              <th className="text-center px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] uppercase">Signature</th>
               <th className="px-4 py-2.5 w-20" />
             </tr>
           </thead>
           <tbody>
             {doctors.map(doc => {
               const isEditing = editing?.doctor_id === doc.doctor_id;
+              const uploading = !!sigUploading[doc.doctor_id];
               return (
                 <tr key={doc.doctor_id} className="border-b border-[var(--color-border)] last:border-0">
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-[var(--color-text)]">{doc.full_name}</p>
+                    {doc.specialization && <p className="text-xs text-[var(--color-text-secondary)]">{doc.specialization}</p>}
                   </td>
                   <td className="px-4 py-3">
                     {isEditing ? (
@@ -438,6 +472,45 @@ function DoctorFeesTab() {
                       <span className="text-sm font-semibold text-[var(--color-text)]">{formatCurrency(doc.amount)}</span>
                     )}
                   </td>
+
+                  {/* Signature cell */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-2">
+                      {doc.signature_url ? (
+                        <>
+                          <img
+                            src={mediaUrl(doc.signature_url)}
+                            alt="signature"
+                            className="h-8 max-w-[80px] object-contain rounded border border-[var(--color-border)] bg-white p-0.5"
+                          />
+                          <button
+                            onClick={() => handleSignatureDelete(doc.doctor_id)}
+                            disabled={uploading}
+                            className="p-1 rounded text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] transition-colors"
+                            title="Remove signature"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => sigInputRef.current[doc.doctor_id]?.click()}
+                          disabled={uploading}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[var(--color-text-secondary)] border border-dashed border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+                        >
+                          {uploading ? '…' : <><Upload className="w-3 h-3" /> Upload</>}
+                        </button>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="hidden"
+                        ref={el => { sigInputRef.current[doc.doctor_id] = el; }}
+                        onChange={e => { handleSignatureUpload(doc.doctor_id, e.target.files[0]); e.target.value = ''; }}
+                      />
+                    </div>
+                  </td>
+
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       {isEditing ? (
@@ -459,7 +532,7 @@ function DoctorFeesTab() {
               );
             })}
             {doctors.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-[var(--color-text-secondary)]">No doctors found</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[var(--color-text-secondary)]">No doctors found</td></tr>
             )}
           </tbody>
         </table>

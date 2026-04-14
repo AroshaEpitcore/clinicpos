@@ -89,7 +89,7 @@ Phase 7  →  Desktop version (later)
 | Tenant middleware — read subdomain → load tenant + feature flags | [x] |
 | `POST /api/v1/auth/logout` — invalidate token | [x] |
 | Password hashing with bcrypt | [x] |
-| Session timeout enforcement | [ ] *(deferred to Phase 2.7)* |
+| Session timeout enforcement | [ ] *(UI built in Phase 2.7 — backend enforcement deferred to Phase 5)* |
 | Test: login as doctor, login as receptionist, login as admin | [x] |
 | Test: wrong role gets 403, wrong tenant gets 403 | [x] |
 
@@ -263,8 +263,8 @@ Phase 7  →  Desktop version (later)
 | Medicine store management screen (admin — add/edit/remove, low stock, near expiry tabs) | frontend | [x] |
 | Medicine Store link in sidebar (admin only) | frontend | [x] |
 | Patient profile Prescriptions tab — full history with items per Rx | frontend | [x] |
-| Low stock / near-expiry alert badges on dashboard | frontend | [ ] |
-| Doctor signature upload screen (deferred to Phase 3) | frontend | [ ] |
+| Low stock / near-expiry alert badges on dashboard | frontend | [ ] *(deferred — use Reports medicines tab for now)* |
+| Doctor signature upload screen | frontend | [x] *(built in Phase 2.7 Settings → Doctor Fees tab)* |
 
 **Completed:** 2026-04-08  
 **Test:** Search medicine → select → add dosage → save → Rx number generated. Print opens browser print window with clinic header and medicines table. Medicine Store shows low stock and near-expiry in separate tabs.
@@ -331,7 +331,7 @@ Phase 7  →  Desktop version (later)
 | `GET /api/v1/reports/patients` | backend | [x] |
 | `GET /api/v1/reports/appointments` | backend | [x] |
 | `GET /api/v1/reports/end-of-day/history` | backend | [x] |
-| PDF export for all reports | backend | [ ] *(deferred to Phase 3)* |
+| PDF export for all reports | backend | [ ] *(deferred to Phase 5)* |
 | Excel / CSV export for all reports | backend | [x] *(CSV download in frontend)* |
 | Admin analytics dashboard screen | frontend | [x] |
 | Daily summary widgets | frontend | [x] |
@@ -372,6 +372,7 @@ Phase 7  →  Desktop version (later)
 | Clinic settings — Documents tab (receipt header/footer, prescription footer) | frontend | [x] |
 | Clinic settings — Billing tab (currency, tax rate, tax label) | frontend | [x] |
 | Clinic settings — Appointments tab (slot duration, max per day, walk-in toggle) | frontend | [x] |
+| Walk-in toggle enforcement — backend blocks walkin type when `allow_walk_ins=false`; frontend hides Walk-in tab in AppointmentModal | both | [x] |
 | Clinic settings — Notifications tab (reminder toggle, hours, message template) | frontend | [x] |
 | Clinic settings — Security tab (session timeout) | frontend | [x] |
 | Doctor fees screen (set consultation fee per doctor) | frontend | [x] |
@@ -394,32 +395,35 @@ Phase 7  →  Desktop version (later)
 
 | Task | Project | Done |
 |------|---------|------|
-| Admin login (separate credentials, IP-restricted) | admin-frontend + backend | [ ] |
-| `GET /api/v1/admin/tenants` — list all clinics | backend | [ ] |
-| `POST /api/v1/admin/tenants` — create new clinic | backend | [ ] |
-| `PUT /api/v1/admin/tenants/:id` — update clinic | backend | [ ] |
-| `PUT /api/v1/admin/tenants/:id/suspend` — suspend | backend | [ ] |
-| `PUT /api/v1/admin/tenants/:id/activate` — activate | backend | [ ] |
-| `POST /api/v1/admin/tenants/:id/impersonate` — login as clinic | backend | [ ] |
-| `PUT /api/v1/admin/feature-flags/:tenant_id` — toggle flags | backend | [ ] |
-| `GET /api/v1/admin/dashboard` — MRR, totals, health | backend | [ ] |
-| Admin overview dashboard — total clinics, MRR, active, trial, suspended | admin-frontend | [ ] |
-| Clinic list with status badges and search | admin-frontend | [ ] |
-| Create clinic form | admin-frontend | [ ] |
-| Clinic detail view — usage stats, last login, plan | admin-frontend | [ ] |
-| Feature flag toggles per clinic (per module switch) | admin-frontend | [ ] |
-| Plan assignment — basic / standard / premium | admin-frontend | [ ] |
-| Suspend / activate button | admin-frontend | [ ] |
-| Login as clinic button (impersonation — clearly marked) | admin-frontend | [ ] |
-| Payment and subscription history per clinic | admin-frontend | [ ] |
-| Trial management — extend, convert, expire | admin-frontend | [ ] |
-| Announcement send to all or selected clinics | admin-frontend | [ ] |
-| System health display — server, DB, uptime | admin-frontend | [ ] |
-| Audit log viewer | admin-frontend | [ ] |
+| Admin login (separate credentials, separate JWT secret) | admin-frontend + backend | [x] |
+| `GET /api/v1/admin/tenants` — list all clinics | backend | [x] |
+| `GET /api/v1/admin/tenants/:id` — clinic detail + usage stats | backend | [x] |
+| `POST /api/v1/admin/tenants` — create new clinic | backend | [x] |
+| `PUT /api/v1/admin/tenants/:id` — update clinic | backend | [x] |
+| `PUT /api/v1/admin/tenants/:id/suspend` — suspend | backend | [x] |
+| `PUT /api/v1/admin/tenants/:id/activate` — activate | backend | [x] |
+| `POST /api/v1/admin/tenants/:id/impersonate` — login as clinic | backend | [x] |
+| `GET /api/v1/admin/feature-flags/:tenantId` — get flags | backend | [x] |
+| `PUT /api/v1/admin/feature-flags/:tenant_id` — toggle flags | backend | [x] |
+| `GET /api/v1/admin/dashboard` — MRR, totals | backend | [x] |
+| Admin overview dashboard — total clinics, MRR, active, trial, suspended | admin-frontend | [x] |
+| Clinic list with status badges and search | admin-frontend | [x] |
+| Create clinic form | admin-frontend | [x] |
+| Clinic detail view — usage stats (patients, staff), plan | admin-frontend | [x] |
+| Feature flag toggles per clinic (per module switch) | admin-frontend | [x] |
+| Plan assignment — basic / standard / premium | admin-frontend | [x] |
+| Suspend / activate button | admin-frontend | [x] |
+| Login as clinic button (impersonation — "Impersonating" badge in TopBar) | admin-frontend | [x] |
+| Payment and subscription history per clinic | admin-frontend | [ ] *(deferred to Phase 5)* |
+| Trial management — extend, convert, expire | admin-frontend | [ ] *(deferred to Phase 5)* |
+| Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred to Phase 5)* |
+| System health display — server, DB, uptime | admin-frontend | [ ] *(deferred to Phase 5)* |
+| Audit log viewer | admin-frontend | [ ] *(deferred to Phase 5)* |
 
-**Test:** Create new clinic → log in as that clinic → data isolated. Toggle pharmacy flag OFF → clinic cannot access pharmacy. Suspend clinic → clinic login blocked.
+**Test:** Create new clinic → log in as that clinic → data isolated. Toggle pharmacy flag OFF → clinic cannot access pharmacy. Suspend clinic → clinic login blocked. Impersonate → opens clinic-frontend with "Impersonating" badge visible.
 
-**✅ Phase 4 complete when:** You can fully manage any clinic from the admin panel without touching the server.
+**Completed:** 2026-04-14
+**✅ Phase 4 complete (core).**
 
 ---
 
@@ -492,14 +496,14 @@ Phase 7  →  Desktop version (later)
 
 | Phase | Estimated Time |
 |-------|---------------|
-| Phase 1 — Foundation | 2–3 weeks |
-| Phase 2 — Core modules | 8–12 weeks |
-| Phase 3 — Customization | 2–3 weeks |
-| Phase 4 — Super admin | 2–3 weeks |
-| Phase 5 — Add-on modules | 4–6 weeks |
-| Phase 6 — Beta & launch | 2–3 weeks |
-| Phase 7 — Desktop | 3–4 weeks |
-| **Total to launch (SaaS)** | **~5–6 months** |
+| Phase 1 — Foundation | 2–3 weeks | ✅ Done |
+| Phase 2 — Core modules (2.0–2.7) | 8–12 weeks | ✅ Done |
+| Phase 3 — PDF generation + branding | 1–2 weeks | ✅ Done |
+| Phase 4 — Super admin | 2–3 weeks | ✅ Done |
+| Phase 5 — Add-on modules | 4–6 weeks | |
+| Phase 6 — Beta & launch | 2–3 weeks | |
+| Phase 7 — Desktop | 3–4 weeks | |
+| **Total to launch (SaaS)** | **~5–6 months** | |
 
 ---
 
