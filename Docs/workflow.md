@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-15
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal complete.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -214,7 +214,7 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 ### Admin
 
-**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · Billing · Pharmacy *(if flag ON)* · Lab *(if flag ON)* · Reports · Settings
+**Sidebar access:** Dashboard · Patients · Appointments · Consultations · Prescriptions · Medicine Store · Billing · Pharmacy *(if flag ON)* · Lab *(if flag ON)* · **Staff** · Reports · Settings
 
 #### Dashboard
 - Stat cards: Total Billed, Collected, Patients Today, EOD Status — all from today's report
@@ -280,6 +280,15 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Can add/edit/delete tests from catalog
 - Can create requests, enter results, view history
 
+#### Staff Management (admin-only)
+- **Staff page** (`/staff`) — full list of all staff grouped by role
+- **Add Staff** — create doctor, nurse, receptionist, or another admin with email + password
+- **Edit** — update name, email, phone, specialization, registration number, role
+- **Reset Password** — set a new password for any staff member
+- **Deactivate / Activate** — toggle `is_active`; deactivated staff cannot log in
+- Multiple doctors per clinic supported — no limit
+- Cannot deactivate your own account (blocked by backend)
+
 **Cannot do:** Nothing is blocked for admin within current phases
 
 ---
@@ -317,6 +326,8 @@ Patient (PT-XXXXX)
 
 | Action | Receptionist | Doctor | Nurse | Admin |
 |--------|:-----------:|:------:|:-----:|:-----:|
+| **Create / edit / deactivate staff** | ✗ | ✗ | ✗ | ✅ |
+| **Reset staff password** | ✗ | ✗ | ✗ | ✅ |
 | Register patient | ✅ | ✗ | ✗ | ✅ |
 | Edit patient | ✅ | ✗ | ✗ | ✅ |
 | Delete patient | ✗ | ✗ | ✗ | ✅ |
@@ -370,6 +381,8 @@ Patient (PT-XXXXX)
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
 | 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
 | 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up) |
+| Staff Management | ✅ Complete | Admin creates/edits/deactivates staff (all roles). Reset-password. Grouped by role. `/api/v1/staff` backend. `/staff` page in clinic-frontend. |
+| SaaS Onboarding | ✅ Complete | Clinic creation auto-creates first admin staff. Credentials copy screen. No trial/plan system. Super admin manually activates/suspends. |
 
 ---
 
@@ -488,8 +501,10 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 - Click row → Clinic Detail
 
 ### Create New Clinic
-- Form: clinic name (auto-generates subdomain slug), subdomain, owner email/phone, plan, trial days
-- On save: inserts `public.tenants` + default feature flags (all OFF) + creates full tenant schema + inserts `clinic_settings`
+- Form: clinic name (auto-generates subdomain slug), subdomain, owner email/phone, plan, trial days, **initial admin password**
+- On save: inserts `public.tenants` + default feature flags (all OFF) + creates full tenant schema + inserts `clinic_settings` + **creates first admin staff account** using `owner_email` + hashed password
+- After save: modal shows a **Credentials screen** — Login URL, Email, Password — each with a Copy button
+- Warning shown: "password is not stored in plain text — save or send now"
 
 ### Clinic Detail (`/clinics/:id`)
 - Stats: staff count, patient count (queried live from tenant schema)

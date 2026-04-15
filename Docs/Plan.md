@@ -403,32 +403,45 @@ Phase 7  →  Desktop version (later)
 | Admin login (separate credentials, separate JWT secret) | admin-frontend + backend | [x] |
 | `GET /api/v1/admin/tenants` — list all clinics | backend | [x] |
 | `GET /api/v1/admin/tenants/:id` — clinic detail + usage stats | backend | [x] |
-| `POST /api/v1/admin/tenants` — create new clinic | backend | [x] |
-| `PUT /api/v1/admin/tenants/:id` — update clinic | backend | [x] |
+| `POST /api/v1/admin/tenants` — create clinic + auto-creates first admin staff account | backend | [x] |
+| `PUT /api/v1/admin/tenants/:id` — update clinic name/email/phone | backend | [x] |
 | `PUT /api/v1/admin/tenants/:id/suspend` — suspend | backend | [x] |
 | `PUT /api/v1/admin/tenants/:id/activate` — activate | backend | [x] |
 | `POST /api/v1/admin/tenants/:id/impersonate` — login as clinic | backend | [x] |
 | `GET /api/v1/admin/feature-flags/:tenantId` — get flags | backend | [x] |
 | `PUT /api/v1/admin/feature-flags/:tenant_id` — toggle flags | backend | [x] |
-| `GET /api/v1/admin/dashboard` — MRR, totals | backend | [x] |
-| Admin overview dashboard — total clinics, MRR, active, trial, suspended | admin-frontend | [x] |
+| `GET /api/v1/admin/dashboard` — totals (active, suspended, total) | backend | [x] |
+| Admin overview dashboard — total clinics, active, suspended stat cards | admin-frontend | [x] |
 | Clinic list with status badges and search | admin-frontend | [x] |
-| Create clinic form | admin-frontend | [x] |
-| Clinic detail view — usage stats (patients, staff), plan | admin-frontend | [x] |
+| Create clinic form — name, subdomain (auto-generated), email, phone, password | admin-frontend | [x] |
+| Credentials copy screen after clinic creation (URL, email, password) | admin-frontend | [x] |
+| Clinic detail view — usage stats (patients, staff count), status | admin-frontend | [x] |
 | Feature flag toggles per clinic (per module switch) | admin-frontend | [x] |
-| Plan assignment — basic / standard / premium | admin-frontend | [x] |
 | Suspend / activate button | admin-frontend | [x] |
-| Login as clinic button (impersonation — "Impersonating" badge in TopBar) | admin-frontend | [x] |
-| Payment and subscription history per clinic | admin-frontend | [ ] *(deferred to Phase 5)* |
-| Trial management — extend, convert, expire | admin-frontend | [ ] *(deferred to Phase 5)* |
-| Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred to Phase 5)* |
-| System health display — server, DB, uptime | admin-frontend | [ ] *(deferred to Phase 5)* |
-| Audit log viewer | admin-frontend | [ ] *(deferred to Phase 5)* |
+| Login as clinic button (impersonation) | admin-frontend | [x] |
+| Removed: plan assignment (no tiers) | — | removed |
+| Removed: trial management (no trials) | — | removed |
+| Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred)* |
+| System health display — server, DB, uptime | admin-frontend | [ ] *(deferred)* |
+| Audit log viewer | admin-frontend | [ ] *(deferred)* |
 
-**Test:** Create new clinic → log in as that clinic → data isolated. Toggle pharmacy flag OFF → clinic cannot access pharmacy. Suspend clinic → clinic login blocked. Impersonate → opens clinic-frontend with "Impersonating" badge visible.
+### Staff Management (Clinic Admin)
 
-**Completed:** 2026-04-14
-**✅ Phase 4 complete (core).**
+| Task | Project | Done |
+|------|---------|------|
+| `GET /api/v1/staff` — list all staff for the clinic | backend | [x] |
+| `POST /api/v1/staff` — create staff member (admin only) | backend | [x] |
+| `PUT /api/v1/staff/:id` — update staff details (admin only) | backend | [x] |
+| `PUT /api/v1/staff/:id/reset-password` — reset password (admin only) | backend | [x] |
+| `DELETE /api/v1/staff/:id` — soft-deactivate (admin only, cannot self-deactivate) | backend | [x] |
+| `StaffPage.jsx` — grouped by role, add/edit/reset-password/activate-deactivate | clinic-frontend | [x] |
+| `/staff` route registered in `App.jsx` (admin only) | clinic-frontend | [x] |
+| Staff nav item in `Sidebar.jsx` (admin only) | clinic-frontend | [x] |
+
+**Test:** Create new clinic → log in as that clinic → data isolated. Toggle pharmacy flag OFF → clinic cannot access pharmacy. Suspend clinic → clinic login blocked. Impersonate → opens clinic-frontend. Admin creates doctor/nurse/receptionist from Staff page → each can log in with their own credentials.
+
+**Completed:** 2026-04-15
+**✅ Phase 4 complete.**
 
 ---
 

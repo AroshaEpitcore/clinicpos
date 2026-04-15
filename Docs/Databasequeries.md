@@ -43,15 +43,26 @@ CREATE TABLE public.tenants (
   subdomain     VARCHAR(100) NOT NULL UNIQUE,   -- e.g. drsilva
   owner_email   VARCHAR(255) NOT NULL UNIQUE,
   owner_phone   VARCHAR(20),
-  plan          VARCHAR(50) DEFAULT 'basic',    -- basic | standard | premium
-  status        VARCHAR(20) DEFAULT 'trial',    -- trial | active | suspended | cancelled
-  trial_ends_at TIMESTAMP,
+  status        VARCHAR(20) DEFAULT 'active',  -- active | suspended | cancelled
   created_at    TIMESTAMP DEFAULT NOW(),
   updated_at    TIMESTAMP DEFAULT NOW()
 );
+
+-- Note: plan and trial_ends_at columns were removed (2026-04-15).
+-- No subscription tiers. Super admin manages access manually via feature flags and activate/suspend.
 ```
 
 **Connects to:** `feature_flags`, `subscriptions`
+
+**Clinic creation flow (all in one transaction — `POST /api/v1/admin/tenants`):**
+```
+1. INSERT public.tenants
+2. INSERT public.feature_flags (all OFF)
+3. createTenantSchema() — creates all tenant tables
+4. INSERT clinic_settings (defaults)
+5. INSERT staff (first admin account — owner_email + bcrypt(initial_password))
+```
+The first admin staff account is created automatically. Without it the clinic cannot log in.
 
 ---
 
@@ -140,6 +151,34 @@ CREATE TABLE staff (
 
 **Connects to:** `appointments`, `consultations`, `invoices`, `audit_logs`
 
+**Staff management queries (via `/api/v1/staff` — admin only):**
+```sql
+-- List all staff
+SELECT id, full_name, email, phone, role, specialization, registration_no, is_active, created_at
+FROM staff ORDER BY role, full_name;
+
+-- Create staff (bcrypt hash password before insert)
+INSERT INTO staff (full_name, email, phone, password_hash, role, specialization, registration_no, is_active)
+VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE) RETURNING id, full_name, email, phone, role, is_active;
+
+-- Deactivate staff (soft delete — never hard delete)
+UPDATE staff SET is_active = FALSE, updated_at = NOW() WHERE id = $1;
+
+-- Reset password
+UPDATE staff SET password_hash = $1, updated_at = NOW() WHERE id = $2;
+```
+
+**Fix for clinics created before staff creation code existed (run once):**
+```sql
+-- Enable pgcrypto first (run once per database)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Insert admin staff for an existing empty clinic
+SET search_path TO "tenant_yoursubdomain";
+INSERT INTO staff (full_name, email, password_hash, role, is_active)
+VALUES ('Admin', 'owner@email.com', crypt('yourpassword', gen_salt('bf')), 'admin', TRUE);
+```
+
 ---
 
 ### Table: `patients`
@@ -209,10 +248,14 @@ CREATE TABLE appointments (
   updated_at          TIMESTAMP DEFAULT NOW()
 );
 
--- Phase 5.4 migration (safe to run on existing DB):
+-- Phase 5.4 migration (safe to run on existing DB — for clinics created before Phase 5.4):
 -- ALTER TABLE appointments
 --   ADD COLUMN IF NOT EXISTS booking_reference VARCHAR(20),
 --   ADD COLUMN IF NOT EXISTS booking_source VARCHAR(20) DEFAULT 'admin';
+
+-- Note (2026-04-15): createTenantSchema.js was updated to include these columns.
+-- All NEW clinics created from the admin panel will have them automatically.
+-- Only OLD clinics (created before this date) need the ALTER TABLE migration above.
 ```
 
 **Connects to:** `patients`, `staff`, `consultations`

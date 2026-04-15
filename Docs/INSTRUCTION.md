@@ -35,8 +35,8 @@ Every clinic that buys it gets their own version — with their own modules, the
 There are **two levels of customization** in this system:
 
 ### Level 1 — You control per clinic (Super Admin)
-You decide what each clinic can access based on their subscription plan.  
-You do this from `admin.clinicpos.com` by toggling feature flags.
+You decide what each clinic can access by toggling feature flags.  
+There are no subscription plans or tiers — access is managed manually from `admin.clinicpos.com`.
 
 | Module | Who controls it | Where |
 |--------|----------------|-------|
@@ -416,6 +416,41 @@ The system must create notification records automatically when:
 
 These notifications appear as badge counts on the dashboard when staff log in.  
 Write a background job (cron) that runs these checks daily and creates the notification records.
+
+---
+
+## Rule 20 — New Clinic Creation Always Creates First Admin Staff
+
+When `POST /api/v1/admin/tenants` creates a new clinic, it MUST also create the first admin staff account in the same transaction. Without this, the clinic has no way to log in.
+
+**Required fields for clinic creation:**
+- `clinic_name`, `subdomain`, `owner_email` — standard
+- `initial_password` — used to create the first admin staff account (hashed with bcrypt before storing)
+
+**What the backend does in one transaction:**
+1. Insert `public.tenants`
+2. Insert default `public.feature_flags` (all OFF)
+3. Run `createTenantSchema()` — creates all tables
+4. Insert default `clinic_settings`
+5. **Insert first admin staff** — `email = owner_email`, `role = 'admin'`, `password_hash = bcrypt(initial_password)`
+
+**Response must include** a `login` object so the super admin can copy credentials:
+```json
+{
+  "data": {
+    "tenant": { ... },
+    "login": {
+      "url": "https://subdomain.clinicpos.com",
+      "email": "owner@clinic.com",
+      "password": "the_plain_text_password"
+    }
+  }
+}
+```
+
+The plain text password is returned once and shown in the admin UI credentials screen. It is NOT stored in the database (only the bcrypt hash is). The super admin must copy and send it to the clinic immediately.
+
+Never create a clinic without the initial admin staff account — impersonation and login both fail without it.
 
 ---
 

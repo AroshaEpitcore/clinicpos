@@ -156,16 +156,24 @@ Build this only when you reach Phase 4 in `PLAN.md`.
 
 ## Local Dev — Tenant Subdomain
 
-In production, the tenant is read from the URL subdomain (`drsilva.clinicpos.com`).  
-In local dev, pass it as a request header from your frontend Axios instance:
+In production, the tenant is read from the URL subdomain (`sunshine.clinicpos.com`).  
+In local dev, the frontend sends it as an HTTP header instead. Set it in `clinic-frontend/.env`:
 
-```javascript
-// src/api/index.js in clinic-frontend
-api.interceptors.request.use(config => {
-  config.headers['X-Tenant-Subdomain'] = 'drsilva'; // your test clinic subdomain
-  return config;
-});
+```env
+VITE_TENANT_SUBDOMAIN=demo
 ```
+
+This is automatically picked up by `src/api/index.js` — no code changes needed.
+
+**To test a newly created clinic locally:**
+
+1. Create the clinic from the admin panel (`http://localhost:5174`)
+2. Copy the subdomain from the credentials screen (e.g. `sunshine`)
+3. Edit `clinic-frontend/.env`: `VITE_TENANT_SUBDOMAIN=sunshine`
+4. Restart clinic-frontend (`Ctrl+C` → `npm run dev`)
+5. Login at `http://localhost:5173` with the email + password you set
+
+**To go back to the demo clinic:** Set `VITE_TENANT_SUBDOMAIN=demo` and restart.
 
 ---
 
@@ -236,6 +244,7 @@ clinicpos/
 │   │   │   ├── report.routes.js
 │   │   │   ├── settings.routes.js
 │   │   │   ├── admin.routes.js
+│   │   │   ├── staff.routes.js     — Staff CRUD (admin only)
 │   │   │   ├── pharmacy.routes.js  — Phase 5.1
 │   │   │   ├── lab.routes.js       — Phase 5.2
 │   │   │   ├── insurance.routes.js — Phase 5.3
@@ -268,7 +277,8 @@ clinicpos/
 │   │   │   ├── pharmacy/         — Phase 5.1 (4 tabs)
 │   │   │   ├── lab/              — Phase 5.2 (2 tabs)
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
-│   │   │   └── booking/          — Phase 5.4 (public /book page)
+│   │   │   ├── booking/          — Phase 5.4 (public /book page)
+│   │   │   └── staff/            — Staff management (admin only)
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar, TopBar, PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Badge, DatePicker, etc.

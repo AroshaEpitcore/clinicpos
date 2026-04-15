@@ -5,6 +5,36 @@
 
 ---
 
+## — Staff Management 👥 *(Admin Only)*
+
+### Purpose
+The clinic admin (owner) creates and manages all staff accounts from within the clinic panel. No outside help needed.
+
+### Supported Roles
+| Role | Access |
+|------|--------|
+| `admin` | Full access to everything including staff management |
+| `doctor` | Consultations, prescriptions, lab, own queue |
+| `nurse` | View patients, lab results, prescriptions |
+| `receptionist` | Queue, billing, pharmacy, patient registration |
+
+### What the Admin Can Do
+- **Add Staff** — create any role with full name, email, password, phone, specialization, registration number
+- **Multiple doctors** — no limit on how many doctors a clinic can have
+- **Edit** — update name, email, phone, specialization, registration number, or role
+- **Reset Password** — set a new password for any staff member
+- **Deactivate / Activate** — deactivated staff cannot log in; record is preserved
+- **Data isolation** — all staff belong to this clinic's schema only; other clinics are invisible
+
+### How Clinic Gets Set Up (SaaS Onboarding)
+1. Super admin creates the clinic from `admin.clinicpos.com`
+2. System auto-creates the first `admin` staff account with the email + password entered
+3. Super admin copies the credentials (URL, email, password) and sends to the clinic owner
+4. Clinic owner logs in → goes to **Staff** → creates their doctors, nurses, and receptionists
+5. Each staff member logs in with their own email + password
+
+---
+
 ## 0. Role-Based Dashboards 🖥️
 
 ### Purpose
@@ -689,6 +719,47 @@ Each clinic that buys the software can make it look and behave like their own sy
 6. Logo appears on all screens, invoices, prescriptions, and patient portal immediately
 
 Logo is stored per tenant — completely isolated from other clinics.
+
+---
+
+## 12. Super Admin Panel 🛠️ *(admin.clinicpos.com — your control room)*
+
+### Purpose
+You manage all clinics from one place. Clinics cannot see each other. You can create accounts, toggle features, suspend clinics, and log in as any clinic to help with support.
+
+### Creating a New Clinic (Onboarding Flow)
+
+1. You log into `admin.clinicpos.com`
+2. Click **New Clinic** → fill in:
+   - Clinic name (subdomain auto-generated from name)
+   - Subdomain (e.g. `drsilva` → `drsilva.clinicpos.com`)
+   - Owner email + phone
+   - Plan (basic / standard / premium)
+   - Trial days
+   - **Initial admin password** (you set this — minimum 6 characters)
+3. Click **Create Clinic** → system automatically:
+   - Creates isolated database schema for the clinic
+   - Creates all their tables (patients, appointments, billing, etc.)
+   - Inserts default clinic settings
+   - Creates the first admin staff account using the owner email + password you set
+   - Sets all feature flags to OFF (you enable per plan)
+4. A **Credentials screen** appears — copy and send to the clinic:
+   ```
+   Login URL : https://drsilva.clinicpos.com
+   Email     : owner@drsilva.com
+   Password  : (what you set)
+   ```
+   ⚠️ Password shown once — not stored in plain text after this screen.
+
+5. Enable the modules they paid for (pharmacy, lab, insurance, etc.) via Feature Flag toggles
+6. Clinic owner logs in, adds their doctors and settings, starts using it
+
+### Other Admin Capabilities
+- **Suspend** clinic — blocks all staff login immediately
+- **Activate** — restores access
+- **Login as clinic** — impersonate any clinic's admin account for support (shows amber "Impersonating" badge in the clinic's TopBar)
+- **Feature flag toggles** — enable/disable each module per clinic plan
+- **Dashboard** — total clinics, MRR, active/trial/suspended counts
 
 ---
 

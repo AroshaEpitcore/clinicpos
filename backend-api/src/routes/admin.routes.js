@@ -52,19 +52,12 @@ router.use(adminAuthMiddleware);
 // ── GET /api/v1/admin/dashboard ───────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {
   try {
-    const [totals, byStatus, mrr] = await Promise.all([
+    const [totals, byStatus] = await Promise.all([
       queryPublic(`SELECT COUNT(*) AS total FROM public.tenants`),
       queryPublic(`
         SELECT status, COUNT(*) AS count
         FROM   public.tenants
         GROUP  BY status
-      `),
-      queryPublic(`
-        SELECT COALESCE(SUM(amount), 0) AS mrr
-        FROM   public.subscriptions
-        WHERE  status = 'paid'
-          AND  period_start <= CURRENT_DATE
-          AND  period_end   >= CURRENT_DATE
       `),
     ]);
 
@@ -76,9 +69,7 @@ router.get('/dashboard', async (req, res) => {
       data: {
         total_clinics:     parseInt(totals.rows[0].total, 10),
         active_clinics:    statusMap.active    || 0,
-        trial_clinics:     statusMap.trial     || 0,
         suspended_clinics: statusMap.suspended || 0,
-        mrr:               parseFloat(mrr.rows[0].mrr),
       },
     });
   } catch (err) {
@@ -106,7 +97,7 @@ router.get('/tenants', async (req, res) => {
     const result = await queryPublic(`
       SELECT
         t.id, t.clinic_name, t.subdomain, t.owner_email, t.owner_phone,
-        t.plan, t.status, t.trial_ends_at, t.created_at,
+        t.status, t.created_at,
         COUNT(f.id) FILTER (WHERE f.enabled = TRUE) AS active_flags
       FROM public.tenants t
       LEFT JOIN public.feature_flags f ON f.tenant_id = t.id
@@ -165,10 +156,13 @@ router.get('/tenants/:id', async (req, res) => {
 
 // ── POST /api/v1/admin/tenants ────────────────────────────────────────────────
 router.post('/tenants', async (req, res) => {
-  const { clinic_name, subdomain, owner_email, owner_phone, plan = 'basic', trial_days = 30 } = req.body;
+  const { clinic_name, subdomain, owner_email, owner_phone, initial_password } = req.body;
 
-  if (!clinic_name || !subdomain || !owner_email) {
-    return res.status(400).json({ status: 'error', message: 'clinic_name, subdomain, and owner_email are required' });
+  if (!clinic_name || !subdomain || !owner_email || !initial_password) {
+    return res.status(400).json({ status: 'error', message: 'clinic_name, subdomain, owner_email, and initial_password are required' });
+  }
+  if (initial_password.length < 6) {
+    return res.status(400).json({ status: 'error', message: 'Password must be at least 6 characters' });
   }
 
   // Validate subdomain format
@@ -190,13 +184,10 @@ router.post('/tenants', async (req, res) => {
       return res.status(409).json({ status: 'error', message: 'Subdomain or email already in use' });
     }
 
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + parseInt(trial_days, 10));
-
     const tenantRes = await client.query(
-      `INSERT INTO public.tenants (clinic_name, subdomain, owner_email, owner_phone, plan, status, trial_ends_at)
-       VALUES ($1,$2,$3,$4,$5,'trial',$6) RETURNING *`,
-      [clinic_name, subdomain, owner_email, owner_phone || null, plan, trialEnd]
+      `INSERT INTO public.tenants (clinic_name, subdomain, owner_email, owner_phone, status)
+       VALUES ($1,$2,$3,$4,'active') RETURNING *`,
+      [clinic_name, subdomain, owner_email, owner_phone || null]
     );
     const tenant = tenantRes.rows[0];
 
@@ -221,12 +212,27 @@ router.post('/tenants', async (req, res) => {
       [clinic_name]
     );
 
+    // Create the first admin staff account for this clinic
+    const passwordHash = await bcrypt.hash(initial_password, 10);
+    await client.query(
+      `INSERT INTO staff (full_name, email, password_hash, role, is_active)
+       VALUES ($1, $2, $3, 'admin', TRUE)`,
+      ['Admin', owner_email, passwordHash]
+    );
+
     await client.query('COMMIT');
 
     res.status(201).json({
       status: 'success',
       message: `Clinic "${clinic_name}" created`,
-      data: tenant,
+      data: {
+        tenant,
+        login: {
+          url: `https://${subdomain}.clinicpos.com`,
+          email: owner_email,
+          password: initial_password,
+        },
+      },
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -239,18 +245,17 @@ router.post('/tenants', async (req, res) => {
 
 // ── PUT /api/v1/admin/tenants/:id ─────────────────────────────────────────────
 router.put('/tenants/:id', async (req, res) => {
-  const { clinic_name, owner_email, owner_phone, plan } = req.body;
+  const { clinic_name, owner_email, owner_phone } = req.body;
   try {
     const result = await queryPublic(
       `UPDATE public.tenants
        SET clinic_name  = COALESCE($1, clinic_name),
            owner_email  = COALESCE($2, owner_email),
            owner_phone  = COALESCE($3, owner_phone),
-           plan         = COALESCE($4, plan),
            updated_at   = NOW()
-       WHERE id = $5
+       WHERE id = $4
        RETURNING *`,
-      [clinic_name || null, owner_email || null, owner_phone || null, plan || null, req.params.id]
+      [clinic_name || null, owner_email || null, owner_phone || null, req.params.id]
     );
     if (!result.rows.length) {
       return res.status(404).json({ status: 'error', message: 'Clinic not found' });

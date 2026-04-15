@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 5.4 complete — Phase 6 Beta & Launch next
+**Currently working on:** SaaS onboarding flow complete — Phase 6 Beta & Launch next
 **Last updated:** 2026-04-15
-**Next up:** Phase 6 — Beta, payments, deployment, onboarding
+**Next up:** Phase 6 — deployment, production setup
 
 ### What is fully complete right now
 
@@ -28,15 +28,16 @@
 | Phase 1 — Foundation | ✅ DB, auth, multi-tenant, feature flags |
 | Phase 2 — Core modules | ✅ Patients, Appointments, Consultations, Prescriptions, Billing, Reports, Settings (2.0–2.7) |
 | Phase 3 — Branding + PDF | ✅ Clinic logo, doctor signatures, invoice PDF, prescription PDF |
-| Phase 4 — Super admin | ✅ Admin panel, impersonation, feature flag toggles, suspend/activate |
+| Phase 4 — Super admin | ✅ Admin panel, clinic creation with credentials, impersonation, feature flag toggles, suspend/activate |
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
 | Phase 5.3 — Insurance | ✅ Claims (CLM-XXXXX), Insurance Providers, Corporate Accounts + Monthly Billing Summary (2026-04-15) |
 | Phase 5.4 — Patient Portal | ✅ Online booking (BK-XXXXXX), Settings toggle, Doctor dashboard enhanced, Online badge in queue (2026-04-15) |
+| SaaS Onboarding | ✅ Clinic creation flow (credentials copy screen), staff management UI, removed trial/plan system (2026-04-15) |
 
 ### What is NOT yet started
-- Phase 6 — Beta & launch (payments, deployment, onboarding)
+- Phase 6 — Beta & launch (deployment, onboarding)
 - Phase 7 — Electron desktop version
 
 ### Small items deferred (documented but not started)
@@ -47,10 +48,40 @@
 | Session timeout backend enforcement | Phase 6 |
 | PDF export for all reports | Phase 6 |
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
-| Payment/subscription history in admin panel | Phase 6 |
-| Trial management UI (extend, convert, expire) | Phase 6 |
 | System health display in admin panel | Phase 6 |
 | Audit log viewer | Phase 6 |
+
+---
+
+## SaaS Onboarding Flow + Admin Improvements (2026-04-15)
+
+> Comprehensive session covering clinic creation flow, removing trial/plan system, and adding staff management.
+
+### Changes Made
+
+| Change | Files affected | Notes |
+|--------|---------------|-------|
+| Clinic creation creates first admin staff | `admin.routes.js` | POST /tenants now accepts `initial_password`, bcrypt-hashes it, inserts into `staff` table in the new tenant schema. |
+| Credentials copy screen | `ClinicsPage.jsx` (admin-frontend) | After creating a clinic, a modal shows Login URL, Email, Password each with a copy-to-clipboard button. Warning shown that password is not retrievable. |
+| Removed trial system | `admin.routes.js`, `ClinicsPage.jsx`, `ClinicDetailPage.jsx`, `DashboardPage.jsx` | All `trial_days`, `trial_ends_at`, `status='trial'` references removed. New clinics always start with `status = 'active'`. Trial stat card removed from dashboard. Trial status tab removed from clinic list. |
+| Removed plans system | `admin.routes.js`, `ClinicsPage.jsx`, `ClinicDetailPage.jsx`, `DashboardPage.jsx` | All `plan` field references removed from create/edit/list/detail. No basic/standard/premium tiers — super admin controls access manually via feature flags. |
+| Fixed appointments table | `createTenantSchema.js` | Added `booking_reference VARCHAR(20)` and `booking_source VARCHAR(20) DEFAULT 'admin'` columns — new clinics now get these columns correctly (previously only added via `migrate_portal.js` for existing clinics). |
+| Staff management backend | `staff.routes.js` (new), `index.js` | New route `/api/v1/staff` — GET list, POST create, PUT update, PUT reset-password, DELETE soft-deactivate. All protected by `requireRole('admin')`. Duplicate email check, bcrypt hashing, prevents self-deactivation. |
+| Staff management frontend | `StaffPage.jsx` (new), `App.jsx`, `Sidebar.jsx` | New `/staff` page (admin only). Shows staff grouped by role. Add/edit/reset-password/activate-deactivate actions. `PageLayout` wrapper (sidebar + topbar). |
+
+### Key decisions
+
+- **No plans, no trials** — super admin manually activates/deactivates each clinic after payment. Feature flags are the only access control mechanism.
+- **Staff roles:** `admin | doctor | nurse | receptionist` — permissions enforced by `requireRole()` in all backend routes and `ProtectedRoute allowedRoles` in frontend.
+- **Multiple doctors per clinic** supported — any number of doctor-role staff can be created.
+- **Data isolation** — all staff created via `/api/v1/staff` go into `tenant_{subdomain}.staff` — never touches another clinic.
+
+### Local dev testing for new clinics
+
+1. Create clinic from admin panel → copy credentials
+2. Edit `clinic-frontend/.env`: `VITE_TENANT_SUBDOMAIN=yournewsubdomain`
+3. Restart clinic-frontend
+4. Login at `http://localhost:5173` with the credentials you copied
 
 ---
 

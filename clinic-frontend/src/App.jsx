@@ -40,6 +40,9 @@ import InsurancePage from './pages/insurance/InsurancePage';
 // Phase 5.4 — Patient Portal / Online Booking (public)
 import BookingPage from './pages/booking/BookingPage';
 
+// Staff Management (admin only)
+import StaffPage from './pages/staff/StaffPage';
+
 export default function App() {
   return (
     <Routes>
@@ -98,6 +101,13 @@ export default function App() {
       <Route path="/reports" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ReportsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Staff Management */}
+      <Route path="/staff" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <StaffPage />
         </ProtectedRoute>
       } />
 

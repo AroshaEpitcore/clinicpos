@@ -21,7 +21,7 @@ const ALL_MODULES = [
 ];
 
 function EditClinicModal({ open, onClose, clinic, onSaved }) {
-  const [form, setForm] = useState({ clinic_name: '', owner_email: '', owner_phone: '', plan: '' });
+  const [form, setForm] = useState({ clinic_name: '', owner_email: '', owner_phone: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,6 @@ function EditClinicModal({ open, onClose, clinic, onSaved }) {
       clinic_name: clinic.clinic_name || '',
       owner_email: clinic.owner_email || '',
       owner_phone: clinic.owner_phone || '',
-      plan:        clinic.plan        || 'basic',
     });
   }, [clinic]);
 
@@ -65,18 +64,6 @@ function EditClinicModal({ open, onClose, clinic, onSaved }) {
             />
           </div>
         ))}
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Plan</label>
-          <select
-            value={form.plan}
-            onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            {['basic', 'standard', 'premium'].map(p => (
-              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-            ))}
-          </select>
-        </div>
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} loading={saving}><Save className="w-3.5 h-3.5" /> Save</Button>
@@ -238,7 +225,6 @@ export default function ClinicDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">{clinic.clinic_name}</h1>
-            <Badge label={clinic.plan}   variant={clinic.plan} />
             <Badge label={clinic.status} variant={clinic.status} />
           </div>
           <p className="text-sm text-gray-500 mt-1">{clinic.subdomain}.clinicpos.com</p>
@@ -283,8 +269,6 @@ export default function ClinicDetailPage() {
             {[
               ['Clinic ID',    clinic.id],
               ['Created',      new Date(clinic.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
-              ['Trial Ends',   clinic.trial_ends_at ? new Date(clinic.trial_ends_at).toLocaleDateString('en-GB') : '—'],
-              ['Plan',         clinic.plan],
               ['Status',       clinic.status],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0">

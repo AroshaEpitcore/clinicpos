@@ -123,20 +123,22 @@ async function createTenantSchema(client, schemaName) {
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS appointments (
-      id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      patient_id       UUID        NOT NULL REFERENCES patients(id),
-      doctor_id        UUID        NOT NULL REFERENCES staff(id),
-      appointment_date DATE        NOT NULL,
-      appointment_time TIME,
-      token_number     INTEGER,
-      type             VARCHAR(20) DEFAULT 'booked',
-      status           VARCHAR(20) DEFAULT 'pending',
-      reason           TEXT,
-      booked_online    BOOLEAN     DEFAULT FALSE,
-      booked_by        UUID REFERENCES staff(id),
-      notes            TEXT,
-      created_at       TIMESTAMP   DEFAULT NOW(),
-      updated_at       TIMESTAMP   DEFAULT NOW()
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      patient_id        UUID        NOT NULL REFERENCES patients(id),
+      doctor_id         UUID        NOT NULL REFERENCES staff(id),
+      appointment_date  DATE        NOT NULL,
+      appointment_time  TIME,
+      token_number      INTEGER,
+      type              VARCHAR(20) DEFAULT 'booked',
+      status            VARCHAR(20) DEFAULT 'pending',
+      reason            TEXT,
+      booked_online     BOOLEAN     DEFAULT FALSE,
+      booked_by         UUID REFERENCES staff(id),
+      notes             TEXT,
+      booking_reference VARCHAR(20),
+      booking_source    VARCHAR(20) DEFAULT 'admin',
+      created_at        TIMESTAMP   DEFAULT NOW(),
+      updated_at        TIMESTAMP   DEFAULT NOW()
     );
   `);
 
