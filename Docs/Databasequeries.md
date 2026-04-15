@@ -11,7 +11,7 @@
 ```
 Database name : clinicpos_db
 Engine        : PostgreSQL
-ORM           : Prisma
+Query layer   : Raw SQL via pg pool — queryTenant(schema, sql, params) helper (no ORM)
 Multi-tenant  : Schema-per-tenant (each clinic = isolated schema)
 ```
 
@@ -175,8 +175,12 @@ CREATE TABLE patients (
 
 **Auto-generate patient code:**
 ```sql
--- Get next patient number and format as PT-XXXXX
-SELECT 'PT-' || LPAD(COUNT(*)::TEXT + 1, 5, '0') FROM patients;
+-- Shared utility: utils/patientCode.js — nextPatientCode(schema)
+-- Uses MAX on numeric suffix to handle gaps (deleted records don't reset the counter)
+SELECT COALESCE(MAX(CAST(SUBSTRING(patient_code FROM 4) AS INTEGER)), 0) + 1 AS next
+FROM patients
+WHERE patient_code ~ '^PT-[0-9]+$';
+-- Result formatted as: 'PT-' + zero-pad to 5 digits  (e.g. PT-00006)
 ```
 
 ---
@@ -191,14 +195,14 @@ CREATE TABLE appointments (
   patient_id      UUID NOT NULL REFERENCES patients(id),
   doctor_id       UUID NOT NULL REFERENCES staff(id),
   appointment_date DATE NOT NULL,
-  appointment_time TIME NOT NULL,
-  token_number    INTEGER,
-  type            VARCHAR(20) DEFAULT 'booked',   -- booked | walkin
+  appointment_time TIME,                          -- nullable: walk-ins may not have a time slot
+  token_number    INTEGER,                        -- auto-assigned for walkin + emergency; null for booked
+  type            VARCHAR(20) DEFAULT 'booked',   -- booked | walkin | emergency
   status          VARCHAR(20) DEFAULT 'pending',  -- pending | confirmed | arrived | completed | cancelled
   reason          TEXT,
   booked_online       BOOLEAN DEFAULT FALSE,
-  booking_reference   VARCHAR(20),               -- BK-000001 — set for online bookings
-  booking_source      VARCHAR(20) DEFAULT 'admin', -- 'admin' | 'online'
+  booking_reference   VARCHAR(20),               -- BK-000001 — set for booked appointments (staff or online)
+  booking_source      VARCHAR(20) DEFAULT 'admin', -- 'admin' (walk-in/emergency) | 'staff' (booked by staff) | 'online' (portal)
   booked_by           UUID REFERENCES staff(id), -- null if booked by patient online
   notes               TEXT,
   created_at          TIMESTAMP DEFAULT NOW(),

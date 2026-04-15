@@ -50,16 +50,21 @@ Each project has a `.env.example`. Copy it to `.env` and fill in your values.
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/clinicpos_db
 JWT_SECRET=replace_with_a_long_random_secret_string
 JWT_EXPIRES_IN=8h
+ADMIN_JWT_SECRET=replace_with_a_different_long_secret
+ADMIN_EMAIL=admin@clinicpos.com
+ADMIN_PASSWORD=yourAdminPassword
 PORT=4000
 NODE_ENV=development
 UPLOADS_DIR=./uploads
 MAX_FILE_SIZE_MB=2
+DEMO_SUBDOMAIN=demo
 ```
 
 **clinic-frontend/.env**
 ```env
 VITE_API_URL=http://localhost:4000/api/v1
 VITE_APP_DOMAIN=clinicpos.com
+VITE_TENANT_SUBDOMAIN=demo
 ```
 
 **admin-frontend/.env**

@@ -590,7 +590,7 @@ Allow patients to book appointments online from any device, without calling the 
 - System looks up patient by **phone number**
 - If found → appointment linked to existing patient record (no duplicate)
 - If not found → new patient record auto-created with provided name, phone, optional DOB
-- Patient code auto-generated (P-XXXXX format)
+- Patient code auto-generated using shared utility — standard `PT-XXXXX` format (same as staff-registered patients)
 
 ### Slot Conflict Protection
 - Slots already booked are shown as **crossed out** on the booking page — cannot be selected

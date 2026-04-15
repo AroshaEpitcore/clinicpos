@@ -81,6 +81,15 @@
 | 15 | `index.css` | `react-day-picker/dist/style.css` not imported — calendar popup rendered unstyled | Added CSS import |
 | 16 | `TopBar.jsx` | `w-4.5 h-4.5` not a valid Tailwind class — sun/moon icons had no size | Changed to `w-[18px] h-[18px]` |
 
+**Bug fixes during Phase 5.4 (2026-04-15):**
+
+| # | File | Bug | Fix |
+|---|------|-----|-----|
+| 17 | `ConsultationModal.jsx` | `watch is not defined` — ReferenceError crash at line 239 when DatePicker tried to use `watch` | Added `watch` and `setValue` to `useForm()` destructure |
+| 18 | `portal.routes.js` | Patient code generated as `P-00001` (wrong prefix) instead of `PT-00001` — local function had wrong regex and prefix | Removed local `nextPatientCode` from `portal.routes.js`; both `patient.routes.js` and `portal.routes.js` now import shared `utils/patientCode.js` |
+| 19 | Multiple (17 occurrences, 11 files) | Double "Dr." prefix shown on doctor names — `staff.full_name` already stores "Dr. James Silva" but UI was prepending "Dr. " again | Removed all hardcoded `"Dr. "` prepends across `AppointmentsPage`, `DoctorDashboard`, `ReceptionistDashboard`, `AdminDashboard`, `NurseDashboard`, `ConsultationModal`, `ConsultationsPage`, `PrescriptionModal`, `PrescriptionsPage`, `PatientProfile` (×2), `printPrescription.js` (×2), `BookingPage` (×4) |
+| 20 | `portal.routes.js` | After extracting `bookingReference` to shared util, local `nextBookingReference` function remained → duplicate identifier error | Removed local function block from `portal.routes.js` |
+
 ---
 
 ## UI/UX Fixes Applied (2026-04-08)
@@ -305,8 +314,8 @@ custom_domain  — clinic uses their own domain
 - [x] Make Emergency button (moves to top of queue)
 - [x] Doctor schedule setup modal — ManageScheduleModal.jsx (admin)
 - [x] Holidays management modal — HolidaysModal.jsx (admin)
-- [ ] Online booking page (patient-facing) — defer to Phase 5
-- [ ] Reminder settings screen — defer to Phase 5
+- [x] Online booking page (patient-facing) — done in Phase 5.4 (`/book`, `BookingPage.jsx`, `portal.routes.js`)
+- [ ] Reminder settings screen — defer to Phase 6
 
 **Status:** ✅ Complete
 **Started on:** 2026-04-07

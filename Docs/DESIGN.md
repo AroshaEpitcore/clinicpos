@@ -218,7 +218,7 @@ import clsx from 'clsx';
 
 const variants = {
   primary:   'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]',
-  secondary: 'bg-white text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg)]',
+  secondary: 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg)]',
   danger:    'bg-[var(--color-danger)] text-white hover:opacity-90',
   ghost:     'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-primary-light)]',
 };
@@ -278,7 +278,7 @@ export function Input({ label, error, required, className, ...props }) {
         {...props}
         className={clsx(
           'w-full px-3 py-2 rounded-[var(--radius)] border text-sm',
-          'bg-white text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]',
+          'bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]',
           'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent',
           'disabled:bg-[var(--color-bg)] disabled:cursor-not-allowed',
           error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]',
@@ -317,7 +317,7 @@ export function Select({ label, error, required, options = [], placeholder = 'Se
       )}
       <RadixSelect.Root value={value} onValueChange={onValueChange}>
         <RadixSelect.Trigger className={clsx(
-          'flex items-center justify-between w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-white',
+          'flex items-center justify-between w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)]',
           'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]',
           error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'
         )}>
@@ -325,7 +325,7 @@ export function Select({ label, error, required, options = [], placeholder = 'Se
           <ChevronDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </RadixSelect.Trigger>
         <RadixSelect.Portal>
-          <RadixSelect.Content className="bg-white border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg z-50">
+          <RadixSelect.Content className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg z-50">
             <RadixSelect.Viewport className="p-1">
               {options.map(opt => (
                 <RadixSelect.Item
@@ -378,7 +378,7 @@ export function Modal({ open, onClose, title, children, footer }) {
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-[var(--radius-lg)] shadow-xl z-50 w-full max-w-lg max-h-[90vh] flex flex-col">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-xl z-50 w-full max-w-lg max-h-[90vh] flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
             <Dialog.Title className="text-base font-semibold text-[var(--color-text)]">
               {title}
@@ -416,6 +416,87 @@ export function Modal({ open, onClose, title, children, footer }) {
   <PatientForm />
 </Modal>
 ```
+
+---
+
+### Drawer (Side Panel)
+
+Use `Drawer` instead of `Modal` when a form needs more vertical space — slot pickers, long forms, or any UI that benefits from full-screen height.
+
+```jsx
+// src/components/ui/Drawer.jsx
+import { useEffect } from 'react';
+import { X } from 'lucide-react';
+
+export function Drawer({ open, onClose, title, footer, width = '520px', children }) {
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      {/* Panel — slides from right */}
+      <div
+        className="relative ml-auto h-full flex flex-col bg-[var(--color-surface)] shadow-2xl"
+        style={{ width, maxWidth: '95vw' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] shrink-0">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        {/* Sticky footer */}
+        {footer && (
+          <div className="shrink-0 border-t border-[var(--color-border)] px-5 py-4 flex items-center justify-end gap-3 bg-[var(--color-surface)]">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `open` | boolean | — | Controls visibility |
+| `onClose` | () => void | — | Called when backdrop or X is clicked |
+| `title` | string | — | Header title |
+| `footer` | ReactNode | — | Sticky bottom bar (buttons) |
+| `width` | string | `'520px'` | Panel width (CSS value) |
+| `children` | ReactNode | — | Scrollable body content |
+
+**Usage:**
+```jsx
+<Drawer
+  open={showDrawer}
+  onClose={() => setShowDrawer(false)}
+  title="Add to Queue"
+  width="540px"
+  footer={
+    <>
+      <Button variant="secondary" onClick={() => setShowDrawer(false)}>Cancel</Button>
+      <Button onClick={handleSave}>Save</Button>
+    </>
+  }
+>
+  <YourFormContent />
+</Drawer>
+```
+
+**Rule:** Use `Drawer` for queue/appointment forms that include a time slot grid or multiple sections. Use `Modal` for simple confirm dialogs and short forms.
 
 ---
 
@@ -576,7 +657,7 @@ import clsx from 'clsx';
 export function Card({ title, children, className, noPadding }) {
   return (
     <div className={clsx(
-      'bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)]',
+      'bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]',
       !noPadding && 'p-5',
       className
     )}>

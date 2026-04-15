@@ -413,7 +413,7 @@ Print / Save PDF button (browser print)
 ### Patient Auto-Registration
 - Lookup by phone number — if patient exists, use their ID
 - If no patient found → new patient record created automatically with the provided name + phone + optional DOB
-- Patient code generated with standard `P-XXXXX` format
+- Patient code auto-generated using shared `utils/patientCode.js` — standard `PT-XXXXX` format (5-digit zero-padded), same as staff-registered patients
 
 ### Doctor Dashboard Enhancements (Phase 5.4)
 - **Now Seeing card** — live highlight of current patient (arrived status): name, code, token, time, online badge, allergies, booking reference
@@ -445,18 +445,24 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 |------|------|---------|
 | `backend-api/src/db/migrate_portal.js` | Migration | Adds `booking_reference`, `booking_source` columns + index |
 | `backend-api/src/routes/portal.routes.js` | Route | All public portal endpoints |
+| `backend-api/src/utils/patientCode.js` | Utility | Shared `nextPatientCode()` — single source of truth for PT-XXXXX generation |
+| `backend-api/src/utils/bookingReference.js` | Utility | Shared `nextBookingReference()` — single source of truth for BK-XXXXXX generation |
 | `clinic-frontend/src/api/portal.js` | API client | Public Axios instance for booking page |
 | `clinic-frontend/src/pages/booking/BookingPage.jsx` | Page | Multi-step public booking UI |
+| `clinic-frontend/src/components/ui/Drawer.jsx` | Component | Right-side slide-in drawer (540px wide, body scroll lock, sticky footer) |
 
 ### Modified Files (Phase 5.4)
 | File | Change |
 |------|--------|
-| `appointment.routes.js` | Added slot conflict check for `type='booked'`; added `booking_reference`, `booking_source` to SELECT |
+| `appointment.routes.js` | Added slot conflict check for `type='booked'`; `booking_reference` + `booking_source` in SELECT and INSERT; returns `booking_reference` in response |
+| `patient.routes.js` | Removed local `nextPatientCode` function — now uses shared `utils/patientCode.js` |
 | `index.js` | Registered `/api/v1/portal` routes |
-| `SettingsPage.jsx` | Security tab: Patient Portal toggle + URL display + Copy button |
-| `AppointmentsPage.jsx` | Globe badge + booking reference displayed in queue rows |
-| `DoctorDashboard.jsx` | Now Seeing + Next Up cards + Online stat + Globe badge |
+| `SettingsPage.jsx` | Security tab: Patient Portal toggle + shareable URL + Copy button |
+| `AppointmentsPage.jsx` | Globe badge + BK-XXXXXX booking reference displayed in queue rows |
+| `DoctorDashboard.jsx` | Now Seeing + Next Up cards + Online Booked stat card + Globe badge |
 | `App.jsx` | `/book` route (public, no ProtectedRoute) |
+| `AppointmentModal.jsx` | **Complete rewrite**: Modal → Drawer (540px); time slot grid shown for walk-in (optional) and booked (required) modes, hidden only for emergency; slot click-to-deselect toggle; Refresh button; legend; BK-XXXXXX toast for booked appointments |
+| `ConsultationModal.jsx` | Bug fix: added `watch` and `setValue` to `useForm()` destructure (were missing — caused `ReferenceError: watch is not defined` crash) |
 
 ---
 
@@ -510,20 +516,20 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 | Super admin feature flag toggles | ✅ Done (Phase 4) |
 | Low stock / near-expiry alert badges on dashboard | Deferred — use Reports medicines tab |
 | Stock auto-deduct on dispensing | ✅ Done — pharmacy dispense endpoint deducts stock |
-| Expiry alert notifications | Phase 5 (remaining) |
-| Online patient booking | Phase 5 (remaining) |
-| Appointment SMS/WhatsApp reminders | Phase 5 (remaining) |
-| Scheduled monthly email report | Phase 5 (remaining) |
-| Reports PDF export | Phase 5 (remaining) |
-| Super admin system health (CPU/memory/uptime) | Phase 5 (remaining) |
-| Super admin audit log viewer | Phase 5 (remaining) |
-| Super admin trial management UI | Phase 5 (remaining) |
-| Session timeout enforcement (backend) | Phase 5 — UI setting exists but JWT expiry not yet driven by it |
-| `patient_portal_enabled` setting UI | Phase 5 — column + backend ready; no UI toggle yet |
-| `duplicate_check_enabled` setting | Phase 5 — DB column exists; backend does not read/write it; no UI |
+| Expiry alert notifications | Phase 6 (remaining) |
+| Online patient booking | ✅ Done (Phase 5.4) |
+| Appointment SMS/WhatsApp reminders | Phase 6 (remaining) |
+| Scheduled monthly email report | Phase 6 (remaining) |
+| Reports PDF export | Phase 6 (remaining) |
+| Super admin system health (CPU/memory/uptime) | Phase 6 (remaining) |
+| Super admin audit log viewer | Phase 6 (remaining) |
+| Super admin trial management UI | Phase 6 (remaining) |
+| Session timeout enforcement (backend) | Phase 6 — UI setting exists but JWT expiry not yet driven by it |
+| `patient_portal_enabled` setting UI | ✅ Done (Phase 5.4) — toggle in Settings → Security tab |
+| `duplicate_check_enabled` setting | Phase 6 — DB column exists; backend does not read/write it; no UI |
 | Calendar view (day/week) for appointments | Deferred — queue view covers the need |
-| Lab result notification to patient (SMS) | Phase 5 (remaining) — results saved but no notification sent yet |
-| Insurance / corporate billing (5.3) | Phase 5 (remaining) — not started |
+| Lab result notification to patient (SMS) | Phase 6 (remaining) — results saved but no notification sent yet |
+| Insurance / corporate billing (5.3) | ✅ Done (Phase 5.3) |
 
 ---
 

@@ -199,7 +199,7 @@ Phase 7  →  Desktop version (later)
 | Status update buttons — Arrived / Completed / Cancel | frontend | [x] |
 | Doctor schedule setup screen (admin only) | frontend | [x] |
 | Clinic holidays screen (admin only) | frontend | [x] |
-| Online booking page (public URL for patients) | frontend | [ ] *(deferred to Phase 5)* |
+| Online booking page (public URL for patients) | frontend | [x] *(done in Phase 5.4 — `/book` public route, `BookingPage.jsx`, `portal.routes.js`)* |
 
 **Completed:** 2026-04-07
 **Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date.
@@ -387,8 +387,8 @@ Phase 7  →  Desktop version (later)
 **Test:** Upload logo → preview shown. Set doctor fee → appears on next invoice. Add custom service → appears in InvoiceModal picker. Change currency → reflected in billing settings. Download PDF on invoice → branded PDF with logo, line items, payment history. Download PDF on prescription → logo, medicines table, doctor signature.
 
 **Deferred (column ready, UI/logic not yet built):**
-- `patient_portal_enabled` — DB column ✅, backend GET/PUT ✅, **no UI toggle yet** — add to Security tab in Phase 5 when patient portal is built
-- `duplicate_check_enabled` — DB column ✅, **backend does not read/write it**, **no UI** — implement duplicate patient check logic + Settings UI toggle in Phase 5
+- `patient_portal_enabled` — ✅ Done in Phase 5.4 — toggle in Settings → Security tab + shareable URL + Copy button
+- `duplicate_check_enabled` — DB column ✅, **backend does not read/write it**, **no UI** — implement duplicate patient check logic + Settings UI toggle in Phase 6
 
 **✅ Phase 3 complete.**
 
@@ -441,6 +441,7 @@ Phase 7  →  Desktop version (later)
 | Pharmacy / full inventory management | `pharmacy` | ✅ Complete (2026-04-15) |
 | Lab test requests and results | `lab` | ✅ Complete (2026-04-15) |
 | Insurance claims management | `insurance` | ✅ Complete (2026-04-15) |
+| Patient Portal / Online Booking | `online_booking` + `patient_portal_enabled` | ✅ Complete (2026-04-15) |
 | Multi-branch support | `multi_branch` | Not started |
 
 ---
@@ -541,6 +542,41 @@ Phase 7  →  Desktop version (later)
 
 ---
 
+### Module 5.4 — Patient Portal / Online Booking ✅
+
+**Completed:** 2026-04-15
+
+| Task | Project | Done |
+|------|---------|------|
+| Add `booking_reference VARCHAR(20)`, `booking_source VARCHAR(20)` to appointments | backend | [x] |
+| Create `backend-api/src/utils/patientCode.js` — shared PT-XXXXX generator | backend | [x] |
+| Create `backend-api/src/utils/bookingReference.js` — shared BK-XXXXXX generator | backend | [x] |
+| `GET /portal/info` — public clinic info | backend | [x] |
+| `GET /portal/doctors` — list active doctors | backend | [x] |
+| `GET /portal/doctors/:id/slots?date=` — available time slots | backend | [x] |
+| `POST /portal/book` — submit booking, auto-create patient, return BK-XXXXXX | backend | [x] |
+| `GET /portal/booking/:reference` — look up booking by reference | backend | [x] |
+| Slot conflict check on `POST /portal/book` — server-side race condition protection | backend | [x] |
+| Slot conflict check added to `POST /appointments` for `type='booked'` | backend | [x] |
+| All portal routes behind `tenantMiddleware` only (no authMiddleware) | backend | [x] |
+| `patient_portal_enabled` checked at start of each portal handler | backend | [x] |
+| Migration script — `migrate_portal.js` | backend | [x] |
+| `clinic-frontend/src/api/portal.js` — public Axios instance | frontend | [x] |
+| `BookingPage.jsx` — 4-step public booking page at `/book` (no Sidebar/login) | frontend | [x] |
+| `Drawer.jsx` — right-side slide-in drawer component (540px) | frontend | [x] |
+| `AppointmentModal.jsx` rewrite — Drawer, slot grid for walk-in (optional) and booked (required) | frontend | [x] |
+| Settings → Security tab — Patient Portal toggle + shareable URL + Copy button | frontend | [x] |
+| AppointmentsPage — Globe badge + BK-XXXXXX reference in queue rows | frontend | [x] |
+| DoctorDashboard — Now Seeing card, Next Up card, Online Booked stat | frontend | [x] |
+| `/book` route in App.jsx — public, outside ProtectedRoute | frontend | [x] |
+| Bug fix: ConsultationModal `watch is not defined` crash | frontend | [x] |
+| Bug fix: portal patient code `P-XXXXX` → `PT-XXXXX` (shared util) | backend | [x] |
+| Bug fix: double "Dr." prefix removed across all 11 affected files | frontend | [x] |
+
+**Access:** Public (no login) for `/book`. All roles see Online badge. Doctor gets enhanced dashboard. Admin controls toggle.
+
+---
+
 ## Phase 6 — Beta, Payments & Launch
 
 | Task | Done |
@@ -586,7 +622,9 @@ Phase 7  →  Desktop version (later)
 | Phase 4 — Super admin | 2–3 weeks | ✅ Done |
 | Phase 5.1 — Pharmacy | — | ✅ Done |
 | Phase 5.2 — Lab | — | ✅ Done |
-| Phase 5.3+ — Insurance, multi-branch | 2–4 weeks | |
+| Phase 5.3 — Insurance | — | ✅ Done |
+| Phase 5.4 — Patient Portal | — | ✅ Done |
+| Phase 5.5+ — Multi-branch | 2–4 weeks | |
 | Phase 6 — Beta & launch | 2–3 weeks | |
 | Phase 7 — Desktop | 3–4 weeks | |
 | **Total to launch (SaaS)** | **~5–6 months** | |
