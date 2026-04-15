@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 5 — Add-on modules
+**Currently working on:** Phase 5.2 complete — Phase 5.3 Insurance or deferred items next
 **Last updated:** 2026-04-15
-**Next up:** Phase 5.1 — Pharmacy module (stock management, dispensing, purchase orders)
+**Next up:** Phase 5.3 — Insurance module or deferred small items
 
 ### What is fully complete right now
 
@@ -30,11 +30,10 @@
 | Phase 3 — Branding + PDF | ✅ Clinic logo, doctor signatures, invoice PDF, prescription PDF |
 | Phase 4 — Super admin | ✅ Admin panel, impersonation, feature flag toggles, suspend/activate |
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
+| Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
+| Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
 
 ### What is NOT yet started
-
-- Phase 5.1 Pharmacy — full inventory, purchase orders, dispensing workflow
-- Phase 5.2 Lab — test requests, result uploads, patient notifications
 - Phase 5.3 Insurance — claims, corporate billing
 - Phase 6 — Beta & launch (payments, deployment, onboarding)
 - Phase 7 — Electron desktop version
@@ -47,13 +46,42 @@
 | `duplicate_check_enabled` backend logic | Phase 5 |
 | Session timeout backend enforcement | Phase 5 |
 | PDF export for all reports | Phase 5 |
-| Stock auto-deduct on prescription dispensing | Phase 5 (pharmacy module) |
+| Stock auto-deduct on prescription dispensing | ✅ Done in Phase 5.1 — dispense endpoint deducts stock |
 | Appointment reminder SMS/WhatsApp job | Phase 5 |
 | Online patient booking page | Phase 5 |
 | Payment/subscription history in admin panel | Phase 5 |
 | Trial management UI (extend, convert, expire) | Phase 5 |
 | System health display in admin panel | Phase 5 |
 | Audit log viewer | Phase 5 |
+
+---
+
+## UI Polish Pass — Dark Mode, DatePicker, Font (2026-04-15)
+
+> Full UI polish pass applied to `clinic-frontend`. All changes are frontend-only.
+
+| Change | Files affected | Notes |
+|--------|---------------|-------|
+| Dark mode system | `ThemeContext.jsx` (new), `main.jsx`, `variables.css`, `Sidebar.jsx`, `TopBar.jsx`, `tailwind.config.js` | Toggle button in TopBar (sun/moon icon). Theme persisted in localStorage. Follows system preference on first load. `darkMode: 'class'` in Tailwind. CSS variables for all dark overrides in `variables.css`. |
+| DatePicker component | `DatePicker.jsx` (new), `package.json` | Custom calendar using `react-day-picker` v8 + `@radix-ui/react-popover`. Replaces all `<input type="date">` across 12 pages. Supports min/max, disabled days, keyboard nav. CSS imported in `index.css`. |
+| Select dropdown | `Select.jsx` | Improved Radix Select — wider trigger, animated chevron, highlighted items, `disabled` prop support, `position="popper"` for correct placement in modals. |
+| Input component | `Input.jsx` | Converted to `forwardRef` — required for `react-hook-form` `register()` to work correctly when used with spread props. |
+| Inter font | `index.css`, `tailwind.config.js`, `package.json` | Installed `@fontsource/inter`. Weights 400/500/600/700 imported. Tailwind `fontFamily.sans` set to Inter. |
+| Dark mode — component backgrounds | `Button.jsx`, `Card.jsx`, `Modal.jsx`, `Input.jsx`, `Select.jsx` | All `bg-white` → `bg-[var(--color-surface)]` |
+| Dark mode — page cards/containers | `BillingPage.jsx`, `ConsultationsPage.jsx`, `PrescriptionsPage.jsx`, `MedicineStorePage.jsx`, `LoginPage.jsx`, `ImpersonatePage.jsx` | All inline `bg-white` container divs → `bg-[var(--color-surface)]` |
+| Dark mode — dashboard stat cards | `AdminDashboard.jsx`, `DoctorDashboard.jsx`, `NurseDashboard.jsx`, `ReceptionistDashboard.jsx` | StatCard components + inline cells → `bg-[var(--color-surface)]`. Fallback badge colors `bg-gray-50/text-gray-600` → CSS variables. |
+| Dark mode — dropdowns and pickers | `InvoiceModal.jsx`, `AppointmentModal.jsx`, `PrescriptionModal.jsx`, `ReportsPage.jsx` | Search dropdowns, payment method buttons, slot buttons, preset chips, sub-tab buttons → `bg-[var(--color-surface)]` |
+| Dark mode — all raw inputs global | `index.css` | Added global `input, textarea, select { background-color: var(--color-surface); color: var(--color-text); }` — catches all raw inputs that don't use the Input component |
+
+**Bug fixes during this pass:**
+
+| # | File | Bug | Fix |
+|---|------|-----|-----|
+| 12 | `ReportsPage.jsx` | `Calendar` icon used in TABS array but not imported → ReferenceError crashing Reports page | Added `Calendar` to lucide-react import |
+| 13 | `AppointmentsPage.jsx` | Same — `Calendar` used at line 217 but not imported | Added `Calendar` to import |
+| 14 | `BillingPage.jsx` | Same — `Calendar` used in date header but not imported | Added `Calendar` to import |
+| 15 | `index.css` | `react-day-picker/dist/style.css` not imported — calendar popup rendered unstyled | Added CSS import |
+| 16 | `TopBar.jsx` | `w-4.5 h-4.5` not a valid Tailwind class — sun/moon icons had no size | Changed to `w-[18px] h-[18px]` |
 
 ---
 
@@ -82,7 +110,10 @@
 | Phase 2 | Core clinic app — all modules (2.0–2.7) | ✅ Complete |
 | Phase 3 | Branding + PDF generation (2.7 settings, pdfkit, print fix, logo URL) | ✅ Complete |
 | Phase 4 | Super admin panel | ✅ Complete (core — health/audit/trial mgmt deferred to Phase 5) |
-| Phase 5 | Add-on modules (pharmacy, lab, insurance) | Not started |
+| UI Polish | Dark mode, DatePicker, Select, Inter font, bg-white audit | ✅ Complete (2026-04-15) |
+| Phase 5.1 | Pharmacy — suppliers, purchase orders, dispense queue, stock adjustments | ✅ Complete (2026-04-14) |
+| Phase 5.2 | Lab — test catalog, queue, result entry + file upload, patient history tab | ✅ Complete (2026-04-15) |
+| Phase 5.3 | Insurance — claims, corporate billing | Not started |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 
@@ -530,6 +561,12 @@ custom_domain  — clinic uses their own domain
 | 9 | 2026-04-14 | `duplicate_check_enabled` is dead code — column exists in `clinic_settings` DB schema with intent to warn on duplicate patient name/DOB at registration, but backend PUT never writes it and GET never uses it; no frontend UI | Low | Deferred to Phase 5 — needs backend logic in patient registration route + Settings toggle |
 | 10 | 2026-04-14 | Impersonation ("Login as Clinic") did not pass clinic logo to new tab — backend impersonate endpoint never queried `clinic_settings`, so `logo_url` was always null; also `ImpersonatePage` called `navigate('/dashboard')` immediately after `login()` causing ProtectedRoute race condition where `user` state wasn't committed yet | High | ✅ Fixed — backend now queries `clinic_settings` for `clinic_logo_url`+`currency`; admin-frontend passes `logo_url` in URL params; `ImpersonatePage` split into two effects: first calls `login()`, second navigates only after `user` state is set |
 | 11 | 2026-04-14 | Clinic logo not updated in real time after replace — backend always saves logo as `logo.png` (same filename/URL); browser served cached old image even after upload; Sidebar showed stale logo for rest of session | Medium | ✅ Fixed — appended `?v=${Date.now()}` cache-buster to URL after upload in both `setLogoPreview` and `updateClinic`; button now reads "Replace Logo" when logo exists |
+| 12 | 2026-04-15 | `Calendar` icon used but not imported in `ReportsPage.jsx`, `AppointmentsPage.jsx`, `BillingPage.jsx` — ReferenceError crashing all three pages on load | High | ✅ Fixed — added `Calendar` to lucide-react import in all three files |
+| 13 | 2026-04-15 | `react-day-picker/dist/style.css` not imported — DayPicker calendar popup rendered with no layout or visual styling | Medium | ✅ Fixed — added CSS import to `index.css` |
+| 14 | 2026-04-15 | `w-4.5 h-4.5` used in `TopBar.jsx` for sun/moon icons — not a valid Tailwind class, icons rendered at zero/default size | Low | ✅ Fixed — changed to `w-[18px] h-[18px]` |
+| 15 | 2026-04-15 | All raw `<input>` and `<textarea>` elements outside the shared Input component had no background class — browser defaulted to white, broke dark mode across AppointmentModal, ConsultationModal, InvoiceModal, EndOfDayPage, PatientList, SettingsPage, and more | Medium | ✅ Fixed — added global CSS rule `input, textarea, select { background-color: var(--color-surface); color: var(--color-text); }` in `index.css` |
+| 16 | 2026-04-15 | Pharmacy page showed "Something went wrong" on every tab load — `pharmacy.routes.js` used `staff.first_name \|\| ' ' \|\| staff.last_name` but the `staff` table only has `full_name` column → 500 on all dispense, purchase orders, and stock adjustment queries | High | ✅ Fixed — changed all 4 occurrences to `staff.full_name` in `pharmacy.routes.js` |
+| 17 | 2026-04-15 | Pharmacy CreatePOModal crashed on open — `supplierOptions` included `{ value: '' }` ("No supplier") which Radix Select forbids as a Select.Item value → React error boundary crash | High | ✅ Fixed — changed sentinel to `'none'`, `supplierId` default to `'none'`, save converts `'none'` back to `null` |
 
 ---
 
@@ -545,6 +582,12 @@ custom_domain  — clinic uses their own domain
 | clinic-frontend auth flow | 2026-04-07 | LoginPage, AuthContext, Axios instance with JWT + subdomain header, 401 auto-redirect |
 | clinic-frontend dashboard scaffolds | 2026-04-07 | All 4 role dashboards with correct structure, empty states, TODO markers for API wiring |
 | backend-api middleware | 2026-04-07 | auth.js (JWT + requireRole), tenant.js (subdomain lookup + requireFeature), db.js (queryPublic + queryTenant) |
+| Dark mode | 2026-04-15 | ThemeContext, CSS variable overrides, TopBar toggle, localStorage, system preference on first load |
+| DatePicker component | 2026-04-15 | react-day-picker v8 + Radix Popover, replaces all date inputs on 12 pages, supports min/max/disabled days |
+| Inter font | 2026-04-15 | @fontsource/inter (400/500/600/700), applied globally via index.css + Tailwind fontFamily.sans |
+| Dark mode audit — bg-white cleanup | 2026-04-15 | 15 files patched + global CSS rule for all raw inputs/textareas |
+| Phase 5.1 — Pharmacy module | 2026-04-15 | DB: suppliers, purchase_orders, purchase_order_items, stock_adjustments tables + prescriptions dispensing columns. Backend: pharmacy.routes.js (suppliers CRUD, purchase orders + receive, dispense queue + dispense, stock adjustments). Frontend: PharmacyPage.jsx 4-tab UI, pharmacy.js API client, App.jsx route. Access: receptionist + admin. |
+| Phase 5.2 — Lab module | 2026-04-15 | DB: lab_tests, lab_requests, lab_results tables + 12 seeded common tests. Backend: lab.routes.js (test catalog CRUD, request creation, result entry with file upload, patient history). Frontend: LabPage.jsx (Queue tab + Catalog tab), lab.js API client, App.jsx route, PatientProfile Lab tab. Access: doctor/nurse/admin. |
 
 ---
 
@@ -577,6 +620,13 @@ custom_domain  — clinic uses their own domain
 | 2026-04-14 | Bug fix — Allow Walk-ins toggle had no effect; backend now enforces `allow_walk_ins` on appointment creation; AppointmentModal hides Walk-in tab when disabled; `allow_walk_ins` prop passed from AppointmentsPage | Complete | Start Phase 5 |
 | 2026-04-14 | Settings audit + fixes — built signature upload/delete UI in Doctor Fees tab (SettingsPage.jsx); fixed `GET /api/v1/doctor-fees` missing `signature_url` in SELECT; documented `patient_portal_enabled` (no UI) and `duplicate_check_enabled` (dead column) as deferred to Phase 5; updated Plan.md, Ongoingworking.md, workflow.md | Complete | Start Phase 5 |
 | 2026-04-14 | Bug fixes — impersonation logo: backend now returns `clinic_logo_url`+`currency` from `clinic_settings`; admin-frontend passes `logo_url` in URL params; ImpersonatePage fixed race condition (two-effect pattern waits for `user` state before navigating); logo real-time replace: `?v=timestamp` cache-buster added after upload; "Replace Logo" button label when logo exists | Complete | Start Phase 5 |
+| 2026-04-15 | UI Polish — dark mode (ThemeContext, CSS variables, TopBar toggle, localStorage persist), DatePicker component (react-day-picker + Radix Popover, replaces all date inputs across 12 pages), improved Select (Radix, animated, disabled support), Input forwardRef fix, Inter font (@fontsource/inter 400/500/600/700) | Complete | — |
+| 2026-04-15 | Bug fixes — missing Calendar icon import in ReportsPage + AppointmentsPage + BillingPage (ReferenceError crash), missing react-day-picker CSS import (unstyled calendar), invalid w-4.5 Tailwind class in TopBar | Complete | — |
+| 2026-04-15 | Dark mode audit — replaced all bg-white with bg-[var(--color-surface)] across 15 files (Button, LoginPage, dashboards, ConsultationsPage, PrescriptionsPage, MedicineStorePage, BillingPage, InvoiceModal, AppointmentModal, PrescriptionModal, ReportsPage, ImpersonatePage); added global CSS rule for raw inputs/textareas | Complete | Start Phase 5.1 Pharmacy |
+| 2026-04-15 | Phase 5.1 Pharmacy — DB migration (suppliers, purchase_orders, purchase_order_items, stock_adjustments tables + prescriptions dispensing columns); backend pharmacy.routes.js (all 4 areas, requireFeature gate); frontend PharmacyPage.jsx (4-tab UI: Dispense Queue, Purchase Orders, Suppliers, Stock Adjustments); pharmacy.js API client; route registered in App.jsx | Complete | Start Phase 5.2 Lab |
+| 2026-04-15 | Bug fix — Pharmacy page "Something went wrong" on all tabs; `pharmacy.routes.js` used `staff.first_name \|\| last_name` but staff table only has `full_name`; fixed 4 occurrences (purchase orders list, purchase order detail, dispense queue, stock adjustments) | Complete | — |
+| 2026-04-15 | Bug fix — Pharmacy CreatePOModal crashed on open; `supplierOptions` had `{ value: '' }` which Radix Select forbids; changed sentinel to `'none'`, updated default state and save handler | Complete | — |
+| 2026-04-15 | Phase 5.2 Lab — DB migration (lab_tests, lab_requests, lab_results + 12 seeded tests); backend lab.routes.js (catalog CRUD, requests, result entry with multer file upload, patient history); frontend LabPage.jsx (Queue + Catalog tabs), lab.js API client, App.jsx route, PatientProfile Lab tab added | Complete | Start Phase 5.3 or deferred items |
 
 ---
 

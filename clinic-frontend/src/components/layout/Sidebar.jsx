@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { label: 'Medicine Store',icon: Package,          href: '/medicines',     roles: ['admin'] },
   { label: 'Billing',       icon: Receipt,          href: '/billing',       roles: ['receptionist', 'admin'] },
   { label: 'Pharmacy',      icon: Package,          href: '/pharmacy',      roles: ['receptionist', 'admin'],         flag: 'pharmacy' },
-  { label: 'Lab',           icon: FlaskConical,     href: '/lab',           roles: ['doctor', 'nurse', 'admin'],      flag: 'lab' },
+  { label: 'Lab',           icon: FlaskConical,     href: '/lab',           roles: ['doctor', 'nurse', 'admin', 'receptionist'], flag: 'lab' },
   { label: 'Reports',       icon: BarChart2,        href: '/reports',       roles: ['admin'] },
   { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
 ];

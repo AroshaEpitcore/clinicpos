@@ -11,29 +11,34 @@
 Install these once in both `clinic-frontend` and `admin-frontend`.
 
 ```bash
-npm install @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-select @radix-ui/react-checkbox @radix-ui/react-switch @radix-ui/react-tooltip
+npm install @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-select @radix-ui/react-checkbox @radix-ui/react-switch @radix-ui/react-tooltip @radix-ui/react-popover
 npm install sonner
 npm install lucide-react
 npm install clsx
 npm install react-hook-form
 npm install @tanstack/react-table
-npm install date-fns
+npm install date-fns react-day-picker
 npm install recharts
+npm install @fontsource/inter
 ```
 
 | Package | Purpose | Why |
 |---------|---------|-----|
 | `@radix-ui/*` | Headless accessible UI primitives (modals, dropdowns, selects, checkboxes, switches) | Accessible, unstyled — you control the look |
+| `@radix-ui/react-popover` | Popover container used by the DatePicker component | Same Radix pattern as other primitives |
 | `sonner` | Toast notifications | Single source of truth for all alerts — one API, one style |
 | `lucide-react` | Icons | Consistent icon set across every screen |
 | `clsx` | Conditional className merging | Clean component class logic |
 | `react-hook-form` | Form state and validation | Same form pattern everywhere — no controlled state mess |
 | `@tanstack/react-table` | Data tables | Same table behavior everywhere — sorting, pagination built in |
 | `date-fns` | Date formatting and calculation | Lightweight, consistent date handling |
+| `react-day-picker` | Calendar picker UI (used in `DatePicker.jsx`) | Pairs with date-fns, matches Radix visual style |
 | `recharts` | Charts and graphs | Reports and dashboard charts |
+| `@fontsource/inter` | Inter font — loaded locally, no Google Fonts CDN | Fast load, works offline, consistent across clinics |
 
 **Do not install:** `moment.js`, `lodash`, `material-ui`, `antd`, `chakra-ui`, `bootstrap`, `jquery`.  
-**Do not install a second toast library** if sonner is already installed.
+**Do not install a second toast library** if sonner is already installed.  
+**Do not install a second date picker** if react-day-picker is already installed.
 
 ---
 
@@ -90,6 +95,60 @@ Never invent new wording. Use these across every module:
 | Session expiring | info | `Your session will expire soon. Save your work.` |
 | File too large | error | `File must be under 2MB. Please choose a smaller file.` |
 | Wrong file type | error | `Only JPG and PNG files are accepted.` |
+
+---
+
+## Dark Mode
+
+Dark mode is implemented using Tailwind's `class` strategy — the `dark` class is toggled on `<html>`.
+
+### Setup (already done in tailwind.config.js)
+```js
+// tailwind.config.js
+export default {
+  darkMode: 'class',
+  // ...
+};
+```
+
+### ThemeContext — manages the toggle
+```jsx
+// src/store/ThemeContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+const ThemeContext = createContext();
+export function ThemeProvider({ children }) {
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
+  return <ThemeContext.Provider value={{ dark, toggle: () => setDark(d => !d) }}>{children}</ThemeContext.Provider>;
+}
+export const useTheme = () => useContext(ThemeContext);
+```
+
+### CSS variable dark overrides (in variables.css)
+Dark mode overrides are defined under `.dark` selector and override the `:root` variables. All components automatically adapt — you never write `dark:` Tailwind classes in components:
+```css
+.dark {
+  --color-bg:             #0f172a;
+  --color-surface:        #1e293b;
+  --color-text:           #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-border:         #334155;
+  /* etc. */
+}
+```
+
+### Toggle button — add to TopBar
+```jsx
+import { useTheme } from '../../store/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
+const { dark, toggle } = useTheme();
+<button onClick={toggle}>{dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
+```
+
+**Rule:** Never use `dark:` Tailwind classes in individual components. All dark mode color overrides go in `variables.css` under `.dark {}`. Components only use CSS variables — the dark mode swap happens automatically.
 
 ---
 

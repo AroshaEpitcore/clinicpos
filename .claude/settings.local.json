@@ -16,7 +16,8 @@
       "Bash(npm run:*)",
       "Bash(grep -v \"//.*Calendar\")",
       "Bash(grep -v \"//.*bg-white\")",
-      "Bash(grep -rn \"className={\\\\`\\\\|className=\\\\\"\" /c/clinicpos/clinic-frontend/src --include=\"*.jsx\")"
+      "Bash(grep -rn \"className={\\\\`\\\\|className=\\\\\"\" /c/clinicpos/clinic-frontend/src --include=\"*.jsx\")",
+      "Bash(DEMO_SUBDOMAIN=demo node src/db/migrate_pharmacy.js)"
     ]
   }
 }

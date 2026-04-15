@@ -362,17 +362,132 @@ Give clinic owners and admins a real-time view of how the clinic is performing �
 
 ## Role Summary (All Features)
 
-| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports |
-|------|----------|-------------|---------|--------------|---------|---------|
-| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary |
-| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports |
-| Nurse | View & update | View only | Vitals only | View only | No access | No access |
-| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access |
-| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access |
+| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports | Pharmacy | Lab |
+|------|----------|-------------|---------|--------------|---------|---------|----------|-----|
+| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary | Full access | Full access |
+| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports | View queue only | Request & view |
+| Nurse | View & update | View only | Vitals only | View only | No access | No access | View queue only | View queue only |
+| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access |
+| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access | No access | No access |
+
+> **Note:** Pharmacy and Lab modules are only available if the clinic's `pharmacy` and `lab` feature flags are enabled.  
+> Even if a role is listed as having access — if the flag is off, the module is completely hidden.
 
 ---
 
-## 7. Clinic Self-Customization ⚙️
+## 7. Pharmacy Module 💊 *(Phase 5.1 — Feature Flag: `pharmacy`)*
+
+### Purpose
+Full in-clinic pharmacy management. Tracks supplier purchases, stock levels, and dispensing of medicines directly from patient prescriptions. Only available to clinics on plans with the `pharmacy` feature flag enabled.
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Admin | Full access — all 4 tabs, purchase orders, suppliers, stock adjustments, dispense queue |
+| Receptionist | Full access — same as admin for pharmacy |
+| Doctor | View dispense queue only (read-only) |
+| Nurse | View dispense queue only (read-only) |
+
+### 4-Tab Layout
+
+#### Tab 1 — Dispense Queue
+- Lists all prescriptions that have medicines not yet dispensed
+- Each card shows: patient name, doctor, date, list of prescribed medicines with quantity
+- "Dispense" button marks prescription medicines as dispensed and deducts stock automatically
+- Dispensed prescriptions move to a separate "Dispensed" section
+- Only undispensed prescriptions appear in the queue
+
+#### Tab 2 — Stock
+- Full inventory view of all medicines in the clinic pharmacy
+- Shows: medicine name, category, unit, stock quantity, reorder level, selling price, expiry date
+- Color-coded alerts: red = out of stock, amber = below reorder level, green = normal
+- Admin/Receptionist can add new medicines to the stock list
+- Stock quantities update automatically when prescriptions are dispensed or stock adjustments are made
+
+#### Tab 3 — Purchase Orders
+- Create purchase orders (POs) to record stock received from suppliers
+- Each PO: supplier name, order date, status (pending/received/cancelled), line items (medicine + quantity + unit cost)
+- "Mark as Received" updates stock quantities for all medicines in the PO
+- View PO history with full item breakdown
+- Each PO shows which staff member created it
+
+#### Tab 4 — Suppliers
+- Manage a list of medicine suppliers/distributors
+- Each supplier: name, contact person, phone, email, address, notes
+- Suppliers appear in the Purchase Order creation form as a dropdown
+- Add, edit, delete suppliers
+
+### Key Backend Rules
+- All pharmacy routes require `requireFeature('pharmacy')` middleware — if flag is off, API returns 403
+- Stock deduction happens automatically when a prescription is dispensed (via database transaction)
+- `staff.full_name` is used throughout — the staff table does NOT have `first_name`/`last_name` columns
+- All data is tenant-scoped — one clinic cannot see another's pharmacy records
+
+### Feature Flag
+The `pharmacy` flag in `public.feature_flags` must be `true` for this tenant.  
+Toggle via Admin Panel → Clinic Settings → Feature Flags.
+
+---
+
+## 8. Lab Module 🧪 *(Phase 5.2 — Feature Flag: `lab`)*
+
+### Purpose
+Manage in-clinic laboratory requests and results. Doctors order lab tests, staff enter results, and all results link back to the patient's profile permanently. Only available to clinics with the `lab` feature flag enabled.
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Admin | Full access — request tests, enter results, manage test catalog |
+| Receptionist | Full access — same as admin for lab |
+| Doctor | Request tests, view results |
+| Nurse | View queue and results |
+
+### 2-Tab Layout
+
+#### Tab 1 — Lab Queue
+- Date navigation bar (previous day / today / next day) to browse any day's queue
+- **Pending section**: all lab requests for the selected date that do not yet have results entered
+- **Completed section**: all lab requests for the selected date that have results
+- Each request card shows: patient name, test name, requested by (doctor), requested time, status badge
+- **Enter Result** (staff): opens a modal to type the result value and optionally upload a result file (PDF, JPG, PNG — max 5MB)
+- **View Result** (all roles): opens a modal showing the result value, reference range, and a link/preview of the uploaded file
+
+#### Tab 2 — Test Catalog
+- Full list of lab tests the clinic offers, grouped by category
+- Each test: name, category, reference range, unit, price
+- Admin/Receptionist can add, edit, or soft-delete tests from the catalog
+- **12 common tests pre-seeded** on migration:
+  - FBC (Haematology), FBS, RBS, HbA1c (Biochemistry)
+  - Lipid Profile, Creatinine, LFT, TFT (Biochemistry)
+  - UFR, Widal, ESR, CRP (Microbiology/Other)
+
+### Patient Profile — Lab History Tab
+- The Patient Profile page has a dedicated **"Lab"** tab (5th tab after Overview, Visits, Prescriptions, Billing)
+- Shows full lab history for that patient across all visits
+- Each row: test name, date, result value, reference range, file link
+- PDF results open in a new browser tab
+- Image results (JPG/PNG) are shown inline as a thumbnail
+
+### File Upload Rules
+- Lab result files are stored at `/uploads/tenants/{schema}/lab/{filename}`
+- Max 5MB per file (larger than the general 2MB limit — lab PDFs can be bigger)
+- Accepted types: PDF, JPG, PNG
+- File path is saved in `lab_results.result_file_url`
+- Files are served via the backend static file server
+
+### Key Backend Rules
+- All lab routes require `requireFeature('lab')` middleware — if flag is off, API returns 403
+- Result upload uses `multer` with a 5MB limit and type filter
+- `PUT /lab/requests/:id/result` uses upsert — entering a result a second time updates, does not duplicate
+- All data is tenant-scoped
+
+### Feature Flag
+The `lab` flag in `public.feature_flags` must be `true` for this tenant.  
+Toggle via Admin Panel → Clinic Settings → Feature Flags.
+
+---
+
+## 9. Clinic Self-Customization ⚙️
 
 ### Purpose
 Each clinic that buys the software can make it look and behave like their own system — without needing you to do anything for them.

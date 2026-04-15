@@ -753,6 +753,177 @@ CREATE TABLE audit_logs (
 
 ---
 
+---
+
+## Phase 5.1 — Pharmacy Tables
+
+### Table: `suppliers`
+
+Pharmacy suppliers / vendors. Referenced by purchase orders.
+
+```sql
+CREATE TABLE IF NOT EXISTS suppliers (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(255) NOT NULL,
+  contact     VARCHAR(255),
+  phone       VARCHAR(50),
+  email       VARCHAR(255),
+  address     TEXT,
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Migration:** `backend-api/src/db/migrate_pharmacy.js`
+
+---
+
+### Table: `purchase_orders`
+
+Records of medicine stock ordered from suppliers.
+
+```sql
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  po_number      VARCHAR(20) NOT NULL UNIQUE,   -- auto-generated e.g. PO-00001
+  supplier_id    UUID REFERENCES suppliers(id),
+  status         VARCHAR(20) DEFAULT 'draft',   -- draft | ordered | received | cancelled
+  order_date     DATE DEFAULT CURRENT_DATE,
+  received_date  DATE,
+  notes          TEXT,
+  total_cost     DECIMAL(10,2) DEFAULT 0,
+  created_by     UUID NOT NULL REFERENCES staff(id),
+  created_at     TIMESTAMP DEFAULT NOW(),
+  updated_at     TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+### Table: `purchase_order_items`
+
+Individual medicines in a purchase order.
+
+```sql
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  po_id             UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  medicine_id       UUID NOT NULL REFERENCES medicines(id),
+  quantity_ordered  INTEGER NOT NULL,
+  quantity_received INTEGER DEFAULT 0,
+  cost_price        DECIMAL(10,2),
+  created_at        TIMESTAMP DEFAULT NOW()
+);
+```
+
+**On receive:** `stock_quantity` in `medicines` is incremented by `quantity_received`.
+
+---
+
+### Table: `stock_adjustments`
+
+Manual stock corrections — damaged, expired, found, removed.
+
+```sql
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  medicine_id  UUID NOT NULL REFERENCES medicines(id),
+  type         VARCHAR(20) NOT NULL,   -- add | remove | damaged | expired
+  quantity     INTEGER NOT NULL,
+  reason       TEXT,
+  adjusted_by  UUID NOT NULL REFERENCES staff(id),
+  created_at   TIMESTAMP DEFAULT NOW()
+);
+```
+
+**On save:** `stock_quantity` in `medicines` is incremented (add) or decremented (remove/damaged/expired). Uses `GREATEST(0, stock_quantity + delta)` to prevent negative stock.
+
+---
+
+### Prescriptions — dispensing columns (added in Phase 5.1)
+
+```sql
+ALTER TABLE prescriptions
+  ADD COLUMN IF NOT EXISTS is_dispensed  BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS dispensed_at  TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS dispensed_by  UUID REFERENCES staff(id);
+```
+
+**On dispense:** Stock deducted for each prescription item, `is_dispensed = TRUE`, `dispensed_at = NOW()`.
+
+---
+
+## Phase 5.2 — Lab Tables
+
+### Table: `lab_tests`
+
+Master catalog of available laboratory tests. Admin/receptionist manages this.
+
+```sql
+CREATE TABLE IF NOT EXISTS lab_tests (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(255) NOT NULL,
+  code          VARCHAR(50),              -- short code e.g. FBC, HBA1C
+  category      VARCHAR(100),             -- Haematology | Biochemistry | etc.
+  description   TEXT,
+  normal_range  VARCHAR(255),             -- e.g. 70–100 mg/dL
+  unit          VARCHAR(50),              -- e.g. mg/dL, %
+  price         DECIMAL(10,2) DEFAULT 0,
+  is_active     BOOLEAN DEFAULT TRUE,
+  created_at    TIMESTAMP DEFAULT NOW(),
+  updated_at    TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Seeded with 12 common tests:** FBC, FBS, RBS, HbA1c, Lipid Profile, Creatinine, LFT, TFT, UFR, Widal, ESR, CRP.
+
+**Migration:** `backend-api/src/db/migrate_lab.js`
+
+---
+
+### Table: `lab_requests`
+
+A doctor/receptionist/admin requests one or more tests for a patient.
+
+```sql
+CREATE TABLE IF NOT EXISTS lab_requests (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id       UUID NOT NULL REFERENCES patients(id),
+  consultation_id  UUID REFERENCES consultations(id),
+  test_id          UUID NOT NULL REFERENCES lab_tests(id),
+  requested_by     UUID NOT NULL REFERENCES staff(id),
+  status           VARCHAR(20) DEFAULT 'pending',   -- pending | completed
+  notes            TEXT,
+  created_at       TIMESTAMP DEFAULT NOW(),
+  updated_at       TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Note:** One row per test. If a doctor requests 3 tests at once, 3 rows are inserted.
+
+---
+
+### Table: `lab_results`
+
+Result for a single lab request — value and/or uploaded file.
+
+```sql
+CREATE TABLE IF NOT EXISTS lab_results (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id      UUID NOT NULL REFERENCES lab_requests(id) ON DELETE CASCADE,
+  result_value    TEXT,                    -- typed result e.g. "5.4"
+  result_file_url TEXT,                    -- relative path to uploaded PDF/image
+  notes           TEXT,
+  resulted_by     UUID NOT NULL REFERENCES staff(id),
+  resulted_at     TIMESTAMP DEFAULT NOW()
+);
+```
+
+**On result entry:** `lab_requests.status` → `completed`. Old result deleted and replaced (upsert via DELETE + INSERT). File stored at `/uploads/tenants/{schema}/lab/result_{timestamp}.ext`.
+
+---
+
 ## Table Relationship Map
 
 ```
@@ -820,7 +991,31 @@ end_of_day
   └── staff (who closed)
 
 medicines
-  └── prescription_items
+  ├── prescription_items
+  ├── purchase_order_items  — stock added when PO received
+  └── stock_adjustments     — manual corrections
+
+suppliers
+  └── purchase_orders
+
+purchase_orders
+  └── purchase_order_items (1-to-many)
+
+stock_adjustments
+  └── medicines (updates stock_quantity)
+
+lab_tests
+  └── lab_requests (1-to-many)
+
+lab_requests
+  ├── patients
+  ├── consultations (optional link)
+  ├── staff (requested_by)
+  └── lab_results (1-to-1)
+
+lab_results
+  ├── lab_requests (1-to-1)
+  └── staff (resulted_by)
 ```
 
 ---
@@ -978,7 +1173,14 @@ LIMIT 1;
 
 | Date | Action | Table | Description | Status |
 |------|--------|-------|-------------|--------|
-| — | — | — | No queries run yet | — |
+| 2026-04-07 | CREATE | All tenant tables | Initial migration via `migrate.js` — all core tables created (staff, patients, appointments, consultations, prescriptions, medicines, invoices, etc.) | ✅ Done |
+| 2026-04-07 | INSERT | `public.feature_flags` | Default flags inserted for demo tenant — pharmacy, lab, insurance, online_booking, multi_branch (all ON for demo) | ✅ Done |
+| 2026-04-14 | ALTER | `clinic_settings` | Added `allow_walk_ins` column (BOOLEAN DEFAULT TRUE) | ✅ Done |
+| 2026-04-14 | ALTER | `staff` | Added `signature_url` column (VARCHAR) | ✅ Done |
+| 2026-04-15 | CREATE | `suppliers`, `purchase_orders`, `purchase_order_items`, `stock_adjustments` | Phase 5.1 pharmacy migration via `migrate_pharmacy.js` | ✅ Done |
+| 2026-04-15 | ALTER | `prescriptions` | Added `is_dispensed`, `dispensed_at`, `dispensed_by` columns via `migrate_pharmacy.js` | ✅ Done |
+| 2026-04-15 | CREATE | `lab_tests`, `lab_requests`, `lab_results` | Phase 5.2 lab migration via `migrate_lab.js` | ✅ Done |
+| 2026-04-15 | INSERT | `lab_tests` | 12 common tests seeded (FBC, FBS, RBS, HbA1c, Lipid, Creatinine, LFT, TFT, UFR, Widal, ESR, CRP) | ✅ Done |
 
 ---
 

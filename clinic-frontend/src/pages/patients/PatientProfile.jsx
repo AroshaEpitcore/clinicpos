@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Mail, AlertTriangle, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, AlertTriangle, Edit, Trash2, FlaskConical, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageLayout }       from '../../components/layout/PageLayout';
 import { Button }           from '../../components/ui/Button';
@@ -14,6 +14,8 @@ import { patientsApi }         from '../../api/patients';
 import { consultationsApi }    from '../../api/consultations';
 import { prescriptionsApi }    from '../../api/prescriptions';
 import { invoicesApi }         from '../../api/invoices';
+import { labApi }              from '../../api/lab';
+import { mediaUrl }            from '../../utils/mediaUrl';
 import { formatDate, formatAge, formatCurrency } from '../../utils/format';
 import { useAuth }             from '../../store/AuthContext';
 import { InvoiceModal }        from '../billing/components/InvoiceModal';
@@ -69,7 +71,7 @@ export default function PatientProfile() {
   if (loading) return <PageLayout><LoadingState /></PageLayout>;
   if (!patient) return null;
 
-  const tabs = ['overview', 'visits', 'prescriptions', 'billing'];
+  const tabs = ['overview', 'visits', 'prescriptions', 'billing', 'lab'];
 
   return (
     <PageLayout title="Patient Profile">
@@ -171,6 +173,7 @@ export default function PatientProfile() {
       {activeTab === 'visits'   && <VisitsTab patientId={patient.id} />}
       {activeTab === 'prescriptions' && <PrescriptionsTab patientId={patient.id} />}
       {activeTab === 'billing' && <BillingTab patientId={patient.id} />}
+      {activeTab === 'lab'     && <LabTab patientId={patient.id} />}
 
       {showEdit && (
         <EditPatientModal
@@ -490,6 +493,77 @@ function BillingTab({ patientId }) {
           onSuccess={() => setOpenInvoice(null)}
         />
       )}
+    </div>
+  );
+}
+
+function LabTab({ patientId }) {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    labApi.getPatientHistory(patientId)
+      .then(r => setResults(r.data.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <LoadingState message="Loading lab history..." />;
+  if (results.length === 0) return (
+    <EmptyState icon={FlaskConical} title="No lab tests yet"
+      description="Lab test history will appear here once tests are requested." />
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      {results.map(r => (
+        <div key={r.id} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] px-4 py-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold text-[var(--color-text)]">{r.test_name}</p>
+                {r.test_code && <span className="text-xs text-[var(--color-text-secondary)]">{r.test_code}</span>}
+                {r.category  && <span className="text-xs text-[var(--color-text-secondary)]">· {r.category}</span>}
+                <Badge variant={r.status === 'completed' ? 'success' : 'warning'}
+                  label={r.status.charAt(0).toUpperCase() + r.status.slice(1)} />
+              </div>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                Requested by {r.requested_by_name} · {formatDate(r.created_at)}
+              </p>
+            </div>
+            {r.result_value && (
+              <div className="text-right shrink-0">
+                <p className="text-base font-bold text-[var(--color-text)]">
+                  {r.result_value}
+                  {r.unit && <span className="text-xs font-normal text-[var(--color-text-secondary)] ml-1">{r.unit}</span>}
+                </p>
+                {r.normal_range && (
+                  <p className="text-xs text-[var(--color-text-secondary)]">Ref: {r.normal_range}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Result file */}
+          {r.result_file_url && (
+            <div className="mt-2 pt-2 border-t border-[var(--color-border)]">
+              {r.result_file_url.toLowerCase().endsWith('.pdf') ? (
+                <a href={mediaUrl(r.result_file_url)} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline">
+                  <FileText className="w-3.5 h-3.5" /> View PDF Report
+                </a>
+              ) : (
+                <img src={mediaUrl(r.result_file_url)} alt="Result"
+                  className="rounded-[var(--radius)] border border-[var(--color-border)] max-h-40 object-contain" />
+              )}
+            </div>
+          )}
+
+          {r.result_notes && (
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1.5 italic">{r.result_notes}</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

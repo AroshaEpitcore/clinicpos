@@ -436,29 +436,83 @@ Phase 7  →  Desktop version (later)
 
 > Only build these after Phase 4 is stable. These are premium plan features.
 
-| Module | Flag | Priority |
-|--------|------|----------|
-| Pharmacy / full inventory management | `pharmacy` | High |
-| Lab test requests and results | `lab` | Medium |
-| Insurance claims management | `insurance` | Medium |
-| Multi-branch support | `multi_branch` | Low |
+| Module | Flag | Status |
+|--------|------|--------|
+| Pharmacy / full inventory management | `pharmacy` | ✅ Complete (2026-04-15) |
+| Lab test requests and results | `lab` | ✅ Complete (2026-04-15) |
+| Insurance claims management | `insurance` | Not started |
+| Multi-branch support | `multi_branch` | Not started |
 
-### Module 5.1 — Pharmacy / Inventory
-- Advanced stock management (purchase orders, supplier records)
-- Medicine dispensing workflow separate from prescription
-- Batch tracking and expiry management
-- Pharmacy-specific billing
+---
 
-### Module 5.2 — Lab Integration
-- Lab test request from consultation
-- Result upload and attachment to patient record
-- Result notification to patient via SMS
+### Module 5.1 — Pharmacy / Inventory ✅
+
+**Completed:** 2026-04-15
+
+| Task | Project | Done |
+|------|---------|------|
+| Create `suppliers` table | backend | [x] |
+| Create `purchase_orders` table | backend | [x] |
+| Create `purchase_order_items` table | backend | [x] |
+| Create `stock_adjustments` table | backend | [x] |
+| Add `is_dispensed`, `dispensed_at`, `dispensed_by` columns to `prescriptions` | backend | [x] |
+| `GET/POST /pharmacy/suppliers` — list and create suppliers | backend | [x] |
+| `PUT/DELETE /pharmacy/suppliers/:id` — update and soft-delete | backend | [x] |
+| `GET/POST /pharmacy/purchase-orders` — list and create POs | backend | [x] |
+| `GET /pharmacy/purchase-orders/:id` — single PO with items | backend | [x] |
+| `PUT /pharmacy/purchase-orders/:id/receive` — receive stock, update medicine quantities | backend | [x] |
+| `GET /pharmacy/dispense?date=` — dispense queue by date | backend | [x] |
+| `POST /pharmacy/dispense/:prescriptionId` — dispense and deduct stock | backend | [x] |
+| `GET/POST /pharmacy/stock-adjustments` — log and list adjustments | backend | [x] |
+| All routes behind `requireFeature('pharmacy')` middleware | backend | [x] |
+| Migration script — `migrate_pharmacy.js` | backend | [x] |
+| PharmacyPage — 4-tab UI: Dispense Queue, Purchase Orders, Suppliers, Stock Adjustments | frontend | [x] |
+| `pharmacy.js` API client | frontend | [x] |
+| Route `/pharmacy` registered in `App.jsx` (receptionist, admin) | frontend | [x] |
+| Sidebar entry already present (flag-gated) | frontend | [x] |
+
+**Access:** Receptionist + Admin (sidebar + route). Add/Edit/Delete suppliers: Admin only on backend.
+
+---
+
+### Module 5.2 — Lab Integration ✅
+
+**Completed:** 2026-04-15
+
+| Task | Project | Done |
+|------|---------|------|
+| Create `lab_tests` table — test catalog | backend | [x] |
+| Create `lab_requests` table — doctor orders test for patient | backend | [x] |
+| Create `lab_results` table — result value + file per request | backend | [x] |
+| Seed 12 common lab tests (FBC, FBS, HbA1c, Lipid, LFT, TFT, etc.) | backend | [x] |
+| `GET /lab/tests` — list catalog (active_only filter) | backend | [x] |
+| `POST /lab/tests` — add test (admin, receptionist) | backend | [x] |
+| `PUT /lab/tests/:id` — edit test (admin, receptionist) | backend | [x] |
+| `DELETE /lab/tests/:id` — soft delete (admin, receptionist) | backend | [x] |
+| `GET /lab/requests` — queue by date/status/patient | backend | [x] |
+| `POST /lab/requests` — create requests (doctor, admin, receptionist) | backend | [x] |
+| `GET /lab/requests/:id` — single request with result | backend | [x] |
+| `PUT /lab/requests/:id/result` — enter result + optional file upload (multer, 5MB, PDF/JPG/PNG) | backend | [x] |
+| `GET /lab/patients/:patientId` — full lab history for patient | backend | [x] |
+| All routes behind `requireFeature('lab')` middleware | backend | [x] |
+| Migration script — `migrate_lab.js` | backend | [x] |
+| LabPage — 2-tab UI: Lab Queue (date nav, enter/view result) + Test Catalog (grouped by category) | frontend | [x] |
+| `lab.js` API client | frontend | [x] |
+| Route `/lab` registered in `App.jsx` (doctor, nurse, admin, receptionist) | frontend | [x] |
+| Patient Profile — Lab tab added (full history with result values and file links) | frontend | [x] |
+| Sidebar entry already present (flag-gated, now includes receptionist) | frontend | [x] |
+
+**Access:** Doctor, Nurse, Admin, Receptionist (all can view queue and enter results). Add/Edit/Delete tests + request tests: Admin, Receptionist, Doctor (not Nurse).
+
+---
 
 ### Module 5.3 — Insurance Claims
 - Insurance provider management
 - Claim submission from invoice
 - Claim status tracking (pending / approved / rejected)
 - Corporate account billing (monthly bulk invoice)
+
+**Status:** Not started
 
 ---
 
@@ -505,7 +559,9 @@ Phase 7  →  Desktop version (later)
 | Phase 2 — Core modules (2.0–2.7) | 8–12 weeks | ✅ Done |
 | Phase 3 — PDF generation + branding | 1–2 weeks | ✅ Done |
 | Phase 4 — Super admin | 2–3 weeks | ✅ Done |
-| Phase 5 — Add-on modules | 4–6 weeks | |
+| Phase 5.1 — Pharmacy | — | ✅ Done |
+| Phase 5.2 — Lab | — | ✅ Done |
+| Phase 5.3+ — Insurance, multi-branch | 2–4 weeks | |
 | Phase 6 — Beta & launch | 2–3 weeks | |
 | Phase 7 — Desktop | 3–4 weeks | |
 | **Total to launch (SaaS)** | **~5–6 months** | |

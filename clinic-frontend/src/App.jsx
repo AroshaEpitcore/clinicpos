@@ -28,6 +28,12 @@ import ReportsPage from './pages/reports/ReportsPage';
 // Phase 2.7 — Settings
 import SettingsPage from './pages/settings/SettingsPage';
 
+// Phase 5.1 — Pharmacy
+import PharmacyPage from './pages/pharmacy/PharmacyPage';
+
+// Phase 5.2 — Lab
+import LabPage from './pages/lab/LabPage';
+
 export default function App() {
   return (
     <Routes>
@@ -92,6 +98,20 @@ export default function App() {
       <Route path="/settings" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <SettingsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Phase 5.1 — Pharmacy */}
+      <Route path="/pharmacy" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <PharmacyPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Phase 5.2 — Lab */}
+      <Route path="/lab" element={
+        <ProtectedRoute allowedRoles={['doctor', 'nurse', 'admin', 'receptionist']}>
+          <LabPage />
         </ProtectedRoute>
       } />
 

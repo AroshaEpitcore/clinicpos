@@ -150,15 +150,21 @@ If something breaks on a feature branch, main is still safe.
 
 ## Rule 5 — Update Docs After Every Feature
 
-After completing and testing any feature, you must update **all three doc files**:
+After completing and testing any feature, you must update the relevant doc files:
 
 | File | What to update |
 |------|---------------|
-| `Docs/ongoingworking.md` | Mark feature as done, add date, add notes |
-| `Docs/databasequeries.md` | Add any new queries or table changes made |
-| `Docs/INSTRUCTION.md` | Update if any new rules or patterns were added |
+| `Docs/ongoingworking.md` | Mark feature as done, add date, add session log entry |
+| `Docs/databasequeries.md` | Add any new table definitions, queries, or ALTER statements |
+| `Docs/INSTRUCTION.md` | Update if any new rules, patterns, or file structures changed |
+| `Docs/Plan.md` | Mark phase tasks as complete (✅), update status and notes |
+| `Docs/workflow.md` | Update role access sections, data flow diagrams, module status table |
+| `Docs/RUNNING.md` | Update if new migration scripts, env vars, or folder structure changed |
+| `Docs/DESIGN.md` | Update if new NPM packages were installed or new UI patterns introduced |
+| `Docs/Doctor pos core features.md` | Add new module descriptions when a new module is built |
 
-**Do not skip this step.** Future-you will thank present-you.
+**Do not skip this step.** This is a solo project — these docs are your only external memory.  
+Future-you will thank present-you.
 
 ---
 
@@ -430,8 +436,13 @@ Write a background job (cron) that runs these checks daily and creates the notif
 
 ```
 [ ] All changes committed with a clear message
-[ ] ongoingworking.md updated with today's progress
+[ ] ongoingworking.md updated with today's progress and session log entry
 [ ] databasequeries.md updated if any DB changes were made
+[ ] Plan.md updated — mark completed tasks ✅
+[ ] workflow.md updated if any role access or data flow changed
+[ ] RUNNING.md updated if new migration scripts or env vars were added
+[ ] DESIGN.md updated if new packages were installed or new UI patterns used
+[ ] Doctor pos core features.md updated if a new module was built
 [ ] Any incomplete work has a TODO comment
 [ ] Pushed to GitHub
 [ ] No .env files committed accidentally
@@ -443,12 +454,17 @@ Write a background job (cron) that runs these checks daily and creates the notif
 
 ```
 Docs/
-├── INSTRUCTION.md          ← This file — read before everything
-├── databasequeries.md      ← Every DB query, table, and relationship
-└── ongoingworking.md       ← Feature progress tracker
+├── INSTRUCTION.md              ← This file — read before everything
+├── Plan.md                     ← Build order, phases, task checklists
+├── RUNNING.md                  ← How to run and deploy all three projects
+├── DESIGN.md                   ← UI design rules, components, NPM packages
+├── workflow.md                 ← Role-by-role access, data flow, module status
+├── databasequeries.md          ← Every table definition, query, and relationship
+├── ongoingworking.md           ← Feature progress tracker, session log, bug list
+└── Doctor pos core features.md ← Full product feature descriptions per module
 ```
 
-All three files must always be up to date.  
+All eight files must always be up to date.  
 They are your memory. Treat them as seriously as the code itself.
 
 ---
