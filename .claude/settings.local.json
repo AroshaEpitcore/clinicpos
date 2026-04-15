@@ -11,7 +11,12 @@
       "Bash(npx tailwindcss:*)",
       "Bash(./node_modules/.bin/tailwindcss init:*)",
       "Bash(node_modules/.bin/tailwindcss init:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -v \"//.*Calendar\")",
+      "Bash(grep -v \"//.*bg-white\")",
+      "Bash(grep -rn \"className={\\\\`\\\\|className=\\\\\"\" /c/clinicpos/clinic-frontend/src --include=\"*.jsx\")"
     ]
   }
 }

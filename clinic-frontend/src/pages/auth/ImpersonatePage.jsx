@@ -50,8 +50,8 @@ export default function ImpersonatePage() {
   }, [ready, user]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <p className="text-sm text-gray-500">Setting up session…</p>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+      <p className="text-sm text-[var(--color-text-secondary)]">Setting up session…</p>
     </div>
   );
 }

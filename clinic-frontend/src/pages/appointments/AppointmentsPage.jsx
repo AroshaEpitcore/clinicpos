@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Calendar, Clock, Printer, Receipt } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
 import { Button }        from '../../components/ui/Button';
@@ -232,12 +233,7 @@ export default function AppointmentsPage() {
           <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-        />
+        <DatePicker value={date} onChange={setDate} />
 
         <button
           onClick={() => load(true)}

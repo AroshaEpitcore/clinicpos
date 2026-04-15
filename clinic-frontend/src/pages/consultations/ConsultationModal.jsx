@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { AlertTriangle, Clock, User } from 'lucide-react';
 import { Modal }   from '../../components/ui/Modal';
 import { Button }  from '../../components/ui/Button';
-import { Input }   from '../../components/ui/Input';
+import { Input }      from '../../components/ui/Input';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { consultationsApi } from '../../api/consultations';
 import { formatDate } from '../../utils/format';
 
@@ -233,10 +234,10 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
           </p>
           <div className="flex items-center gap-3">
             <Clock className="w-4 h-4 text-[var(--color-text-secondary)] shrink-0" />
-            <Input
+            <DatePicker
               label="Follow-up Date (optional)"
-              type="date"
-              {...register('follow_up_date')}
+              value={watch('follow_up_date') || ''}
+              onChange={v => setValue('follow_up_date', v)}
             />
           </div>
         </section>

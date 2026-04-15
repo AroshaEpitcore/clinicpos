@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                 { label: 'Completed', value: appt.completed || 0, color: 'text-green-600' },
                 { label: 'Cancelled', value: appt.cancelled || 0, color: 'text-red-500' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-white rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-3 text-center">
+                <div key={label} className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-3 text-center">
                   <p className={`text-xl font-bold ${color}`}>{value}</p>
                   <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{label}</p>
                 </div>
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
 
 function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
   return (
-    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs text-[var(--color-text-secondary)] font-medium">{label}</p>
         <div className={`w-8 h-8 rounded-[var(--radius)] ${iconBg} flex items-center justify-center`}>

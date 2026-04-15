@@ -18,7 +18,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
         <Dialog.Content
           className={clsx(
             'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            'bg-white rounded-[var(--radius-lg)] shadow-xl z-50',
+            'bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-xl z-50',
             'w-full flex flex-col max-h-[90vh]',
             widths[size]
           )}

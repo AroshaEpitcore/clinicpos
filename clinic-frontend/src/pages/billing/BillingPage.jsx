@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Receipt, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Receipt, Clock, Calendar } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
@@ -102,8 +103,7 @@ export default function BillingPage() {
           <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={date} onChange={setDate} />
       </div>
 
       {/* Summary strip */}
@@ -139,7 +139,7 @@ export default function BillingPage() {
           description={`No ${statusTab !== 'all' ? statusTab + ' ' : ''}invoices for ${isToday ? 'today' : formatDate(date + 'T00:00:00')}.`}
         />
       ) : (
-        <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
@@ -214,7 +214,7 @@ export default function BillingPage() {
 
 function SummaryCard({ label, value, color }) {
   return (
-    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] px-5 py-4">
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] px-5 py-4">
       <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
       <p className={`text-xl font-bold mt-1 ${color}`}>{value}</p>
     </div>

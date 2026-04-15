@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { Download, TrendingUp, Users, Calendar, Pill, FileText, Clock } from 'lucide-react';
+import { Download, TrendingUp, Users, Pill, FileText, Clock, Calendar } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
+import { Select }     from '../../components/ui/Select';
 import { PageLayout }  from '../../components/layout/PageLayout';
 import { PageHeader }  from '../../components/ui/PageHeader';
 import { LoadingState, Spinner }  from '../../components/ui/Spinner';
@@ -137,8 +139,7 @@ function DailyTab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={date} onChange={setDate} />
         {data && (
           <button onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
@@ -233,14 +234,16 @@ function MonthlyTab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none">
-          {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
-        </select>
-        <select value={year} onChange={e => setYear(parseInt(e.target.value))}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none">
-          {[now.getFullYear()-1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <Select
+          value={String(month)}
+          onValueChange={v => setMonth(parseInt(v))}
+          options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+        />
+        <Select
+          value={String(year)}
+          onValueChange={v => setYear(parseInt(v))}
+          options={[now.getFullYear() - 1, now.getFullYear()].map(y => ({ value: String(y), label: String(y) }))}
+        />
         {data && (
           <button onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
@@ -328,11 +331,9 @@ function DoctorsTab() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-xs text-[var(--color-text-secondary)]">From</label>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={from} onChange={setFrom} />
         <label className="text-xs text-[var(--color-text-secondary)]">To</label>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={to} onChange={setTo} />
         {data && (
           <button onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
@@ -406,7 +407,7 @@ function MedicinesTab() {
           ].map(t => (
             <button key={t.key} onClick={() => setSubTab(t.key)}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                subTab === t.key ? 'bg-white shadow text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                subTab === t.key ? 'bg-[var(--color-surface)] shadow text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
               }`}>
               {t.label}
             </button>
@@ -492,11 +493,9 @@ function PatientsTab() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-xs text-[var(--color-text-secondary)]">From</label>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={from} onChange={setFrom} />
         <label className="text-xs text-[var(--color-text-secondary)]">To</label>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={to} onChange={setTo} />
       </div>
 
       {loading ? <LoadingState message="Loading patient report..." /> : !data ? null : (
@@ -567,11 +566,9 @@ function AppointmentsTab() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-xs text-[var(--color-text-secondary)]">From</label>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={from} onChange={setFrom} />
         <label className="text-xs text-[var(--color-text-secondary)]">To</label>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={to} onChange={setTo} />
       </div>
 
       {loading ? <LoadingState message="Loading appointment stats..." /> : !data ? null : (
@@ -649,11 +646,9 @@ function EodHistoryTab() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-xs text-[var(--color-text-secondary)]">From</label>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={from} onChange={setFrom} />
         <label className="text-xs text-[var(--color-text-secondary)]">To</label>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        <DatePicker value={to} onChange={setTo} />
         {data?.length > 0 && (
           <button onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">

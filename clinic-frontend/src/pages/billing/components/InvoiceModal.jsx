@@ -215,7 +215,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                       </button>
                     )}
                     {servicePickerOpen && services.length > 0 && (
-                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg max-h-48 overflow-y-auto">
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg max-h-48 overflow-y-auto">
                         {services.map(svc => (
                           <button
                             key={svc.id}
@@ -356,8 +356,8 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                       onClick={() => setPayMethod(m.value)}
                       className={`flex flex-col items-center gap-1 py-2 px-3 rounded-[var(--radius)] border text-xs font-medium transition-colors ${
                         payMethod === m.value
-                          ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary)]'
-                          : 'border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] hover:border-[var(--color-primary)]'
+                          ? 'border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]'
+                          : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />

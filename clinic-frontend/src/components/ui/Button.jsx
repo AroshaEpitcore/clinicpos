@@ -2,7 +2,7 @@ import clsx from 'clsx';
 
 const variants = {
   primary:   'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]',
-  secondary: 'bg-white text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg)]',
+  secondary: 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg)]',
   danger:    'bg-[var(--color-danger)] text-white hover:opacity-90',
   ghost:     'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-primary-light)]',
 };

@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
+import { Input }      from '../../../components/ui/Input';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { Select } from '../../../components/ui/Select';
 import { DuplicateWarningModal } from './DuplicateWarningModal';
 import { patientsApi } from '../../../api/patients';
@@ -108,11 +109,12 @@ export function RegisterPatientModal({ open, onClose, onSuccess, prefillPhone = 
               error={errors.last_name?.message}
               {...register('last_name', { required: 'Last name is required' })}
             />
-            <Input
+            <DatePicker
               label="Date of Birth" required
-              type="date"
+              max={new Date().toISOString().slice(0, 10)}
+              value={watch('date_of_birth') || ''}
+              onChange={v => setValue('date_of_birth', v, { shouldValidate: true })}
               error={errors.date_of_birth?.message}
-              {...register('date_of_birth', { required: 'Date of birth is required' })}
             />
             <Select
               label="Gender" required

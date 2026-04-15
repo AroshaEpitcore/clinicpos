@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Phone, Zap, UserPlus, Search, AlertTriangle } from 'lucide-react';
-import { Modal }   from '../../../components/ui/Modal';
-import { Button }  from '../../../components/ui/Button';
-import { Input }   from '../../../components/ui/Input';
-import { Select }  from '../../../components/ui/Select';
+import { Modal }      from '../../../components/ui/Modal';
+import { Button }     from '../../../components/ui/Button';
+import { Input }      from '../../../components/ui/Input';
+import { Select }     from '../../../components/ui/Select';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { Spinner } from '../../../components/ui/Spinner';
 import { appointmentsApi, doctorsApi } from '../../../api/appointments';
 import { patientsApi } from '../../../api/patients';
@@ -354,7 +355,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                       <div className="flex flex-col gap-1.5 mb-3">
                         {newDuplicates.map(dup => (
                           <button key={dup.id} type="button" onClick={() => { setPatient(dup); setNewDuplicates([]); }}
-                            className="w-full text-left px-3 py-2 rounded-[var(--radius-sm)] bg-white border border-[var(--color-border)] text-sm hover:border-[var(--color-primary)] transition-colors">
+                            className="w-full text-left px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-surface)] border border-[var(--color-border)] text-sm hover:border-[var(--color-primary)] transition-colors">
                             <span className="font-medium">{dup.first_name} {dup.last_name}</span>
                             <span className="text-[var(--color-text-secondary)] ml-2 text-xs">{dup.phone} · {dup.patient_code}</span>
                           </button>
@@ -399,23 +400,25 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                           {fieldErrors.newPhone && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newPhone}</span>}
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-[var(--color-text)]">Gender <span className="text-[var(--color-danger)]">*</span></label>
-                          <select value={newGender} onChange={e => { setNewGender(e.target.value); setFieldErrors(p => ({...p, newGender: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${fieldErrors.newGender ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}>
-                            <option value="">Select...</option>
-                            {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                          {fieldErrors.newGender && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newGender}</span>}
+                          <Select
+                            label="Gender"
+                            required
+                            options={GENDER_OPTIONS}
+                            value={newGender}
+                            onValueChange={v => { setNewGender(v); setFieldErrors(p => ({...p, newGender: undefined})); }}
+                            placeholder="Select..."
+                            error={fieldErrors.newGender}
+                          />
                         </div>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-[var(--color-text)]">Date of Birth <span className="text-[var(--color-danger)]">*</span></label>
-                        <input type="date" value={newDob} max={today}
-                          onChange={e => { setNewDob(e.target.value); setFieldErrors(p => ({...p, newDob: undefined})); }}
-                          className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${fieldErrors.newDob ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
-                        />
-                        {fieldErrors.newDob && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newDob}</span>}
-                      </div>
+                      <DatePicker
+                        label="Date of Birth"
+                        required
+                        value={newDob}
+                        max={today}
+                        onChange={v => { setNewDob(v); setFieldErrors(p => ({...p, newDob: undefined})); }}
+                        error={fieldErrors.newDob}
+                      />
                     </>
                   )}
                 </div>
@@ -444,12 +447,12 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
 
         {/* Date — booked mode */}
         {mode === 'booked' && (
-          <Input
+          <DatePicker
             label="Appointment Date"
-            type="date"
             required
             min={today}
-            {...register('appointment_date')}
+            value={watch('appointment_date')}
+            onChange={v => setValue('appointment_date', v)}
           />
         )}
 
@@ -474,7 +477,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                         ? 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] cursor-not-allowed line-through'
                         : selectedSlot === s.time
                         ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                        : 'bg-white text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-primary)]'
+                        : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-primary)]'
                     }`}>
                     {s.time}
                   </button>

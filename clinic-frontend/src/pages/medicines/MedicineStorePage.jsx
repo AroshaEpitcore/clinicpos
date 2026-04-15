@@ -6,6 +6,7 @@ import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { Button }       from '../../components/ui/Button';
 import { Input }        from '../../components/ui/Input';
+import { DatePicker }   from '../../components/ui/DatePicker';
 import { Select }       from '../../components/ui/Select';
 import { Modal }        from '../../components/ui/Modal';
 import { Badge }        from '../../components/ui/Badge';
@@ -154,7 +155,7 @@ export default function MedicineStorePage() {
           action={filterTab === 'all' ? <Button size="sm" onClick={openAdd}>+ Add Medicine</Button> : undefined}
         />
       ) : (
-        <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
@@ -378,7 +379,10 @@ function MedicineModal({ open, onClose, onSuccess, medicine }) {
             {...register('reorder_level', { min: { value: 0, message: 'Cannot be negative' } })}
           />
           <div className="col-span-2">
-            <Input label="Expiry Date" type="date" {...register('expiry_date')} />
+            <DatePicker label="Expiry Date"
+              value={watch('expiry_date') || ''}
+              onChange={v => setValue('expiry_date', v)}
+            />
           </div>
         </div>
       </form>

@@ -18,8 +18,42 @@
 ## Current Status
 
 **Currently working on:** Phase 5 — Add-on modules
-**Last updated:** 2026-04-14
-**Next up:** Phase 5 — Pharmacy module (stock management, dispensing, purchase orders)
+**Last updated:** 2026-04-15
+**Next up:** Phase 5.1 — Pharmacy module (stock management, dispensing, purchase orders)
+
+### What is fully complete right now
+
+| Phase | What's done |
+|-------|-------------|
+| Phase 1 — Foundation | ✅ DB, auth, multi-tenant, feature flags |
+| Phase 2 — Core modules | ✅ Patients, Appointments, Consultations, Prescriptions, Billing, Reports, Settings (2.0–2.7) |
+| Phase 3 — Branding + PDF | ✅ Clinic logo, doctor signatures, invoice PDF, prescription PDF |
+| Phase 4 — Super admin | ✅ Admin panel, impersonation, feature flag toggles, suspend/activate |
+| UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
+
+### What is NOT yet started
+
+- Phase 5.1 Pharmacy — full inventory, purchase orders, dispensing workflow
+- Phase 5.2 Lab — test requests, result uploads, patient notifications
+- Phase 5.3 Insurance — claims, corporate billing
+- Phase 6 — Beta & launch (payments, deployment, onboarding)
+- Phase 7 — Electron desktop version
+
+### Small items deferred (documented but not started)
+
+| Item | Deferred to |
+|------|-------------|
+| `patient_portal_enabled` Settings toggle | Phase 5 (when patient portal is built) |
+| `duplicate_check_enabled` backend logic | Phase 5 |
+| Session timeout backend enforcement | Phase 5 |
+| PDF export for all reports | Phase 5 |
+| Stock auto-deduct on prescription dispensing | Phase 5 (pharmacy module) |
+| Appointment reminder SMS/WhatsApp job | Phase 5 |
+| Online patient booking page | Phase 5 |
+| Payment/subscription history in admin panel | Phase 5 |
+| Trial management UI (extend, convert, expire) | Phase 5 |
+| System health display in admin panel | Phase 5 |
+| Audit log viewer | Phase 5 |
 
 ---
 
@@ -494,6 +528,8 @@ custom_domain  — clinic uses their own domain
 | 7 | 2026-04-14 | `GET /api/v1/doctor-fees` did not return `signature_url` — Doctor Fees tab showed signature upload UI but thumbnails never appeared on page load because `signature_url` was missing from the SELECT query | Medium | ✅ Fixed — added `s.signature_url` (and `s.specialization`) to SELECT in `doctorfee.routes.js` |
 | 8 | 2026-04-14 | `patient_portal_enabled` has no UI — column exists in `clinic_settings`, backend GET returns it and PUT accepts it, but there is no toggle in the Settings page for clinic admins to control it | Low | Deferred to Phase 5 — toggle will be added to Security tab when patient portal module is built |
 | 9 | 2026-04-14 | `duplicate_check_enabled` is dead code — column exists in `clinic_settings` DB schema with intent to warn on duplicate patient name/DOB at registration, but backend PUT never writes it and GET never uses it; no frontend UI | Low | Deferred to Phase 5 — needs backend logic in patient registration route + Settings toggle |
+| 10 | 2026-04-14 | Impersonation ("Login as Clinic") did not pass clinic logo to new tab — backend impersonate endpoint never queried `clinic_settings`, so `logo_url` was always null; also `ImpersonatePage` called `navigate('/dashboard')` immediately after `login()` causing ProtectedRoute race condition where `user` state wasn't committed yet | High | ✅ Fixed — backend now queries `clinic_settings` for `clinic_logo_url`+`currency`; admin-frontend passes `logo_url` in URL params; `ImpersonatePage` split into two effects: first calls `login()`, second navigates only after `user` state is set |
+| 11 | 2026-04-14 | Clinic logo not updated in real time after replace — backend always saves logo as `logo.png` (same filename/URL); browser served cached old image even after upload; Sidebar showed stale logo for rest of session | Medium | ✅ Fixed — appended `?v=${Date.now()}` cache-buster to URL after upload in both `setLogoPreview` and `updateClinic`; button now reads "Replace Logo" when logo exists |
 
 ---
 
@@ -540,6 +576,7 @@ custom_domain  — clinic uses their own domain
 | 2026-04-14 | Bug fix — super admin clinic name stale; `PUT /api/v1/settings` now syncs `public.tenants.clinic_name`; one-time DB sync ran to fix demo clinic | Complete | — |
 | 2026-04-14 | Bug fix — Allow Walk-ins toggle had no effect; backend now enforces `allow_walk_ins` on appointment creation; AppointmentModal hides Walk-in tab when disabled; `allow_walk_ins` prop passed from AppointmentsPage | Complete | Start Phase 5 |
 | 2026-04-14 | Settings audit + fixes — built signature upload/delete UI in Doctor Fees tab (SettingsPage.jsx); fixed `GET /api/v1/doctor-fees` missing `signature_url` in SELECT; documented `patient_portal_enabled` (no UI) and `duplicate_check_enabled` (dead column) as deferred to Phase 5; updated Plan.md, Ongoingworking.md, workflow.md | Complete | Start Phase 5 |
+| 2026-04-14 | Bug fixes — impersonation logo: backend now returns `clinic_logo_url`+`currency` from `clinic_settings`; admin-frontend passes `logo_url` in URL params; ImpersonatePage fixed race condition (two-effect pattern waits for `user` state before navigating); logo real-time replace: `?v=timestamp` cache-buster added after upload; "Replace Logo" button label when logo exists | Complete | Start Phase 5 |
 
 ---
 

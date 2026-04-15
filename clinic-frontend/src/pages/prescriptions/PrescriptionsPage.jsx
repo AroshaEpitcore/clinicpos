@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Printer, Pill, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, Pill, Download } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { EmptyState }   from '../../components/ui/EmptyState';
@@ -92,12 +93,7 @@ export default function PrescriptionsPage() {
           <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-white"
-          />
-        </div>
+        <DatePicker value={date} onChange={setDate} />
 
         <button onClick={() => setDate(stepDate(date, 1))}
           className="p-2 rounded-[var(--radius)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
@@ -134,7 +130,7 @@ export default function PrescriptionsPage() {
         <div className="flex flex-col gap-2">
           {prescriptions.map(rx => (
             <div key={rx.id}
-              className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-center gap-4">
+              className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-center gap-4">
 
               {/* Rx number badge */}
               <div className="w-20 text-center shrink-0">

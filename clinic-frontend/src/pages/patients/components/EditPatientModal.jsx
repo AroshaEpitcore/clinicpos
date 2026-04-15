@@ -2,7 +2,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Modal }   from '../../../components/ui/Modal';
 import { Button }  from '../../../components/ui/Button';
-import { Input }   from '../../../components/ui/Input';
+import { Input }      from '../../../components/ui/Input';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { Select }  from '../../../components/ui/Select';
 import { patientsApi } from '../../../api/patients';
 
@@ -64,8 +65,11 @@ export function EditPatientModal({ patient, onClose, onSuccess }) {
             {...register('first_name', { required: 'First name is required' })} />
           <Input label="Last Name" required error={errors.last_name?.message}
             {...register('last_name', { required: 'Last name is required' })} />
-          <Input label="Date of Birth" required type="date" error={errors.date_of_birth?.message}
-            {...register('date_of_birth', { required: 'Date of birth is required' })} />
+          <DatePicker label="Date of Birth" required
+            max={new Date().toISOString().slice(0, 10)}
+            value={watch('date_of_birth') || ''}
+            onChange={v => setValue('date_of_birth', v, { shouldValidate: true })}
+            error={errors.date_of_birth?.message} />
           <Select label="Gender" required options={GENDERS}
             value={watch('gender')} onValueChange={v => setValue('gender', v)} />
           <Input label="Phone Number" required error={errors.phone?.message}

@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { Upload, Trash2, Plus, Pencil, X } from 'lucide-react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
-import { Button }       from '../../components/ui/Button';
+import { Button }  from '../../components/ui/Button';
+import { Select }  from '../../components/ui/Select';
 import { LoadingState } from '../../components/ui/Spinner';
 import { useAuth }      from '../../store/AuthContext';
 import { settingsApi }  from '../../api/settings';
@@ -266,10 +267,11 @@ function AppointmentsTab({ settings, onSave, saving }) {
       <SectionCard title="Appointment Settings">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <Field label="Slot duration (minutes)">
-            <select value={form.appointment_slot_duration} onChange={e => set('appointment_slot_duration')(parseInt(e.target.value))}
-              className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none">
-              {[10,15,20,30,45,60].map(v => <option key={v} value={v}>{v} min</option>)}
-            </select>
+            <Select
+              value={String(form.appointment_slot_duration)}
+              onValueChange={v => set('appointment_slot_duration')(parseInt(v))}
+              options={[10,15,20,30,45,60].map(v => ({ value: String(v), label: `${v} min` }))}
+            />
           </Field>
           <Field label="Max patients per day (0 = unlimited)">
             <TextInput value={form.max_patients_per_day} onChange={v => set('max_patients_per_day')(parseInt(v) || 0)} type="number" placeholder="0" />
@@ -313,10 +315,11 @@ function NotificationsTab({ settings, onSave, saving }) {
         {form.reminder_enabled && (
           <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[var(--color-border)]">
             <Field label="Send reminder how many hours before?">
-              <select value={form.reminder_hours_before} onChange={e => set('reminder_hours_before')(parseInt(e.target.value))}
-                className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none w-48">
-                {[1,2,4,6,12,24,48].map(v => <option key={v} value={v}>{v} hour{v > 1 ? 's' : ''} before</option>)}
-              </select>
+              <Select
+                value={String(form.reminder_hours_before)}
+                onValueChange={v => set('reminder_hours_before')(parseInt(v))}
+                options={[1,2,4,6,12,24,48].map(v => ({ value: String(v), label: `${v} hour${v > 1 ? 's' : ''} before` }))}
+              />
             </Field>
             <Field label="Reminder message template">
               <Textarea value={form.reminder_message} onChange={set('reminder_message')}
@@ -346,13 +349,14 @@ function SecurityTab({ settings, onSave, saving }) {
     <div className="flex flex-col gap-5">
       <SectionCard title="Session Security">
         <Field label="Auto logout after inactivity">
-          <select value={form.session_timeout_minutes}
-            onChange={e => setForm({ session_timeout_minutes: parseInt(e.target.value) })}
-            className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none w-64">
-            {[15,30,60,120,240,480].map(v => (
-              <option key={v} value={v}>{v < 60 ? `${v} minutes` : `${v/60} hour${v > 60 ? 's' : ''}`}</option>
-            ))}
-          </select>
+          <Select
+            value={String(form.session_timeout_minutes)}
+            onValueChange={v => setForm({ session_timeout_minutes: parseInt(v) })}
+            options={[15,30,60,120,240,480].map(v => ({
+              value: String(v),
+              label: v < 60 ? `${v} minutes` : `${v/60} hour${v > 60 ? 's' : ''}`,
+            }))}
+          />
         </Field>
         <p className="text-xs text-[var(--color-text-secondary)] mt-3">
           Staff will be automatically logged out after this period of inactivity.

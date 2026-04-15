@@ -15,7 +15,7 @@ export const Input = forwardRef(function Input({ label, error, required, classNa
         {...props}
         className={clsx(
           'w-full px-3 py-2 rounded-[var(--radius)] border text-sm',
-          'bg-white text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]',
+          'bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]',
           'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent',
           'disabled:bg-[var(--color-bg)] disabled:cursor-not-allowed',
           error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]',

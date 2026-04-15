@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Stethoscope } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Stethoscope } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }  from '../../components/layout/PageLayout';
 import { PageHeader }  from '../../components/ui/PageHeader';
 import { Badge }       from '../../components/ui/Badge';
@@ -59,15 +60,7 @@ export default function ConsultationsPage() {
           <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-          <input
-            type="date"
-            value={date}
-            onChange={e => handleDateChange(e.target.value)}
-            className="pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-white"
-          />
-        </div>
+        <DatePicker value={date} onChange={handleDateChange} />
 
         <button
           onClick={() => handleDateChange(stepDate(date, 1))}
@@ -109,7 +102,7 @@ export default function ConsultationsPage() {
           {consultations.map(c => (
             <div
               key={c.id}
-              className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-start justify-between hover:border-[var(--color-primary)] transition-colors cursor-pointer"
+              className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-start justify-between hover:border-[var(--color-primary)] transition-colors cursor-pointer"
               onClick={() => navigate(`/patients/${c.patient_id}`)}
               title="View patient profile"
             >

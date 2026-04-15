@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { Modal }        from '../../../components/ui/Modal';
+import { DatePicker }   from '../../../components/ui/DatePicker';
 import { Button }       from '../../../components/ui/Button';
 import { Input }        from '../../../components/ui/Input';
 import { LoadingState } from '../../../components/ui/Spinner';
@@ -77,12 +78,7 @@ export function HolidaysModal({ open, onClose }) {
       >
         {/* Add holiday form */}
         <div className="flex gap-3 mb-5">
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-          />
+          <DatePicker value={date} onChange={setDate} />
           <input
             type="text"
             placeholder="Holiday name (e.g. Christmas Day)"

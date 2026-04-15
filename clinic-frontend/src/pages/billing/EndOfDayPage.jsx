@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, Lock } from 'lucide-react';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { Button }       from '../../components/ui/Button';
@@ -74,13 +75,7 @@ export default function EndOfDayPage() {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-[var(--color-text)]">End of Day Closing</h1>
-        <input
-          type="date"
-          value={date}
-          max={today}
-          onChange={e => setDate(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-        />
+        <DatePicker value={date} max={today} onChange={setDate} />
       </div>
 
       {loading ? (

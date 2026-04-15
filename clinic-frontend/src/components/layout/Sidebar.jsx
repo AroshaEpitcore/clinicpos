@@ -42,7 +42,7 @@ export function Sidebar({ collapsed, onToggle }) {
   return (
     <aside
       className={clsx(
-        'fixed top-0 left-0 h-screen bg-white border-r border-[var(--color-border)] flex flex-col z-30',
+        'fixed top-0 left-0 h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col z-30',
         'transition-[width] duration-300 ease-in-out overflow-hidden'
       )}
       style={{ width: collapsed ? '64px' : '240px' }}

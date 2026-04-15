@@ -4,7 +4,7 @@ export function Card({ title, children, className, noPadding }) {
   return (
     <div
       className={clsx(
-        'bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)]',
+        'bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]',
         !noPadding && 'p-5',
         className
       )}

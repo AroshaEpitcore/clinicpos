@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-6">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
 
             <Input
@@ -79,7 +79,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-white
+                  className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)]
                     text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]
                     focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent
                     ${errors.password ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}

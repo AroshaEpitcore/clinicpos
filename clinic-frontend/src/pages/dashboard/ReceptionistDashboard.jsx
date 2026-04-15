@@ -108,7 +108,7 @@ export default function ReceptionistDashboard() {
                       {appt.appointment_time ? appt.appointment_time.slice(0, 5) : 'Walk-in'}
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[appt.status] || 'bg-gray-50 text-gray-600'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[appt.status] || 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'}`}>
                         {appt.status}
                       </span>
                     </td>
@@ -125,7 +125,7 @@ export default function ReceptionistDashboard() {
 
 function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
   return (
-    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs text-[var(--color-text-secondary)] font-medium">{label}</p>
         <div className={`w-8 h-8 rounded-[var(--radius)] ${iconBg} flex items-center justify-center`}>
