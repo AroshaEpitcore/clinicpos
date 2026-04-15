@@ -143,7 +143,7 @@ export default function ConsultationsPage() {
 
               <div className="flex flex-col items-end gap-2 ml-4 shrink-0">
                 <span className="text-xs text-[var(--color-text-secondary)]">
-                  Dr. {c.doctor_name}
+                  {c.doctor_name}
                 </span>
                 {c.follow_up_date && (
                   <Badge variant="info" label={`Follow-up: ${formatDate(c.follow_up_date)}`} />

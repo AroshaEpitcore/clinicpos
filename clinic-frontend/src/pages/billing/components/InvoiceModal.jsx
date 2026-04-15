@@ -171,7 +171,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                 <span className="ml-2 text-sm font-normal text-[var(--color-text-secondary)]">{invoice.patient_code}</span>
               </p>
               {invoice.doctor_name && (
-                <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">Dr. {invoice.doctor_name}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{invoice.doctor_name}</p>
               )}
               <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{formatDate(invoice.created_at)}</p>
             </div>

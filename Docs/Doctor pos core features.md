@@ -362,15 +362,16 @@ Give clinic owners and admins a real-time view of how the clinic is performing �
 
 ## Role Summary (All Features)
 
-| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports | Pharmacy | Lab | Insurance |
-|------|----------|-------------|---------|--------------|---------|---------|----------|-----|-----------|
-| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary | Full access | Full access | Full access |
-| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports | View queue only | Request & view | View claims only |
-| Nurse | View & update | View only | Vitals only | View only | No access | No access | View queue only | View queue only | No access |
-| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access |
-| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access | No access | No access | No access |
+| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports | Pharmacy | Lab | Insurance | Portal |
+|------|----------|-------------|---------|--------------|---------|---------|----------|-----|-----------|--------|
+| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary | Full access | Full access | Full access | View online badge |
+| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports | View queue only | Request & view | View claims only | Now Seeing + Next Up |
+| Nurse | View & update | View only | Vitals only | View only | No access | No access | View queue only | View queue only | No access | View online badge |
+| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Enable/disable + view |
+| Patient (public) | — | Book online (no login) | — | — | — | — | — | — | — | Full booking flow |
 
 > **Note:** Pharmacy, Lab, and Insurance modules are only available if the clinic's respective feature flags are enabled.  
+> The Patient Portal requires both `online_booking` feature flag AND `patient_portal_enabled = true` in clinic settings.  
 > Even if a role is listed as having access — if the flag is off, the module is completely hidden.
 
 ---
@@ -553,7 +554,90 @@ Toggle via Admin Panel → Clinic Settings → Feature Flags.
 
 ---
 
-## 10. Clinic Self-Customization ⚙️
+## 10. Patient Portal / Online Booking 🌐 *(Phase 5.4 — Feature Flag: `online_booking` + Settings Toggle)*
+
+### Purpose
+Allow patients to book appointments online from any device, without calling the clinic. Patients receive a unique **BK-XXXXXX** booking reference they can print or save. Staff see all online bookings in the queue with a visible "Online" badge.
+
+### How it Works for the Patient
+1. Patient opens `/book` — no login, no app download required
+2. **Step 1:** Selects a doctor from the list
+3. **Step 2:** Picks a date (14-day strip) → available time slots shown (already-booked slots shown as crossed out)
+4. **Step 3:** Fills in name, phone number, optional date of birth and reason for visit
+5. **Step 4:** Booking confirmed — large **BK-XXXXXX** reference number shown + Print/Save PDF button
+
+### How it Works for the Clinic
+
+#### Queue Management (all roles)
+- Online booked appointments appear in the queue like any other appointment
+- **Online badge** (Globe icon + "Online" label) shown on each row
+- **BK-XXXXXX reference** shown in blue monospace below patient name
+- All status actions work the same — Arrived, Consult, Bill
+
+#### Doctor Dashboard (enhanced)
+- **Now Seeing card** — shows current patient (arrived) with name, reference, allergies, last complaint
+- **Next Up card** — shows next patient in queue with same details
+- **Online Booked stat** — count of online appointments today
+- Globe icon on any patient with `booked_online = true`
+
+#### Admin — Enable/Disable
+- **Settings → Security tab → Patient Portal section**
+- Toggle ON → shows the shareable `/book` URL with a Copy button
+- Toggle OFF → portal shows a "booking unavailable" message (no ugly error)
+- URL format: `https://yourclinic.clinicpos.com/book` (or `/book` in local dev)
+
+### Patient Auto-Registration
+- System looks up patient by **phone number**
+- If found → appointment linked to existing patient record (no duplicate)
+- If not found → new patient record auto-created with provided name, phone, optional DOB
+- Patient code auto-generated (P-XXXXX format)
+
+### Slot Conflict Protection
+- Slots already booked are shown as **crossed out** on the booking page — cannot be selected
+- Server-side conflict check on submission — prevents race conditions (two patients book same slot simultaneously)
+- Admin bookings also go through the same conflict check
+
+### Booking Reference
+- Format: `BK-000001` → `BK-000002` → ... (sequential, 6-digit zero-padded)
+- Stored in `appointments.booking_reference`
+- Globally unique per clinic — patients can look up their booking using this number
+- Also stored: `booking_source = 'online'` for analytics
+
+### Backend Endpoints
+All portal routes are public (no JWT). Tenant identified via `X-Tenant-Subdomain` header.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /portal/info` | Clinic name, phone, address, portal enabled flag |
+| `GET /portal/doctors` | Active doctors |
+| `GET /portal/doctors/:id/slots?date=` | Available slots for a doctor on a date |
+| `POST /portal/book` | Submit booking → returns BK-XXXXXX |
+| `GET /portal/booking/:reference` | Look up booking by reference |
+
+### Who Can Access
+| Who | What |
+|-----|------|
+| Anyone (public, no login) | Use `/book` page to book appointments |
+| All clinic staff | See Online badge + reference in appointment queue |
+| Doctor | Enhanced dashboard with Now Seeing + Next Up |
+| Admin | Enable/disable portal in Settings → Security |
+
+### Database Changes
+```
+appointments table:
+  + booking_reference VARCHAR(20)     — BK-000001 format
+  + booking_source    VARCHAR(20)     — 'admin' (default) | 'online'
+```
+
+### Migration
+```bash
+cd backend-api
+node src/db/migrate_portal.js
+```
+
+---
+
+## 11. Clinic Self-Customization ⚙️
 
 ### Purpose
 Each clinic that buys the software can make it look and behave like their own system — without needing you to do anything for them.

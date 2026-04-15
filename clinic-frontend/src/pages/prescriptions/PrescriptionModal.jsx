@@ -197,7 +197,7 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
               {appointment.patient_name}
               <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{appointment.patient_code}</span>
             </p>
-            <p className="text-xs text-[var(--color-text-secondary)]">Dr. {appointment.doctor_name}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{appointment.doctor_name}</p>
           </div>
         </div>
       </div>

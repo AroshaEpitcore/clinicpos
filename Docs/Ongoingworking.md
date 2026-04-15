@@ -17,7 +17,7 @@
 
 ## Current Status
 
-**Currently working on:** Phase 5.3 complete — Phase 6 Beta & Launch next
+**Currently working on:** Phase 5.4 complete — Phase 6 Beta & Launch next
 **Last updated:** 2026-04-15
 **Next up:** Phase 6 — Beta, payments, deployment, onboarding
 
@@ -33,6 +33,7 @@
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
 | Phase 5.3 — Insurance | ✅ Claims (CLM-XXXXX), Insurance Providers, Corporate Accounts + Monthly Billing Summary (2026-04-15) |
+| Phase 5.4 — Patient Portal | ✅ Online booking (BK-XXXXXX), Settings toggle, Doctor dashboard enhanced, Online badge in queue (2026-04-15) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (payments, deployment, onboarding)
@@ -42,17 +43,14 @@
 
 | Item | Deferred to |
 |------|-------------|
-| `patient_portal_enabled` Settings toggle | Phase 5 (when patient portal is built) |
-| `duplicate_check_enabled` backend logic | Phase 5 |
-| Session timeout backend enforcement | Phase 5 |
-| PDF export for all reports | Phase 5 |
-| Stock auto-deduct on prescription dispensing | ✅ Done in Phase 5.1 — dispense endpoint deducts stock |
-| Appointment reminder SMS/WhatsApp job | Phase 5 |
-| Online patient booking page | Phase 5 |
-| Payment/subscription history in admin panel | Phase 5 |
-| Trial management UI (extend, convert, expire) | Phase 5 |
-| System health display in admin panel | Phase 5 |
-| Audit log viewer | Phase 5 |
+| `duplicate_check_enabled` backend logic | Phase 6 |
+| Session timeout backend enforcement | Phase 6 |
+| PDF export for all reports | Phase 6 |
+| Appointment reminder SMS/WhatsApp job | Phase 6 |
+| Payment/subscription history in admin panel | Phase 6 |
+| Trial management UI (extend, convert, expire) | Phase 6 |
+| System health display in admin panel | Phase 6 |
+| Audit log viewer | Phase 6 |
 
 ---
 
@@ -114,6 +112,7 @@
 | Phase 5.1 | Pharmacy — suppliers, purchase orders, dispense queue, stock adjustments | ✅ Complete (2026-04-15) |
 | Phase 5.2 | Lab — test catalog, queue, result entry + file upload, patient history tab | ✅ Complete (2026-04-15) |
 | Phase 5.3 | Insurance — claims, insurance providers, corporate accounts + monthly billing | ✅ Complete (2026-04-15) |
+| Phase 5.4 | Patient Portal — public online booking, BK-XXXXXX reference, Settings toggle, enhanced Doctor dashboard | ✅ Complete (2026-04-15) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

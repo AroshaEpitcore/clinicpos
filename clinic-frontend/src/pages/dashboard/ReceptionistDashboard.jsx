@@ -103,7 +103,7 @@ export default function ReceptionistDashboard() {
                       <p className="font-semibold text-[var(--color-text)]">{appt.first_name} {appt.last_name}</p>
                       <p className="text-xs text-[var(--color-text-secondary)]">{appt.patient_code}</p>
                     </td>
-                    <td className="py-2.5 px-3 text-[var(--color-text-secondary)]">Dr. {appt.doctor_name}</td>
+                    <td className="py-2.5 px-3 text-[var(--color-text-secondary)]">{appt.doctor_name}</td>
                     <td className="py-2.5 px-3 text-[var(--color-text-secondary)]">
                       {appt.appointment_time ? appt.appointment_time.slice(0, 5) : 'Walk-in'}
                     </td>

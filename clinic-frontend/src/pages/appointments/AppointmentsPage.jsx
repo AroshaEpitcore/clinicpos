@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar, Globe } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -415,14 +415,25 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
               <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-warning)] shrink-0" />
             </span>
           )}
+          {appt.booked_online && (
+            <span
+              title={`Online booking${appt.booking_reference ? ` · ${appt.booking_reference}` : ''}`}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 shrink-0"
+            >
+              <Globe className="w-3 h-3" /> Online
+            </span>
+          )}
           <span className="text-xs text-[var(--color-text-secondary)] shrink-0">{appt.patient_code}</span>
         </div>
         <div className="flex items-center gap-3 mt-0.5">
-          <p className="text-xs text-[var(--color-text-secondary)]">Dr. {appt.doctor_name}</p>
+          <p className="text-xs text-[var(--color-text-secondary)]">{appt.doctor_name}</p>
           {appt.appointment_time && (
             <p className="text-xs text-[var(--color-text-secondary)]">
               <Clock className="w-3 h-3 inline mr-0.5" />{appt.appointment_time.slice(0, 5)}
             </p>
+          )}
+          {appt.booking_reference && (
+            <p className="text-xs font-mono text-blue-600 shrink-0">{appt.booking_reference}</p>
           )}
           {appt.reason && (
             <p className="text-xs text-[var(--color-text-secondary)] truncate max-w-[200px]" title={appt.reason}>

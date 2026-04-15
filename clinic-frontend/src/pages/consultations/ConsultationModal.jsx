@@ -16,6 +16,8 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm();
 
@@ -88,7 +90,7 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
               <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{appointment.patient_code}</span>
             </p>
             <p className="text-xs text-[var(--color-text-secondary)]">
-              Dr. {appointment.doctor_name}
+              {appointment.doctor_name}
               {appointment.appointment_time && ` · ${appointment.appointment_time.slice(0,5)}`}
             </p>
           </div>

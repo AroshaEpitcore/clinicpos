@@ -2,6 +2,7 @@ const express = require('express');
 const { queryTenant }                  = require('../config/db');
 const { authMiddleware, requireRole }  = require('../middleware/auth');
 const { tenantMiddleware }             = require('../middleware/tenant');
+const { nextBookingReference }         = require('../utils/bookingReference');
 
 const router = express.Router();
 router.use(tenantMiddleware, authMiddleware);
@@ -30,6 +31,7 @@ router.get('/', async (req, res) => {
       `SELECT
          a.id, a.token_number, a.appointment_date, a.appointment_time,
          a.type, a.status, a.reason, a.notes, a.booked_online,
+         a.booking_reference, a.booking_source,
          p.id           AS patient_id,
          p.patient_code,
          p.first_name || ' ' || p.last_name AS patient_name,
@@ -80,6 +82,26 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
       }
     }
 
+    // For booked type, check if the time slot is already taken (prevents double-booking of online slots)
+    if (type === 'booked' && appointment_time) {
+      const conflict = await queryTenant(
+        req.tenantSchema,
+        `SELECT id FROM appointments
+         WHERE doctor_id = $1
+           AND appointment_date = $2
+           AND appointment_time = $3
+           AND status NOT IN ('cancelled')
+           AND type = 'booked'`,
+        [doctor_id, appointment_date, appointment_time]
+      );
+      if (conflict.rows.length > 0) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'This time slot is already booked. Please select a different time.',
+        });
+      }
+    }
+
     // Block booking on holidays
     const holiday = await queryTenant(
       req.tenantSchema,
@@ -96,6 +118,12 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
       token = await nextToken(req.tenantSchema, doctor_id, appointment_date);
     }
 
+    // Generate booking reference for booked appointments (staff or online)
+    let bookingRef = null;
+    if (type === 'booked') {
+      bookingRef = await nextBookingReference(req.tenantSchema);
+    }
+
     // Emergency status is immediately 'arrived'
     const initialStatus = type === 'emergency' ? 'arrived' : 'pending';
 
@@ -103,17 +131,19 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
       req.tenantSchema,
       `INSERT INTO appointments
          (patient_id, doctor_id, appointment_date, appointment_time,
-          token_number, type, status, reason, notes, booked_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+          token_number, type, status, reason, notes, booked_by,
+          booking_reference, booking_source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING id`,
       [patient_id, doctor_id, appointment_date, appointment_time || null,
-       token, type, initialStatus, reason || null, notes || null, req.user.id]
+       token, type, initialStatus, reason || null, notes || null, req.user.id,
+       bookingRef, bookingRef ? 'staff' : 'admin']
     );
 
     res.status(201).json({
       status: 'success',
       message: type === 'emergency' ? 'Emergency patient added to queue' : 'Appointment created successfully',
-      data: { id: result.rows[0].id },
+      data: { id: result.rows[0].id, booking_reference: bookingRef },
     });
   } catch (err) {
     console.error(err);

@@ -150,7 +150,7 @@ export default function PrescriptionsPage() {
                   {rx.patient_name}
                   <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{rx.patient_code}</span>
                 </p>
-                <p className="text-xs text-[var(--color-text-secondary)]">Dr. {rx.doctor_name}</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">{rx.doctor_name}</p>
               </div>
 
               {/* Time */}

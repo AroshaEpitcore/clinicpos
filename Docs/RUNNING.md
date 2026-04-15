@@ -99,6 +99,9 @@ node src/db/migrate_lab.js
 
 # Insurance module (insurance_providers, corporate_accounts, insurance_claims + patients.corporate_account_id — seeds 4 providers)
 node src/db/migrate_insurance.js
+
+# Patient Portal module (adds booking_reference, booking_source columns to appointments)
+node src/db/migrate_portal.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -230,12 +233,14 @@ clinicpos/
 │   │   │   ├── admin.routes.js
 │   │   │   ├── pharmacy.routes.js  — Phase 5.1
 │   │   │   ├── lab.routes.js       — Phase 5.2
-│   │   │   └── insurance.routes.js — Phase 5.3
+│   │   │   ├── insurance.routes.js — Phase 5.3
+│   │   │   └── portal.routes.js    — Phase 5.4 (public, no auth)
 │   │   ├── db/
 │   │   │   ├── migrate.js          — Core tables + seed
 │   │   │   ├── migrate_pharmacy.js — Phase 5.1 tables
 │   │   │   ├── migrate_lab.js      — Phase 5.2 tables
-│   │   │   └── migrate_insurance.js — Phase 5.3 tables
+│   │   │   ├── migrate_insurance.js — Phase 5.3 tables
+│   │   │   └── migrate_portal.js   — Phase 5.4 columns
 │   │   └── index.js              — Express entry point
 │   ├── uploads/                  — Uploaded files (gitignored)
 │   ├── .env                      — Secrets (gitignored)
@@ -257,7 +262,8 @@ clinicpos/
 │   │   │   ├── settings/         — 8-tab settings page
 │   │   │   ├── pharmacy/         — Phase 5.1 (4 tabs)
 │   │   │   ├── lab/              — Phase 5.2 (2 tabs)
-│   │   │   └── insurance/        — Phase 5.3 (3 tabs)
+│   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
+│   │   │   └── booking/          — Phase 5.4 (public /book page)
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar, TopBar, PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Badge, DatePicker, etc.

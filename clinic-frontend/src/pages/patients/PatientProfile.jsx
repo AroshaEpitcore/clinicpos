@@ -271,7 +271,7 @@ function PrescriptionsTab({ patientId }) {
             <div>
               <p className="text-sm font-semibold text-[var(--color-primary)]">{rx.rx_number}</p>
               <p className="text-xs text-[var(--color-text-secondary)]">
-                {formatDate(rx.created_at)} · Dr. {rx.doctor_name}
+                {formatDate(rx.created_at)} · {rx.doctor_name}
               </p>
             </div>
             <span className="text-xs text-[var(--color-text-secondary)]">{rx.item_count} medicine{rx.item_count !== 1 ? 's' : ''}</span>
@@ -329,7 +329,7 @@ function VisitsTab({ patientId }) {
                 {formatDate(v.visit_date)}
               </p>
               <p className="text-xs text-[var(--color-text-secondary)]">
-                Dr. {v.doctor_name}{v.specialization ? ` — ${v.specialization}` : ''}
+                {v.doctor_name}{v.specialization ? ` — ${v.specialization}` : ''}
               </p>
             </div>
             {v.follow_up_date && (

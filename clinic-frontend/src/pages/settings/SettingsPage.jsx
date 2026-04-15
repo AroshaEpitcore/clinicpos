@@ -342,8 +342,13 @@ function NotificationsTab({ settings, onSave, saving }) {
 function SecurityTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
   useEffect(() => {
-    setForm({ session_timeout_minutes: settings.session_timeout_minutes ?? 30 });
+    setForm({
+      session_timeout_minutes: settings.session_timeout_minutes ?? 30,
+      patient_portal_enabled:  settings.patient_portal_enabled  ?? false,
+    });
   }, [settings]);
+
+  const portalUrl = `${window.location.origin}/book`;
 
   return (
     <div className="flex flex-col gap-5">
@@ -351,7 +356,7 @@ function SecurityTab({ settings, onSave, saving }) {
         <Field label="Auto logout after inactivity">
           <Select
             value={String(form.session_timeout_minutes)}
-            onValueChange={v => setForm({ session_timeout_minutes: parseInt(v) })}
+            onValueChange={v => setForm(f => ({ ...f, session_timeout_minutes: parseInt(v) }))}
             options={[15,30,60,120,240,480].map(v => ({
               value: String(v),
               label: v < 60 ? `${v} minutes` : `${v/60} hour${v > 60 ? 's' : ''}`,
@@ -363,6 +368,34 @@ function SecurityTab({ settings, onSave, saving }) {
           Enforcement is active in Phase 2.7+.
         </p>
       </SectionCard>
+
+      <SectionCard title="Patient Portal">
+        <Toggle
+          label="Enable Online Booking"
+          description="Allow patients to book appointments online without calling the clinic."
+          checked={!!form.patient_portal_enabled}
+          onChange={v => setForm(f => ({ ...f, patient_portal_enabled: v }))}
+        />
+        {form.patient_portal_enabled && (
+          <div className="mt-4 p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
+            <p className="text-xs text-[var(--color-text-secondary)] mb-1">Patient Booking URL</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs text-[var(--color-primary)] break-all">{portalUrl}</code>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(portalUrl); }}
+                className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] shrink-0"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+              Share this link with patients so they can book appointments online.
+            </p>
+          </div>
+        )}
+      </SectionCard>
+
       <div className="flex justify-end">
         <Button onClick={() => onSave(form)} loading={saving}>Save Changes</Button>
       </div>

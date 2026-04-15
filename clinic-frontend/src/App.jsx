@@ -37,12 +37,16 @@ import LabPage from './pages/lab/LabPage';
 // Phase 5.3 — Insurance
 import InsurancePage from './pages/insurance/InsurancePage';
 
+// Phase 5.4 — Patient Portal / Online Booking (public)
+import BookingPage from './pages/booking/BookingPage';
+
 export default function App() {
   return (
     <Routes>
       {/* Public */}
       <Route path="/login"       element={<LoginPage />} />
       <Route path="/impersonate" element={<ImpersonatePage />} />
+      <Route path="/book"        element={<BookingPage />} />
 
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

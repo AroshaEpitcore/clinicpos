@@ -117,7 +117,7 @@ export default function AdminDashboard() {
                     {doctors.map(dr => (
                       <div key={dr.doctor_id} className="flex items-center justify-between py-2.5">
                         <div>
-                          <p className="text-sm font-semibold text-[var(--color-text)]">Dr. {dr.doctor_name}</p>
+                          <p className="text-sm font-semibold text-[var(--color-text)]">{dr.doctor_name}</p>
                           <p className="text-xs text-[var(--color-text-secondary)]">{dr.consultations} consults · {dr.patients_seen} patients</p>
                         </div>
                         <p className="text-sm font-bold text-[var(--color-success)]">{formatCurrency(dr.revenue_collected)}</p>

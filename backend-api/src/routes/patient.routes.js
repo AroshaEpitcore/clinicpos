@@ -2,23 +2,12 @@ const express = require('express');
 const { queryTenant }      = require('../config/db');
 const { authMiddleware, requireRole }   = require('../middleware/auth');
 const { tenantMiddleware } = require('../middleware/tenant');
+const { nextPatientCode }  = require('../utils/patientCode');
 
 const router = express.Router();
 
 // All patient routes require a valid tenant + authenticated user
 router.use(tenantMiddleware, authMiddleware);
-
-// ─── Helper — generate next patient code ─────────────────────────────────────
-async function nextPatientCode(schema) {
-  const result = await queryTenant(
-    schema,
-    `SELECT COALESCE(MAX(CAST(SUBSTRING(patient_code FROM 4) AS INTEGER)), 0) + 1 AS next
-     FROM patients`,
-    []
-  );
-  const num = result.rows[0].next;
-  return `PT-${String(num).padStart(5, '0')}`;
-}
 
 // ─── GET /api/v1/patients/check-duplicate ────────────────────────────────────
 // MUST be before /:id route

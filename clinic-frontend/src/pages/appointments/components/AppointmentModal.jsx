@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Phone, Zap, UserPlus, Search, AlertTriangle } from 'lucide-react';
-import { Modal }      from '../../../components/ui/Modal';
+import { Phone, Zap, UserPlus, Search, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Drawer }     from '../../../components/ui/Drawer';
 import { Button }     from '../../../components/ui/Button';
 import { Input }      from '../../../components/ui/Input';
 import { Select }     from '../../../components/ui/Select';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { Spinner } from '../../../components/ui/Spinner';
+import { Spinner }    from '../../../components/ui/Spinner';
 import { appointmentsApi, doctorsApi } from '../../../api/appointments';
 import { patientsApi } from '../../../api/patients';
 
@@ -25,7 +25,6 @@ const GENDER_OPTIONS = [
 
 export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowWalkIns = true }) {
   const today = defaultDate || new Date().toISOString().split('T')[0];
-
   const availableModes = MODES.filter(m => m.value !== 'walkin' || allowWalkIns);
 
   const [mode,         setMode]         = useState('walkin');
@@ -51,41 +50,63 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   const [newGender, setNewGender] = useState('');
   const [newDob,    setNewDob]    = useState('');
 
-  // Duplicate check for new patient
   const [newDuplicates, setNewDuplicates] = useState([]);
   const [newConfirmed,  setNewConfirmed]  = useState(false);
+  const [fieldErrors,   setFieldErrors]   = useState({});
 
-  // Inline field errors
-  const [fieldErrors, setFieldErrors] = useState({});
-
-  const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm({
+  const { register, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: { appointment_date: today, doctor_id: '', reason: '' },
   });
 
   const doctorId = watch('doctor_id');
   const apptDate = watch('appointment_date');
 
+  // Load doctors when drawer opens
   useEffect(() => {
     if (!open) return;
-    // If walk-ins are disabled and current mode is walkin, switch to booked
     if (!allowWalkIns && mode === 'walkin') setMode('booked');
     doctorsApi.list().then(res => {
-      setDoctors(res.data.data.map(d => ({ value: d.id, label: `${d.full_name}${d.specialization ? ` — ${d.specialization}` : ''}` })));
+      setDoctors(res.data.data.map(d => ({
+        value: d.id,
+        label: `${d.full_name}${d.specialization ? ` — ${d.specialization}` : ''}`,
+      })));
     });
   }, [open, allowWalkIns]);
 
+  // Load slots whenever doctor, date, or mode changes (all modes now)
   useEffect(() => {
-    if (mode !== 'booked' || !doctorId || !apptDate) { setSlots([]); return; }
+    if (!doctorId || !apptDate || mode === 'emergency') {
+      setSlots([]); setNoSchedule(false); setIsHoliday(false);
+      return;
+    }
+    loadSlots();
+  }, [doctorId, apptDate, mode]);
+
+  function loadSlots() {
     setLoadingSlots(true);
     setNoSchedule(false);
     setIsHoliday(false);
     setSelectedSlot('');
-    doctorsApi.slots(doctorId, apptDate).then(res => {
-      if (res.data.holiday)    { setIsHoliday(true); setSlots([]); return; }
-      if (res.data.noSchedule) { setNoSchedule(true); setSlots([]); return; }
-      setSlots(res.data.data);
-    }).finally(() => setLoadingSlots(false));
-  }, [doctorId, apptDate, mode]);
+    doctorsApi.slots(doctorId, apptDate)
+      .then(res => {
+        if (res.data.holiday)    { setIsHoliday(true);  setSlots([]); return; }
+        if (res.data.noSchedule) { setNoSchedule(true); setSlots([]); return; }
+        setSlots(res.data.data || []);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }
+
+  function selectPatient(p) {
+    setPatient({ ...p, first_name: p.first_name, last_name: p.last_name });
+    setSearchResults([]);
+  }
+
+  function switchToNew() {
+    setPatientTab('new');
+    setNewPhone(phoneInput);
+    setSearchResults([]);
+  }
 
   async function searchPatient() {
     if (!phoneInput.trim()) return;
@@ -97,104 +118,9 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       setSearchResults(res.data.data);
       setHasSearched(true);
     } catch {
-      toast.error('Something went wrong. Please try again.');
+      setHasSearched(true);
     } finally {
       setSearching(false);
-    }
-  }
-
-  function selectPatient(p) {
-    setPatient(p);
-    setSearchResults([]);
-    setPhoneInput('');
-    setHasSearched(false);
-    setFieldErrors(prev => ({ ...prev, patient: undefined }));
-  }
-
-  function switchToNew() {
-    setNewPhone(phoneInput);
-    setPatientTab('new');
-    setSearchResults([]);
-    setHasSearched(false);
-    setNewDuplicates([]);
-    setNewConfirmed(false);
-  }
-
-  async function onSubmit(data) {
-    const errs = {};
-
-    if (!data.doctor_id) errs.doctor = 'Please select a doctor';
-    if (mode === 'booked' && !selectedSlot) errs.slot = 'Please select a time slot';
-
-    let resolvedPatient = patient;
-
-    if (patientTab === 'new' && !patient) {
-      if (!newFirst.trim()) errs.newFirst = 'First name is required';
-      if (!newLast.trim())  errs.newLast  = 'Last name is required';
-      if (!newPhone.trim()) errs.newPhone = 'Phone is required';
-      if (!newGender)       errs.newGender = 'Gender is required';
-      if (!newDob)          errs.newDob   = 'Date of birth is required';
-    } else if (!patient && patientTab === 'search') {
-      errs.patient = 'Please select a patient';
-    }
-
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return;
-    }
-    setFieldErrors({});
-
-    // Create new patient on the fly
-    if (patientTab === 'new' && !patient) {
-      if (!newConfirmed) {
-        try {
-          const dupRes = await patientsApi.checkDuplicate({
-            phone:      newPhone.trim(),
-            first_name: newFirst.trim(),
-            last_name:  newLast.trim(),
-          });
-          if (dupRes.data.data.length > 0) {
-            setNewDuplicates(dupRes.data.data);
-            return;
-          }
-        } catch { /* proceed */ }
-      }
-
-      try {
-        const res = await patientsApi.create({
-          first_name:    newFirst.trim(),
-          last_name:     newLast.trim(),
-          phone:         newPhone.trim(),
-          gender:        newGender,
-          date_of_birth: newDob,
-        });
-        resolvedPatient = res.data.data;
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Could not register patient. Please try again.');
-        return;
-      }
-    }
-
-    try {
-      await appointmentsApi.create({
-        patient_id:       resolvedPatient.id,
-        doctor_id:        data.doctor_id,
-        appointment_date: data.appointment_date,
-        appointment_time: mode === 'booked' ? selectedSlot : null,
-        type:             mode,
-        reason:           data.reason || null,
-      });
-      const name = `${resolvedPatient.first_name} ${resolvedPatient.last_name}`;
-      const msg = mode === 'emergency'
-        ? 'Emergency patient added to queue'
-        : mode === 'walkin'
-        ? `${name} added to queue`
-        : 'Appointment booked successfully';
-      toast.success(msg);
-      handleClose();
-      onSuccess();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     }
   }
 
@@ -208,24 +134,92 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     setSlots([]);
     setSelectedSlot('');
     setMode(allowWalkIns ? 'walkin' : 'booked');
-    setNewFirst(''); setNewLast(''); setNewPhone(''); setNewGender(''); setNewDob('');
+    setNewFirst(''); setNewLast(''); setNewPhone('');
+    setNewGender(''); setNewDob('');
     setNewDuplicates([]); setNewConfirmed(false);
     setFieldErrors({});
     onClose();
   }
 
+  async function onSubmit(data) {
+    const errs = {};
+    let resolvedPatient = patient;
+
+    if (!resolvedPatient && patientTab === 'search') errs.patient = 'Please search and select a patient';
+    if (patientTab === 'new' && !patient) {
+      if (!newFirst.trim())  errs.newFirst  = 'Required';
+      if (!newLast.trim())   errs.newLast   = 'Required';
+      if (!newPhone.trim())  errs.newPhone  = 'Required';
+      if (!newGender)        errs.newGender = 'Required';
+      if (!newDob)           errs.newDob    = 'Required';
+    }
+    if (!data.doctor_id) errs.doctor = 'Please select a doctor';
+
+    // Slot required for booked mode
+    if (mode === 'booked' && !selectedSlot) errs.slot = 'Please select a time slot';
+
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+
+    // Create new patient on the fly if needed
+    if (patientTab === 'new' && !patient) {
+      if (!newConfirmed) {
+        try {
+          const dupRes = await patientsApi.checkDuplicate({
+            phone: newPhone.trim(), first_name: newFirst.trim(), last_name: newLast.trim(),
+          });
+          if (dupRes.data.data.length > 0) { setNewDuplicates(dupRes.data.data); return; }
+        } catch { /* proceed */ }
+      }
+      try {
+        const res = await patientsApi.create({
+          first_name: newFirst.trim(), last_name: newLast.trim(),
+          phone: newPhone.trim(), gender: newGender, date_of_birth: newDob,
+        });
+        resolvedPatient = res.data.data;
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not register patient.');
+        return;
+      }
+    }
+
+    try {
+      const res = await appointmentsApi.create({
+        patient_id:       resolvedPatient.id,
+        doctor_id:        data.doctor_id,
+        appointment_date: data.appointment_date,
+        appointment_time: selectedSlot || null,
+        type:             mode,
+        reason:           data.reason || null,
+      });
+      const name = `${resolvedPatient.first_name} ${resolvedPatient.last_name}`;
+      const ref  = res.data?.data?.booking_reference;
+      const msg  = mode === 'emergency'
+        ? 'Emergency patient added to queue'
+        : mode === 'walkin'
+          ? `${name} added to queue${selectedSlot ? ` · ${selectedSlot}` : ''}`
+          : `Appointment booked — ${ref || 'confirmed'}`;
+      toast.success(msg, { duration: ref ? 6000 : 4000 });
+      handleClose();
+      onSuccess();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+    }
+  }
+
+  const showSlots = mode !== 'emergency' && doctorId && apptDate;
+
   return (
-    <Modal
+    <Drawer
       open={open}
       onClose={handleClose}
       title="Add to Queue"
-      size="lg"
+      width="540px"
       footer={
         <>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
           <Button
             onClick={handleSubmit(onSubmit)}
-            loading={isSubmitting}
             variant={mode === 'emergency' ? 'danger' : 'primary'}
           >
             {mode === 'emergency' ? '⚡ Add Emergency' : mode === 'walkin' ? 'Add to Queue' : 'Book Appointment'}
@@ -233,31 +227,28 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         </>
       }
     >
-      {/* Mode toggle */}
-      <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden mb-5">
+      {/* ── Mode toggle ── */}
+      <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden mb-6">
         {availableModes.map(m => (
-          <button
-            key={m.value}
-            type="button"
+          <button key={m.value} type="button"
             onClick={() => { setMode(m.value); setSelectedSlot(''); setFieldErrors({}); }}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
               mode === m.value
                 ? m.value === 'emergency'
                   ? 'bg-[var(--color-danger)] text-white'
                   : 'bg-[var(--color-primary)] text-white'
                 : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
-            }`}
-          >
+            }`}>
             {m.label}
           </button>
         ))}
       </div>
 
-      <form className="flex flex-col gap-4">
+      <form className="flex flex-col gap-5">
 
-        {/* ── Patient section ── */}
+        {/* ── Patient ── */}
         <div>
-          <label className="text-sm font-medium text-[var(--color-text)] block mb-1">
+          <label className="text-sm font-medium text-[var(--color-text)] block mb-2">
             Patient <span className="text-[var(--color-danger)]">*</span>
           </label>
 
@@ -274,35 +265,33 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
             </div>
           ) : (
             <>
-              {/* Search / New Patient tabs */}
+              {/* Search / New tabs */}
               <div className="flex rounded-[var(--radius-sm)] border border-[var(--color-border)] overflow-hidden mb-3">
                 <button type="button" onClick={() => setPatientTab('search')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                     patientTab === 'search' ? 'bg-[var(--color-primary)] text-white' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
                   }`}>
                   <Search className="w-3.5 h-3.5" /> Search Existing
                 </button>
                 <button type="button" onClick={() => { setPatientTab('new'); setNewDuplicates([]); setNewConfirmed(false); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                     patientTab === 'new' ? 'bg-[var(--color-primary)] text-white' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
                   }`}>
                   <UserPlus className="w-3.5 h-3.5" /> New Patient
                 </button>
               </div>
 
-              {/* ── Search tab ── */}
+              {/* Search tab */}
               {patientTab === 'search' && (
                 <>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-                      <input
-                        type="text" inputMode="numeric"
-                        placeholder="Enter phone number..."
+                      <input type="text" inputMode="numeric" placeholder="Enter phone number..."
                         value={phoneInput}
                         onChange={e => { setPhoneInput(e.target.value); setHasSearched(false); }}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatient())}
-                        className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)]"
                       />
                     </div>
                     <Button type="button" variant="secondary" size="md" onClick={searchPatient} loading={searching}>Search</Button>
@@ -320,7 +309,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                         <button key={p.id} type="button" onClick={() => selectPatient(p)}
                           className="w-full text-left px-3 py-2.5 text-sm hover:bg-[var(--color-primary-light)] border-b border-[var(--color-border)] last:border-0 transition-colors">
                           <span className="font-medium">{p.first_name} {p.last_name}</span>
-                          <span className="text-[var(--color-text-secondary)] ml-2">{p.phone}</span>
+                          <span className="text-[var(--color-text-secondary)] ml-2 text-xs">{p.phone} · {p.patient_code}</span>
                         </button>
                       ))}
                     </div>
@@ -340,17 +329,14 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                 </>
               )}
 
-              {/* ── New Patient tab ── */}
+              {/* New patient tab */}
               {patientTab === 'new' && (
                 <div className="flex flex-col gap-3 p-3 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)]">
-
                   {newDuplicates.length > 0 ? (
                     <div className="rounded-[var(--radius)] border border-[var(--color-warning)] bg-[var(--color-warning-light)] p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
-                        <p className="text-xs font-semibold text-[var(--color-warning)]">
-                          Possible duplicate — a patient with this name or phone already exists
-                        </p>
+                        <p className="text-xs font-semibold text-[var(--color-warning)]">Possible duplicate</p>
                       </div>
                       <div className="flex flex-col gap-1.5 mb-3">
                         {newDuplicates.map(dup => (
@@ -363,13 +349,13 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                       </div>
                       <button type="button" onClick={() => { setNewConfirmed(true); setNewDuplicates([]); }}
                         className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] underline">
-                        None of these — register as a new patient anyway
+                        None of these — register anyway
                       </button>
                     </div>
                   ) : (
                     <>
                       <p className="text-xs text-[var(--color-text-secondary)]">
-                        Patient will be registered automatically when you add to queue.
+                        Patient will be registered when you submit.
                         {newConfirmed && <span className="text-[var(--color-warning)] ml-1">(Duplicate check skipped)</span>}
                       </p>
                       <div className="grid grid-cols-2 gap-2">
@@ -377,7 +363,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                           <label className="text-xs font-medium text-[var(--color-text)]">First Name <span className="text-[var(--color-danger)]">*</span></label>
                           <input type="text" value={newFirst}
                             onChange={e => { setNewFirst(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newFirst: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${fieldErrors.newFirst ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
+                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newFirst ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
                           />
                           {fieldErrors.newFirst && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newFirst}</span>}
                         </div>
@@ -385,7 +371,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                           <label className="text-xs font-medium text-[var(--color-text)]">Last Name <span className="text-[var(--color-danger)]">*</span></label>
                           <input type="text" value={newLast}
                             onChange={e => { setNewLast(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newLast: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${fieldErrors.newLast ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
+                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newLast ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
                           />
                           {fieldErrors.newLast && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newLast}</span>}
                         </div>
@@ -395,27 +381,16 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                           <label className="text-xs font-medium text-[var(--color-text)]">Phone <span className="text-[var(--color-danger)]">*</span></label>
                           <input type="text" inputMode="numeric" value={newPhone}
                             onChange={e => { setNewPhone(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newPhone: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${fieldErrors.newPhone ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
+                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newPhone ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
                           />
                           {fieldErrors.newPhone && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newPhone}</span>}
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <Select
-                            label="Gender"
-                            required
-                            options={GENDER_OPTIONS}
-                            value={newGender}
-                            onValueChange={v => { setNewGender(v); setFieldErrors(p => ({...p, newGender: undefined})); }}
-                            placeholder="Select..."
-                            error={fieldErrors.newGender}
-                          />
-                        </div>
+                        <Select label="Gender" required options={GENDER_OPTIONS} value={newGender}
+                          onValueChange={v => { setNewGender(v); setFieldErrors(p => ({...p, newGender: undefined})); }}
+                          placeholder="Select..." error={fieldErrors.newGender}
+                        />
                       </div>
-                      <DatePicker
-                        label="Date of Birth"
-                        required
-                        value={newDob}
-                        max={today}
+                      <DatePicker label="Date of Birth" required value={newDob} max={today}
                         onChange={v => { setNewDob(v); setFieldErrors(p => ({...p, newDob: undefined})); }}
                         error={fieldErrors.newDob}
                       />
@@ -424,7 +399,6 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                 </div>
               )}
 
-              {/* Patient error (search tab — nothing selected) */}
               {fieldErrors.patient && (
                 <p className="text-xs text-[var(--color-danger)] mt-1">{fieldErrors.patient}</p>
               )}
@@ -432,57 +406,109 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
           )}
         </div>
 
-        {/* Doctor */}
-        <div className="flex flex-col gap-1">
-          <Select
-            label="Doctor"
-            required
-            options={doctors}
-            value={watch('doctor_id')}
-            onValueChange={v => { setValue('doctor_id', v); setFieldErrors(p => ({...p, doctor: undefined})); }}
-            placeholder="Select a doctor..."
-            error={fieldErrors.doctor}
-          />
-        </div>
+        {/* ── Doctor ── */}
+        <Select
+          label="Doctor"
+          required
+          options={doctors}
+          value={doctorId}
+          onValueChange={v => { setValue('doctor_id', v); setFieldErrors(p => ({...p, doctor: undefined})); }}
+          placeholder="Select a doctor..."
+          error={fieldErrors.doctor}
+        />
 
-        {/* Date — booked mode */}
-        {mode === 'booked' && (
+        {/* ── Date (all modes except emergency) ── */}
+        {mode !== 'emergency' && (
           <DatePicker
-            label="Appointment Date"
-            required
+            label="Date"
+            required={mode === 'booked'}
             min={today}
-            value={watch('appointment_date')}
+            value={apptDate}
             onChange={v => setValue('appointment_date', v)}
           />
         )}
 
-        {/* Time slot picker — booked mode */}
-        {mode === 'booked' && doctorId && apptDate && (
+        {/* ── Time slots (walk-in + booked, not emergency) ── */}
+        {showSlots && (
           <div>
-            <label className="text-sm font-medium text-[var(--color-text)] block mb-2">
-              Time Slot <span className="text-[var(--color-danger)]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <label className="text-sm font-medium text-[var(--color-text)]">
+                  Time Slot
+                  {mode === 'booked'
+                    ? <span className="text-[var(--color-danger)] ml-0.5">*</span>
+                    : <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">(optional for walk-in)</span>
+                  }
+                </label>
+              </div>
+              {!loadingSlots && doctorId && apptDate && (
+                <button type="button" onClick={loadSlots}
+                  className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline">
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </button>
+              )}
+            </div>
 
-            {loadingSlots && <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"><Spinner size="sm" /> Loading slots...</div>}
-            {isHoliday   && <p className="text-sm text-[var(--color-danger)]">This date is a clinic holiday. No appointments allowed.</p>}
-            {noSchedule  && <p className="text-sm text-[var(--color-warning)]">No schedule set for this doctor on this day. Ask your admin to set working hours.</p>}
+            {loadingSlots && (
+              <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                <Spinner size="sm" /> Loading slots...
+              </div>
+            )}
+            {isHoliday && (
+              <p className="text-sm text-[var(--color-danger)]">This date is a clinic holiday.</p>
+            )}
+            {noSchedule && !isHoliday && (
+              <p className="text-sm text-[var(--color-warning)]">No schedule set for this doctor on this day.</p>
+            )}
 
             {!loadingSlots && !isHoliday && !noSchedule && slots.length > 0 && (
-              <div className="grid grid-cols-5 gap-2">
-                {slots.map(s => (
-                  <button key={s.time} type="button" disabled={!s.available}
-                    onClick={() => { setSelectedSlot(s.time); setFieldErrors(p => ({...p, slot: undefined})); }}
-                    className={`py-1.5 rounded-[var(--radius-sm)] text-xs font-medium border transition-colors ${
-                      !s.available
-                        ? 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] cursor-not-allowed line-through'
-                        : selectedSlot === s.time
-                        ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                        : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-primary)]'
-                    }`}>
-                    {s.time}
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-5 gap-2">
+                  {slots.map(s => (
+                    <button key={s.time} type="button"
+                      disabled={!s.available}
+                      title={!s.available ? 'Already booked' : s.time}
+                      onClick={() => {
+                        setSelectedSlot(prev => prev === s.time ? '' : s.time);
+                        setFieldErrors(p => ({...p, slot: undefined}));
+                      }}
+                      className={`py-2 rounded-[var(--radius-sm)] text-xs font-medium border transition-colors ${
+                        !s.available
+                          ? 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] cursor-not-allowed line-through opacity-40'
+                          : selectedSlot === s.time
+                            ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-sm'
+                            : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)]'
+                      }`}>
+                      {s.time}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
+                    <span className="w-3 h-3 rounded-sm bg-[var(--color-primary)] inline-block" /> Selected
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
+                    <span className="w-3 h-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] inline-block opacity-40 line-through" /> Booked
+                  </span>
+                  {selectedSlot && (
+                    <button type="button" onClick={() => setSelectedSlot('')}
+                      className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] ml-auto">
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+
+                {slots.some(s => !s.available) && (
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                    Crossed-out slots include online portal bookings.
+                  </p>
+                )}
+              </>
+            )}
+
+            {!loadingSlots && !isHoliday && !noSchedule && slots.length === 0 && doctorId && apptDate && (
+              <p className="text-xs text-[var(--color-text-secondary)]">No slots available for this date.</p>
             )}
 
             {fieldErrors.slot && (
@@ -491,17 +517,18 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
           </div>
         )}
 
-        {/* Reason */}
+        {/* ── Reason ── */}
         {mode !== 'emergency' && (
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-[var(--color-text)]">Reason for Visit</label>
-            <textarea rows={2} placeholder="Chief complaint or reason for visit"
-              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            <textarea rows={2} placeholder="Chief complaint or reason..."
+              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)]"
               {...register('reason')}
             />
           </div>
         )}
 
+        {/* ── Emergency notice ── */}
         {mode === 'emergency' && (
           <div className="p-3 rounded-[var(--radius)] bg-[var(--color-danger-light)] border border-[var(--color-danger)] text-sm text-[var(--color-danger)] flex items-center gap-2">
             <Zap className="w-4 h-4 shrink-0" />
@@ -510,6 +537,6 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         )}
 
       </form>
-    </Modal>
+    </Drawer>
   );
 }

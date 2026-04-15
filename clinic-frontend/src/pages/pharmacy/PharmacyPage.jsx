@@ -194,7 +194,7 @@ function RxCard({ rx, expanded, onToggle, onDispense, dispensing }) {
           <div>
             <p className="text-sm font-semibold text-[var(--color-text)]">{rx.patient_name}</p>
             <p className="text-xs text-[var(--color-text-secondary)]">
-              {rx.rx_number} · Dr. {rx.doctor_name} · {rx.items?.length ?? 0} medicine{rx.items?.length !== 1 ? 's' : ''}
+              {rx.rx_number} · {rx.doctor_name} · {rx.items?.length ?? 0} medicine{rx.items?.length !== 1 ? 's' : ''}
             </p>
           </div>
           {rx.allergies && (

@@ -196,12 +196,19 @@ CREATE TABLE appointments (
   type            VARCHAR(20) DEFAULT 'booked',   -- booked | walkin
   status          VARCHAR(20) DEFAULT 'pending',  -- pending | confirmed | arrived | completed | cancelled
   reason          TEXT,
-  booked_online   BOOLEAN DEFAULT FALSE,
-  booked_by       UUID REFERENCES staff(id),      -- null if booked by patient online
-  notes           TEXT,
-  created_at      TIMESTAMP DEFAULT NOW(),
-  updated_at      TIMESTAMP DEFAULT NOW()
+  booked_online       BOOLEAN DEFAULT FALSE,
+  booking_reference   VARCHAR(20),               -- BK-000001 — set for online bookings
+  booking_source      VARCHAR(20) DEFAULT 'admin', -- 'admin' | 'online'
+  booked_by           UUID REFERENCES staff(id), -- null if booked by patient online
+  notes               TEXT,
+  created_at          TIMESTAMP DEFAULT NOW(),
+  updated_at          TIMESTAMP DEFAULT NOW()
 );
+
+-- Phase 5.4 migration (safe to run on existing DB):
+-- ALTER TABLE appointments
+--   ADD COLUMN IF NOT EXISTS booking_reference VARCHAR(20),
+--   ADD COLUMN IF NOT EXISTS booking_source VARCHAR(20) DEFAULT 'admin';
 ```
 
 **Connects to:** `patients`, `staff`, `consultations`

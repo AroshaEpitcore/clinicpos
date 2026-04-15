@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-15
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance complete.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -15,9 +15,11 @@
 ## The Core Patient Journey
 
 ```
-Patient registered
+Patient books online at /book (no login) — OR — walk-in at clinic
       ↓
-Appointment booked (walk-in or booked slot)
+Patient registered (auto-created from phone number if first visit)
+      ↓
+Appointment booked (walk-in / booked slot / online via portal)
       ↓
 Patient marked as Arrived
       ↓
@@ -134,8 +136,11 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 #### Dashboard
 - Greeting with doctor's name (morning/afternoon/evening)
-- Stat cards: Total Today, Waiting, Arrived, Completed — filtered to this doctor
-- Today's queue list (token, patient name+code, time, status) — click row → Appointments page
+- Stat cards: Total Today, Waiting, Completed, **Online Booked** — filtered to this doctor
+- **Now Seeing card** — highlights the current patient (status = arrived) with name, code, booking reference (if online), allergies warning, last complaint
+- **Next Up card** — shows the next patient waiting with token, time, online badge if applicable
+- Remaining queue list below (all waiting patients after Next Up) — click row → Appointments page
+- Online bookings shown with Globe icon badge + BK-XXXXXX reference number
 
 #### Queue View
 - Sees today's appointments, can filter to own name via doctor tab
@@ -262,7 +267,7 @@ End-of-Day closing — cash count vs system totals, lock the day
   - **Billing** — currency code, tax label, tax rate (%)
   - **Appointments** — slot duration (10/15/20/30/45/60 min), max patients/day, walk-in toggle *(enforced: hides Walk-in tab + backend blocks creation)*
   - **Notifications** — reminder toggle, hours before, message template (Phase 5 sends SMS)
-  - **Security** — session timeout duration
+  - **Security** — session timeout duration; **Patient Portal toggle** (enable/disable online booking + shows shareable /book URL)
   - **Doctor Fees** — inline edit fee label + amount per doctor; auto-applied to new invoices; signature upload per doctor (JPG/PNG ≤2MB) — appears on prescription PDFs
   - **Custom Services** — add/edit/remove services (name, category, price); appear in InvoiceModal item picker
 
@@ -341,6 +346,8 @@ Patient (PT-XXXXX)
 | **Insurance — manage providers** | ✅ | ✗ | ✗ | ✅ |
 | **Insurance — corporate accounts** | ✅ | ✗ | ✗ | ✅ |
 | **Insurance — corporate monthly summary** | ✅ | ✅ | ✗ | ✅ |
+| **Online booking — patient portal** | Public (no login) | Public | Public | ✅ |
+| **Online bookings — view badge + reference** | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -362,6 +369,94 @@ Patient (PT-XXXXX)
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
 | 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
+| 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up) |
+
+---
+
+## Phase 5.4 — Patient Portal / Online Booking
+
+### Overview
+A public multi-step booking page at `/book` — no login required. Patients pick a doctor, choose a date and time slot, enter their details, and receive a **BK-XXXXXX** booking reference. Staff see online bookings in the queue with a Globe badge and the reference number.
+
+### How it works end-to-end
+
+```
+Patient opens /book (any device, no login)
+      ↓
+Step 1 — Select Doctor (active doctors from clinic)
+      ↓
+Step 2 — Pick Date (14-day strip) + available time slot (doctor's schedule, holidays blocked)
+      ↓
+Step 3 — Patient details: Full Name, Phone, DOB (optional), Reason
+      ↓
+Submit → backend checks: portal enabled? holiday? slot still free?
+      ↓
+Existing patient matched by phone — OR — new patient record auto-created
+      ↓
+Appointment inserted: type='booked', booked_online=TRUE, booking_source='online'
+      ↓
+Step 4 — Confirmation card shown: BK-000001 (large reference), doctor, date, time, patient details
+      ↓
+Print / Save PDF button (browser print)
+```
+
+### Booking Reference
+- Format: `BK-XXXXXX` (e.g. `BK-000001`) — 6-digit zero-padded
+- Stored in `appointments.booking_reference`
+- Each reference is unique per clinic — sequential, never reused
+
+### Slot Conflict Protection
+- **Portal booking:** server checks slot is free before inserting — returns 409 if taken (race condition safe)
+- **Admin/staff booking:** same conflict check added to `POST /appointments` for `type='booked'` appointments
+- The `/doctors/:id/slots` endpoint (used by both portal and admin UI) filters out already-booked times in real time
+
+### Patient Auto-Registration
+- Lookup by phone number — if patient exists, use their ID
+- If no patient found → new patient record created automatically with the provided name + phone + optional DOB
+- Patient code generated with standard `P-XXXXX` format
+
+### Doctor Dashboard Enhancements (Phase 5.4)
+- **Now Seeing card** — live highlight of current patient (arrived status): name, code, token, time, online badge, allergies, booking reference
+- **Next Up card** — first patient waiting: same info as Now Seeing
+- **Online Booked stat card** — count of online-booked appointments today
+- Remaining queue list below for all other waiting patients
+- All online bookings show Globe icon + BK-XXXXXX reference
+
+### Settings Toggle (admin only)
+- **Settings → Security tab → Patient Portal section**
+- Toggle: Enable Online Booking (ON/OFF)
+- When ON: shows the shareable `/book` URL with a Copy button
+- When OFF: `/book` page shows "Online Booking Unavailable" message (not an error page)
+- Backend enforces: all portal routes check `patient_portal_enabled = TRUE` in clinic_settings
+
+### Backend Routes (`/api/v1/portal/*`)
+All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` header.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/portal/info` | Clinic name, phone, address, portal enabled flag |
+| GET | `/portal/doctors` | Active doctors for this clinic |
+| GET | `/portal/doctors/:id/slots?date=` | Available time slots for a doctor on a date |
+| POST | `/portal/book` | Submit a booking → returns BK-XXXXXX |
+| GET | `/portal/booking/:reference` | Look up a booking by reference |
+
+### New Files (Phase 5.4)
+| File | Type | Purpose |
+|------|------|---------|
+| `backend-api/src/db/migrate_portal.js` | Migration | Adds `booking_reference`, `booking_source` columns + index |
+| `backend-api/src/routes/portal.routes.js` | Route | All public portal endpoints |
+| `clinic-frontend/src/api/portal.js` | API client | Public Axios instance for booking page |
+| `clinic-frontend/src/pages/booking/BookingPage.jsx` | Page | Multi-step public booking UI |
+
+### Modified Files (Phase 5.4)
+| File | Change |
+|------|--------|
+| `appointment.routes.js` | Added slot conflict check for `type='booked'`; added `booking_reference`, `booking_source` to SELECT |
+| `index.js` | Registered `/api/v1/portal` routes |
+| `SettingsPage.jsx` | Security tab: Patient Portal toggle + URL display + Copy button |
+| `AppointmentsPage.jsx` | Globe badge + booking reference displayed in queue rows |
+| `DoctorDashboard.jsx` | Now Seeing + Next Up cards + Online stat + Globe badge |
+| `App.jsx` | `/book` route (public, no ProtectedRoute) |
 
 ---
 

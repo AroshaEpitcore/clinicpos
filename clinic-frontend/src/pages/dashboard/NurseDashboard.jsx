@@ -71,7 +71,7 @@ export default function NurseDashboard() {
                     {appt.first_name} {appt.last_name}
                   </p>
                   <p className="text-xs text-[var(--color-text-secondary)]">
-                    {appt.patient_code} · Dr. {appt.doctor_name}
+                    {appt.patient_code} · {appt.doctor_name}
                   </p>
                 </div>
                 {/* Time */}

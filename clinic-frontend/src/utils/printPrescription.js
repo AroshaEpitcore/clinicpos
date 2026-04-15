@@ -147,7 +147,7 @@ export function printPrescription(prescription, settings = {}) {
     </div>
     <div>
       <div class="info-label">Prescribing Doctor</div>
-      <div class="info-value">Dr. ${doctor_name || '—'}</div>
+      <div class="info-value">${doctor_name || '—'}</div>
       <div class="info-sub">
         ${specialization || ''}
         ${registration_no ? `${specialization ? ' &middot; ' : ''}Reg: ${registration_no}` : ''}
@@ -185,7 +185,7 @@ export function printPrescription(prescription, settings = {}) {
     <div class="signature-block">
       ${sigFullUrl ? `<img class="signature-img" src="${sigFullUrl}" alt="Signature" />` : '<div style="height:56px"></div>'}
       <div class="signature-line"></div>
-      <div class="signature-name">Dr. ${doctor_name || ''}</div>
+      <div class="signature-name">${doctor_name || ''}</div>
       ${specialization ? `<div class="signature-sub">${specialization}</div>` : ''}
       ${registration_no ? `<div class="signature-sub">Reg No. ${registration_no}</div>` : ''}
     </div>

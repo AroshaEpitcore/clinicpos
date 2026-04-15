@@ -419,6 +419,21 @@ Write a background job (cron) that runs these checks daily and creates the notif
 
 ---
 
+## Rule 19 — Public (Unauthenticated) Routes — Portal Pattern
+
+When building routes that must be accessible without JWT (e.g. the patient booking portal):
+
+1. Do NOT apply `authMiddleware` to these routes — they are public by design
+2. DO apply `tenantMiddleware` — the tenant is still required for DB isolation
+3. Check `patient_portal_enabled` in `clinic_settings` at the start of each handler
+4. Use a **separate public API client** in the frontend (`api/portal.js`) — do NOT reuse the authenticated Axios instance
+5. The public client MUST still send the `X-Tenant-Subdomain` header (via `VITE_TENANT_SUBDOMAIN` env var)
+6. The `/book` route in `App.jsx` must be outside any `<ProtectedRoute>` wrapper
+7. Never expose `staff` table data, patient medical history, or consultation data through portal routes
+8. Slot conflict protection: **always** do a server-side check before inserting a booked appointment — never trust only the frontend slot display
+
+---
+
 ## Before Starting Every Coding Session — Checklist
 
 ```
