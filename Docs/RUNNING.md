@@ -96,6 +96,9 @@ node src/db/migrate_pharmacy.js
 
 # Lab module (lab_tests, lab_requests, lab_results — also seeds 12 common tests)
 node src/db/migrate_lab.js
+
+# Insurance module (insurance_providers, corporate_accounts, insurance_claims + patients.corporate_account_id — seeds 4 providers)
+node src/db/migrate_insurance.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -226,11 +229,13 @@ clinicpos/
 │   │   │   ├── settings.routes.js
 │   │   │   ├── admin.routes.js
 │   │   │   ├── pharmacy.routes.js  — Phase 5.1
-│   │   │   └── lab.routes.js       — Phase 5.2
+│   │   │   ├── lab.routes.js       — Phase 5.2
+│   │   │   └── insurance.routes.js — Phase 5.3
 │   │   ├── db/
 │   │   │   ├── migrate.js          — Core tables + seed
 │   │   │   ├── migrate_pharmacy.js — Phase 5.1 tables
-│   │   │   └── migrate_lab.js      — Phase 5.2 tables
+│   │   │   ├── migrate_lab.js      — Phase 5.2 tables
+│   │   │   └── migrate_insurance.js — Phase 5.3 tables
 │   │   └── index.js              — Express entry point
 │   ├── uploads/                  — Uploaded files (gitignored)
 │   ├── .env                      — Secrets (gitignored)
@@ -251,7 +256,8 @@ clinicpos/
 │   │   │   ├── reports/          — 7-tab reports page
 │   │   │   ├── settings/         — 8-tab settings page
 │   │   │   ├── pharmacy/         — Phase 5.1 (4 tabs)
-│   │   │   └── lab/              — Phase 5.2 (2 tabs)
+│   │   │   ├── lab/              — Phase 5.2 (2 tabs)
+│   │   │   └── insurance/        — Phase 5.3 (3 tabs)
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar, TopBar, PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Badge, DatePicker, etc.

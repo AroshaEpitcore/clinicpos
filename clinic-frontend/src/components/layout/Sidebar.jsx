@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, LogOut, Stethoscope, ChevronLeft, ChevronRight,
+  Settings, LogOut, Stethoscope, ChevronLeft, ChevronRight, Shield,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { label: 'Billing',       icon: Receipt,          href: '/billing',       roles: ['receptionist', 'admin'] },
   { label: 'Pharmacy',      icon: Package,          href: '/pharmacy',      roles: ['receptionist', 'admin'],         flag: 'pharmacy' },
   { label: 'Lab',           icon: FlaskConical,     href: '/lab',           roles: ['doctor', 'nurse', 'admin', 'receptionist'], flag: 'lab' },
+  { label: 'Insurance',    icon: Shield,           href: '/insurance',     roles: ['receptionist', 'admin', 'doctor'],          flag: 'insurance' },
   { label: 'Reports',       icon: BarChart2,        href: '/reports',       roles: ['admin'] },
   { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
 ];

@@ -1016,7 +1016,100 @@ lab_requests
 lab_results
   ├── lab_requests (1-to-1)
   └── staff (resulted_by)
+
+insurance_providers
+  └── insurance_claims (1-to-many, optional)
+
+corporate_accounts
+  └── patients (1-to-many via corporate_account_id)
+
+insurance_claims
+  ├── invoices
+  ├── patients
+  ├── insurance_providers (optional)
+  └── staff (created_by)
 ```
+
+---
+
+---
+
+## Phase 5.3 — Insurance Tables
+
+### Table: `insurance_providers`
+
+Insurance companies that a clinic works with. Linked to claims.
+
+```sql
+CREATE TABLE IF NOT EXISTS insurance_providers (
+  id              SERIAL PRIMARY KEY,
+  name            VARCHAR(200) NOT NULL,
+  contact_person  VARCHAR(100),
+  phone           VARCHAR(20),
+  email           VARCHAR(100),
+  notes           TEXT,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Seeded providers:** Ceylinco Life Insurance, AIA Insurance, Union Assurance, Softlogic Life Insurance
+
+---
+
+### Table: `corporate_accounts`
+
+Companies with monthly/quarterly bulk billing agreements. Employees are linked via `patients.corporate_account_id`.
+
+```sql
+CREATE TABLE IF NOT EXISTS corporate_accounts (
+  id              SERIAL PRIMARY KEY,
+  company_name    VARCHAR(200) NOT NULL,
+  contact_person  VARCHAR(100),
+  phone           VARCHAR(20),
+  email           VARCHAR(100),
+  address         TEXT,
+  billing_cycle   VARCHAR(20) DEFAULT 'monthly'
+                    CHECK (billing_cycle IN ('monthly', 'quarterly')),
+  credit_limit    DECIMAL(10,2),
+  notes           TEXT,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+```
+
+**patients table ALTER:** `corporate_account_id INTEGER REFERENCES corporate_accounts(id)` added via `migrate_insurance.js`.
+
+---
+
+### Table: `insurance_claims`
+
+One claim per invoice. Status lifecycle: `pending → submitted → approved / partial / rejected`.
+
+```sql
+CREATE TABLE IF NOT EXISTS insurance_claims (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id       UUID NOT NULL REFERENCES invoices(id),
+  patient_id       UUID NOT NULL REFERENCES patients(id),
+  provider_id      INTEGER REFERENCES insurance_providers(id),
+  claim_number     VARCHAR(50),            -- auto-generated: CLM-00001
+  claim_date       DATE NOT NULL DEFAULT CURRENT_DATE,
+  amount_claimed   DECIMAL(10,2) NOT NULL,
+  amount_approved  DECIMAL(10,2),          -- filled when status = approved/partial
+  status           VARCHAR(20) NOT NULL DEFAULT 'pending'
+                     CHECK (status IN ('pending','submitted','approved','partial','rejected')),
+  notes            TEXT,
+  submitted_at     TIMESTAMP,             -- set when status = submitted
+  resolved_at      TIMESTAMP,             -- set when status = approved/partial/rejected
+  created_by       UUID REFERENCES staff(id),
+  created_at       TIMESTAMP DEFAULT NOW(),
+  updated_at       TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Claim number format:** `CLM-00001` — auto-incremented from last claim in schema.
 
 ---
 
@@ -1181,6 +1274,9 @@ LIMIT 1;
 | 2026-04-15 | ALTER | `prescriptions` | Added `is_dispensed`, `dispensed_at`, `dispensed_by` columns via `migrate_pharmacy.js` | ✅ Done |
 | 2026-04-15 | CREATE | `lab_tests`, `lab_requests`, `lab_results` | Phase 5.2 lab migration via `migrate_lab.js` | ✅ Done |
 | 2026-04-15 | INSERT | `lab_tests` | 12 common tests seeded (FBC, FBS, RBS, HbA1c, Lipid, Creatinine, LFT, TFT, UFR, Widal, ESR, CRP) | ✅ Done |
+| 2026-04-15 | CREATE | `insurance_providers`, `corporate_accounts`, `insurance_claims` | Phase 5.3 insurance migration via `migrate_insurance.js` | ✅ Done |
+| 2026-04-15 | ALTER | `patients` | Added `corporate_account_id INTEGER REFERENCES corporate_accounts(id)` via `migrate_insurance.js` | ✅ Done |
+| 2026-04-15 | INSERT | `insurance_providers` | 4 common providers seeded (Ceylinco, AIA, Union Assurance, Softlogic) | ✅ Done |
 
 ---
 

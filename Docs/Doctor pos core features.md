@@ -362,15 +362,15 @@ Give clinic owners and admins a real-time view of how the clinic is performing �
 
 ## Role Summary (All Features)
 
-| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports | Pharmacy | Lab |
-|------|----------|-------------|---------|--------------|---------|---------|----------|-----|
-| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary | Full access | Full access |
-| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports | View queue only | Request & view |
-| Nurse | View & update | View only | Vitals only | View only | No access | No access | View queue only | View queue only |
-| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access |
-| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access | No access | No access |
+| Role | Patients | Appointments | Records | Prescriptions | Billing | Reports | Pharmacy | Lab | Insurance |
+|------|----------|-------------|---------|--------------|---------|---------|----------|-----|-----------|
+| Receptionist | Register, search | Manage all | View appt only | Print only | Generate & collect | Daily summary | Full access | Full access | Full access |
+| Doctor | View profile | Own only | Full access | Write & view | View own | Own reports | View queue only | Request & view | View claims only |
+| Nurse | View & update | View only | Vitals only | View only | No access | No access | View queue only | View queue only | No access |
+| Admin / Owner | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access | Full access |
+| Patient (online) | Own profile | Book & view own | Own records | Own Rx history | Own invoices | No access | No access | No access | No access |
 
-> **Note:** Pharmacy and Lab modules are only available if the clinic's `pharmacy` and `lab` feature flags are enabled.  
+> **Note:** Pharmacy, Lab, and Insurance modules are only available if the clinic's respective feature flags are enabled.  
 > Even if a role is listed as having access — if the flag is off, the module is completely hidden.
 
 ---
@@ -487,7 +487,73 @@ Toggle via Admin Panel → Clinic Settings → Feature Flags.
 
 ---
 
-## 9. Clinic Self-Customization ⚙️
+## 9. Insurance Module 🛡️ *(Phase 5.3 — Feature Flag: `insurance`)*
+
+### Purpose
+Manage insurance claims, track approval status, and handle corporate account billing. Only available to clinics with the `insurance` feature flag enabled.
+
+### Who Can Access
+| Role | Can Do |
+|------|--------|
+| Admin | Full access — all 3 tabs, create/update claims, manage providers, manage corporate accounts |
+| Receptionist | Full access — same as admin for insurance |
+| Doctor | View Claims tab only (read-only) |
+| Nurse | No access |
+
+### 3-Tab Layout
+
+#### Tab 1 — Claims
+- Stats strip: Total Claims, Pending, Submitted, Approved, Total Claimed amount
+- Filter bar: status dropdown, date from, date to — updates table in real time
+- Claims table: Claim #, Patient, Invoice #, Provider, Amount Claimed, Amount Approved, Status badge, Date, Update button
+- **New Claim** button → New Claim Modal:
+  - Type invoice number → click Lookup → system auto-resolves patient name and invoice total
+  - Select insurance provider (dropdown of active providers)
+  - Enter amount claimed (auto-fills from invoice total — can be adjusted)
+  - Set claim date, add notes (policy number, authorization code)
+  - Creates claim with auto-generated CLM-XXXXX number
+- **Update Status** button per claim → Update Status Modal:
+  - Change status: pending / submitted / approved / partial / rejected
+  - Enter amount approved (shown when status is approved or partial)
+  - Add notes (approval reference, rejection reason)
+  - `submitted_at` timestamp recorded when status set to submitted
+  - `resolved_at` timestamp recorded when status set to approved/partial/rejected
+
+#### Tab 2 — Insurance Providers
+- Table of all insurance companies the clinic works with
+- Columns: Name, Contact Person, Phone, Email, Notes, Status (Active/Inactive)
+- Admin/Receptionist: Add, Edit, soft-delete providers
+- **4 providers pre-seeded** on migration: Ceylinco Life, AIA Insurance, Union Assurance, Softlogic Life
+
+#### Tab 3 — Corporate Accounts
+- Companies that have agreements with the clinic for employee healthcare
+- Columns: Company, Contact, Phone, Billing Cycle (monthly/quarterly), Credit Limit, Patient Count, Status
+- **Summary button** per account → opens monthly billing summary modal:
+  - Month picker (defaults to current month)
+  - Stats: invoice count, total billed, total unpaid
+  - Table of all invoices from patients linked to that company this month
+- Admin/Receptionist: Add, Edit, soft-delete accounts
+- Patient profile can be linked to a corporate account via `corporate_account_id` column
+
+### Claim Lifecycle
+```
+New Claim created (status: pending)
+    ↓
+Staff submits to insurer (status: submitted) → submitted_at recorded
+    ↓
+Insurer responds:
+  → approved (amount_approved = full amount) → resolved_at recorded
+  → partial  (amount_approved < amount claimed) → resolved_at recorded
+  → rejected (no payment) → resolved_at recorded
+```
+
+### Feature Flag
+The `insurance` flag in `public.feature_flags` must be `true` for this tenant.  
+Toggle via Admin Panel → Clinic Settings → Feature Flags.
+
+---
+
+## 10. Clinic Self-Customization ⚙️
 
 ### Purpose
 Each clinic that buys the software can make it look and behave like their own system — without needing you to do anything for them.

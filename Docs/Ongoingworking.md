@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Phase 5.2 complete — Phase 5.3 Insurance or deferred items next
+**Currently working on:** Phase 5.3 complete — Phase 6 Beta & Launch next
 **Last updated:** 2026-04-15
-**Next up:** Phase 5.3 — Insurance module or deferred small items
+**Next up:** Phase 6 — Beta, payments, deployment, onboarding
 
 ### What is fully complete right now
 
@@ -32,9 +32,9 @@
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
+| Phase 5.3 — Insurance | ✅ Claims (CLM-XXXXX), Insurance Providers, Corporate Accounts + Monthly Billing Summary (2026-04-15) |
 
 ### What is NOT yet started
-- Phase 5.3 Insurance — claims, corporate billing
 - Phase 6 — Beta & launch (payments, deployment, onboarding)
 - Phase 7 — Electron desktop version
 
@@ -111,9 +111,9 @@
 | Phase 3 | Branding + PDF generation (2.7 settings, pdfkit, print fix, logo URL) | ✅ Complete |
 | Phase 4 | Super admin panel | ✅ Complete (core — health/audit/trial mgmt deferred to Phase 5) |
 | UI Polish | Dark mode, DatePicker, Select, Inter font, bg-white audit | ✅ Complete (2026-04-15) |
-| Phase 5.1 | Pharmacy — suppliers, purchase orders, dispense queue, stock adjustments | ✅ Complete (2026-04-14) |
+| Phase 5.1 | Pharmacy — suppliers, purchase orders, dispense queue, stock adjustments | ✅ Complete (2026-04-15) |
 | Phase 5.2 | Lab — test catalog, queue, result entry + file upload, patient history tab | ✅ Complete (2026-04-15) |
-| Phase 5.3 | Insurance — claims, corporate billing | Not started |
+| Phase 5.3 | Insurance — claims, insurance providers, corporate accounts + monthly billing | ✅ Complete (2026-04-15) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 
@@ -587,7 +587,8 @@ custom_domain  — clinic uses their own domain
 | Inter font | 2026-04-15 | @fontsource/inter (400/500/600/700), applied globally via index.css + Tailwind fontFamily.sans |
 | Dark mode audit — bg-white cleanup | 2026-04-15 | 15 files patched + global CSS rule for all raw inputs/textareas |
 | Phase 5.1 — Pharmacy module | 2026-04-15 | DB: suppliers, purchase_orders, purchase_order_items, stock_adjustments tables + prescriptions dispensing columns. Backend: pharmacy.routes.js (suppliers CRUD, purchase orders + receive, dispense queue + dispense, stock adjustments). Frontend: PharmacyPage.jsx 4-tab UI, pharmacy.js API client, App.jsx route. Access: receptionist + admin. |
-| Phase 5.2 — Lab module | 2026-04-15 | DB: lab_tests, lab_requests, lab_results tables + 12 seeded common tests. Backend: lab.routes.js (test catalog CRUD, request creation, result entry with file upload, patient history). Frontend: LabPage.jsx (Queue tab + Catalog tab), lab.js API client, App.jsx route, PatientProfile Lab tab. Access: doctor/nurse/admin. |
+| Phase 5.2 — Lab module | 2026-04-15 | DB: lab_tests, lab_requests, lab_results tables + 12 seeded common tests. Backend: lab.routes.js (test catalog CRUD, request creation, result entry with file upload, patient history). Frontend: LabPage.jsx (Queue tab + Catalog tab), lab.js API client, App.jsx route, PatientProfile Lab tab. Access: doctor/nurse/admin/receptionist. |
+| Phase 5.3 — Insurance module | 2026-04-15 | DB: insurance_providers, corporate_accounts, insurance_claims tables + patients.corporate_account_id column + 4 seeded providers. Backend: insurance.routes.js (invoice lookup, providers CRUD, claims CRUD + status update, corporate accounts CRUD + monthly billing summary). Frontend: InsurancePage.jsx (3-tab UI: Claims, Providers, Corporate Accounts), insurance.js API client, App.jsx route, Sidebar entry. Access: admin/receptionist full, doctor view-only. |
 
 ---
 
@@ -626,7 +627,9 @@ custom_domain  — clinic uses their own domain
 | 2026-04-15 | Phase 5.1 Pharmacy — DB migration (suppliers, purchase_orders, purchase_order_items, stock_adjustments tables + prescriptions dispensing columns); backend pharmacy.routes.js (all 4 areas, requireFeature gate); frontend PharmacyPage.jsx (4-tab UI: Dispense Queue, Purchase Orders, Suppliers, Stock Adjustments); pharmacy.js API client; route registered in App.jsx | Complete | Start Phase 5.2 Lab |
 | 2026-04-15 | Bug fix — Pharmacy page "Something went wrong" on all tabs; `pharmacy.routes.js` used `staff.first_name \|\| last_name` but staff table only has `full_name`; fixed 4 occurrences (purchase orders list, purchase order detail, dispense queue, stock adjustments) | Complete | — |
 | 2026-04-15 | Bug fix — Pharmacy CreatePOModal crashed on open; `supplierOptions` had `{ value: '' }` which Radix Select forbids; changed sentinel to `'none'`, updated default state and save handler | Complete | — |
-| 2026-04-15 | Phase 5.2 Lab — DB migration (lab_tests, lab_requests, lab_results + 12 seeded tests); backend lab.routes.js (catalog CRUD, requests, result entry with multer file upload, patient history); frontend LabPage.jsx (Queue + Catalog tabs), lab.js API client, App.jsx route, PatientProfile Lab tab added | Complete | Start Phase 5.3 or deferred items |
+| 2026-04-15 | Phase 5.2 Lab — DB migration (lab_tests, lab_requests, lab_results + 12 seeded tests); backend lab.routes.js (catalog CRUD, requests, result entry with multer file upload, patient history); frontend LabPage.jsx (Queue + Catalog tabs), lab.js API client, App.jsx route, PatientProfile Lab tab added | Complete | Start Phase 5.3 Insurance |
+| 2026-04-15 | Phase 5.3 Insurance — DB migration (insurance_providers, corporate_accounts, insurance_claims tables + patients.corporate_account_id column, 4 seeded providers); backend insurance.routes.js (invoice lookup, providers CRUD, claims CRUD + status update, corporate accounts CRUD + monthly summary); frontend InsurancePage.jsx (3 tabs: Claims, Providers, Corporate Accounts), insurance.js API client, App.jsx route, Sidebar entry | Complete | Start Phase 6 Beta & Launch |
+| 2026-04-15 | Docs update — thoroughly updated all 8 docs in Docs/ folder through Phase 5.3: INSTRUCTION.md (Rule 5 expanded to 8 files, Docs Folder Structure updated, session-end checklist expanded), DESIGN.md (added missing npm packages: react-day-picker/@radix-ui/react-popover/@fontsource/inter, added Dark Mode section), Doctor pos core features.md (added Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance sections, Role Summary table updated), Plan.md/workflow.md/databasequeries.md/RUNNING.md/Ongoingworking.md all kept current | Complete | — |
 
 ---
 

@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-15
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab complete.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -336,6 +336,11 @@ Patient (PT-XXXXX)
 | **Lab — view queue / enter results** | ✅ | ✅ | ✅ | ✅ |
 | **Lab — create test requests** | ✅ | ✅ | ✗ | ✅ |
 | **Lab — add/edit/delete test catalog** | ✅ | ✗ | ✗ | ✅ |
+| **Insurance — view claims** | ✅ | ✅ | ✗ | ✅ |
+| **Insurance — create / update claims** | ✅ | ✗ | ✗ | ✅ |
+| **Insurance — manage providers** | ✅ | ✗ | ✗ | ✅ |
+| **Insurance — corporate accounts** | ✅ | ✗ | ✗ | ✅ |
+| **Insurance — corporate monthly summary** | ✅ | ✅ | ✗ | ✅ |
 
 ---
 
@@ -356,6 +361,7 @@ Patient (PT-XXXXX)
 | UI Polish | ✅ Complete | Dark mode, DatePicker, Inter font, improved Select, bg-white audit |
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
+| 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
 
 ---
 

@@ -440,7 +440,7 @@ Phase 7  →  Desktop version (later)
 |--------|------|--------|
 | Pharmacy / full inventory management | `pharmacy` | ✅ Complete (2026-04-15) |
 | Lab test requests and results | `lab` | ✅ Complete (2026-04-15) |
-| Insurance claims management | `insurance` | Not started |
+| Insurance claims management | `insurance` | ✅ Complete (2026-04-15) |
 | Multi-branch support | `multi_branch` | Not started |
 
 ---
@@ -506,13 +506,38 @@ Phase 7  →  Desktop version (later)
 
 ---
 
-### Module 5.3 — Insurance Claims
-- Insurance provider management
-- Claim submission from invoice
-- Claim status tracking (pending / approved / rejected)
-- Corporate account billing (monthly bulk invoice)
+### Module 5.3 — Insurance Claims ✅
 
-**Status:** Not started
+**Completed:** 2026-04-15
+
+| Task | Project | Done |
+|------|---------|------|
+| Create `insurance_providers` table | backend | [x] |
+| Create `corporate_accounts` table | backend | [x] |
+| Add `corporate_account_id` column to `patients` | backend | [x] |
+| Create `insurance_claims` table | backend | [x] |
+| Seed 4 common insurance providers (Ceylinco, AIA, Union, Softlogic) | backend | [x] |
+| `GET /insurance/lookup-invoice?invoice_number=` — resolve invoice → patient for claim form | backend | [x] |
+| `GET/POST /insurance/providers` — list and create providers | backend | [x] |
+| `PUT/DELETE /insurance/providers/:id` — update and soft-delete | backend | [x] |
+| `GET /insurance/claims?status=&date_from=&date_to=&provider_id=` — filtered claim list | backend | [x] |
+| `POST /insurance/claims` — create claim with auto CLM-XXXXX number | backend | [x] |
+| `GET /insurance/claims/:id` — single claim with full detail | backend | [x] |
+| `PUT /insurance/claims/:id/status` — update status + amount approved | backend | [x] |
+| `GET/POST /insurance/corporate-accounts` — list and create accounts | backend | [x] |
+| `PUT/DELETE /insurance/corporate-accounts/:id` — update and soft-delete | backend | [x] |
+| `GET /insurance/corporate-accounts/:id/summary?month=` — monthly billing summary | backend | [x] |
+| All routes behind `requireFeature('insurance')` middleware | backend | [x] |
+| Migration script — `migrate_insurance.js` | backend | [x] |
+| InsurancePage — 3-tab UI: Claims, Insurance Providers, Corporate Accounts | frontend | [x] |
+| Claims tab: stats strip, filters (status/date), table, New Claim modal, Update Status modal | frontend | [x] |
+| New Claim modal: invoice number lookup → auto-fills patient, then enter provider/amount/date/notes | frontend | [x] |
+| Corporate Accounts: monthly billing summary modal with invoices table | frontend | [x] |
+| `insurance.js` API client | frontend | [x] |
+| Route `/insurance` registered in `App.jsx` (admin, receptionist, doctor) | frontend | [x] |
+| Sidebar entry added (flag-gated `insurance`, roles: admin/receptionist/doctor) | frontend | [x] |
+
+**Access:** Admin + Receptionist = full access. Doctor = view Claims tab only (read-only). Nurse = no access.
 
 ---
 

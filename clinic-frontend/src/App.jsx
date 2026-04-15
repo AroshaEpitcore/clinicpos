@@ -34,6 +34,9 @@ import PharmacyPage from './pages/pharmacy/PharmacyPage';
 // Phase 5.2 — Lab
 import LabPage from './pages/lab/LabPage';
 
+// Phase 5.3 — Insurance
+import InsurancePage from './pages/insurance/InsurancePage';
+
 export default function App() {
   return (
     <Routes>
@@ -112,6 +115,13 @@ export default function App() {
       <Route path="/lab" element={
         <ProtectedRoute allowedRoles={['doctor', 'nurse', 'admin', 'receptionist']}>
           <LabPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Phase 5.3 — Insurance */}
+      <Route path="/insurance" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin', 'doctor']}>
+          <InsurancePage />
         </ProtectedRoute>
       } />
 
