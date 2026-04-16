@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Phone, Zap, UserPlus, Search, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Phone, Zap, UserPlus, Search, AlertTriangle, RefreshCw, Printer } from 'lucide-react';
 import { Drawer }     from '../../../components/ui/Drawer';
 import { Button }     from '../../../components/ui/Button';
 import { Input }      from '../../../components/ui/Input';
@@ -10,6 +10,8 @@ import { DatePicker } from '../../../components/ui/DatePicker';
 import { Spinner }    from '../../../components/ui/Spinner';
 import { appointmentsApi, doctorsApi } from '../../../api/appointments';
 import { patientsApi } from '../../../api/patients';
+import { useAuth }    from '../../../store/AuthContext';
+import { printTokenSlip } from '../../../utils/printTokenSlip';
 
 const MODES = [
   { value: 'walkin',    label: 'Walk-in' },
@@ -26,6 +28,9 @@ const GENDER_OPTIONS = [
 export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowWalkIns = true }) {
   const today = defaultDate || new Date().toISOString().split('T')[0];
   const availableModes = MODES.filter(m => m.value !== 'walkin' || allowWalkIns);
+  const { clinic } = useAuth();
+
+  const [bookedSlip, setBookedSlip] = useState(null); // shown after successful booking
 
   const [mode,         setMode]         = useState('walkin');
   const [doctors,      setDoctors]      = useState([]);
@@ -138,6 +143,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     setNewGender(''); setNewDob('');
     setNewDuplicates([]); setNewConfirmed(false);
     setFieldErrors({});
+    setBookedSlip(null);
     onClose();
   }
 
@@ -192,15 +198,23 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         type:             mode,
         reason:           data.reason || null,
       });
-      const name = `${resolvedPatient.first_name} ${resolvedPatient.last_name}`;
-      const ref  = res.data?.data?.booking_reference;
-      const msg  = mode === 'emergency'
-        ? 'Emergency patient added to queue'
-        : mode === 'walkin'
-          ? `${name} added to queue${selectedSlot ? ` · ${selectedSlot}` : ''}`
-          : `Appointment booked — ${ref || 'confirmed'}`;
-      toast.success(msg, { duration: ref ? 6000 : 4000 });
-      handleClose();
+      const appt = res.data?.data || {};
+      const doctorOption = doctors.find(d => d.value === data.doctor_id);
+      const doctorLabel  = doctorOption ? doctorOption.label.split(' — ')[0] : '—';
+
+      // Show slip screen instead of closing
+      setBookedSlip({
+        clinicName:  clinic?.name || 'ClinicPOS',
+        patientName: `${resolvedPatient.first_name} ${resolvedPatient.last_name}`,
+        patientCode: resolvedPatient.patient_code || '',
+        doctorName:  doctorLabel,
+        tokenNumber: appt.token_number || null,
+        bookingRef:  appt.booking_reference || null,
+        date:        data.appointment_date,
+        time:        selectedSlot || null,
+        type:        mode,
+      });
+      toast.success(mode === 'emergency' ? 'Emergency patient added' : 'Added to queue');
       onSuccess();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
@@ -213,20 +227,77 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     <Drawer
       open={open}
       onClose={handleClose}
-      title="Add to Queue"
+      title={bookedSlip ? 'Booking Confirmed' : 'Add to Queue'}
       width="540px"
       footer={
-        <>
-          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button
-            onClick={handleSubmit(onSubmit)}
-            variant={mode === 'emergency' ? 'danger' : 'primary'}
-          >
-            {mode === 'emergency' ? '⚡ Add Emergency' : mode === 'walkin' ? 'Add to Queue' : 'Book Appointment'}
-          </Button>
-        </>
+        bookedSlip ? (
+          <>
+            <Button variant="secondary" onClick={handleClose}>Done</Button>
+            <Button onClick={() => printTokenSlip(bookedSlip)}>
+              <Printer className="w-4 h-4" /> Print Slip
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+            <Button
+              onClick={handleSubmit(onSubmit)}
+              variant={mode === 'emergency' ? 'danger' : 'primary'}
+            >
+              {mode === 'emergency' ? '⚡ Add Emergency' : mode === 'walkin' ? 'Add to Queue' : 'Book Appointment'}
+            </Button>
+          </>
+        )
       }
     >
+      {/* ── Slip confirmation screen ── */}
+      {bookedSlip && (
+        <div className="flex flex-col items-center py-6 space-y-5">
+          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-base font-semibold text-[var(--color-text)]">{bookedSlip.patientName}</p>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">has been added to the queue</p>
+          </div>
+
+          {/* Token / Reference */}
+          {bookedSlip.tokenNumber && (
+            <div className="text-center">
+              <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-widest mb-1">Token</p>
+              <p className="text-5xl font-black text-[var(--color-text)]">{String(bookedSlip.tokenNumber).padStart(2, '0')}</p>
+            </div>
+          )}
+          {!bookedSlip.tokenNumber && bookedSlip.bookingRef && (
+            <div className="text-center">
+              <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-widest mb-1">Booking Ref</p>
+              <p className="text-2xl font-bold text-[var(--color-primary)]">{bookedSlip.bookingRef}</p>
+            </div>
+          )}
+
+          {/* Details */}
+          <div className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl p-4 space-y-2 text-sm">
+            {[
+              ['Doctor', bookedSlip.doctorName],
+              ['Date',   new Date(bookedSlip.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })],
+              bookedSlip.time ? ['Time', bookedSlip.time] : null,
+              ['Type',   bookedSlip.type === 'emergency' ? '⚡ Emergency' : bookedSlip.type === 'booked' ? 'Booked' : 'Walk-in'],
+            ].filter(Boolean).map(([label, value]) => (
+              <div key={label} className="flex justify-between">
+                <span className="text-[var(--color-text-secondary)]">{label}</span>
+                <span className="font-medium text-[var(--color-text)]">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-[var(--color-text-secondary)]">Click <strong>Print Slip</strong> to print a token for the patient.</p>
+        </div>
+      )}
+
+      {/* ── Booking form (hidden once slip is shown) ── */}
+      {!bookedSlip && <>
       {/* ── Mode toggle ── */}
       <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden mb-6">
         {availableModes.map(m => (
@@ -537,6 +608,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         )}
 
       </form>
+      </>}
     </Drawer>
   );
 }
