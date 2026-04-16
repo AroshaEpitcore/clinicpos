@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-15
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management complete.
+## Last updated: 2026-04-16
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -57,6 +57,7 @@ End-of-Day closing — cash count vs system totals, lock the day
 - System checks for duplicates automatically (same phone / name+DOB / national ID) → shows warning modal with matches
 - Can choose "Use Existing Patient" or "Register Anyway" from the duplicate modal
 - Can also register a new patient inline inside the Add to Queue modal — no need to leave the queue
+- **Phone number format:** All phone fields format as `xxx xxx xxxx` while typing (e.g. `076 294 6381`). Must be exactly 10 digits. Stored as digits-only (`0762946381`) in the database — displayed formatted in the UI.
 
 #### Queue Management
 - Opens Appointments page each morning — today's date loaded by default
@@ -67,6 +68,9 @@ End-of-Day closing — cash count vs system totals, lock the day
   - **Book** — date + doctor + time slot grid (blocked on holidays / no schedule)
   - **Emergency** — bypasses slot, jumps to top of queue with red badge *(always available regardless of walk-in setting)*
 - Inside the modal: "Search Existing" tab (phone lookup) or "New Patient" tab (inline mini registration)
+- **Phone search auto-suggest** — results appear live as the receptionist types (350ms debounce, triggers after 5 digits). No need to click Search manually.
+- After successful submit — **confirmation screen appears inside the same drawer** showing the token number (large, walk-in) or BK-XXXXXX reference (booked). Drawer footer changes to **Done** + **Print Slip** buttons.
+- **Print Slip** → opens 80mm thermal-printer window and auto-prints a token slip with clinic name, type badge, token/reference, patient name, doctor, date, time.
 - Status action buttons per queue row:
   - `Pending / Confirmed` → **Arrived**, **Cancel**
   - `Arrived` → **Complete**, **Cancel**
@@ -383,6 +387,8 @@ Patient (PT-XXXXX)
 | 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up) |
 | Staff Management | ✅ Complete | Admin creates/edits/deactivates staff (all roles). Reset-password. Grouped by role. `/api/v1/staff` backend. `/staff` page in clinic-frontend. |
 | SaaS Onboarding | ✅ Complete | Clinic creation auto-creates first admin staff. Credentials copy screen. No trial/plan system. Super admin manually activates/suspends. |
+| Token Slip Printing | ✅ Complete | After Add to Queue → confirmation screen in same drawer with token/ref. Print Slip button → 80mm thermal printer window. `printTokenSlip.js` utility. |
+| Phone Formatting | ✅ Complete | All phone inputs format as `xxx xxx xxxx`, validate 10 digits. Stored as raw digits. Backend normalizes on store + search. Auto-suggest search in AppointmentModal after 5 digits. |
 
 ---
 
@@ -490,25 +496,25 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 - Separate `ADMIN_JWT_SECRET` (falls back to `JWT_SECRET` if not set)
 
 ### Dashboard
-- Stat cards: Total Clinics, Active, On Trial, Suspended
-- MRR from active subscriptions
+- Stat cards: Total Clinics, Active, Suspended
 - Recent clinics list (last 8) → click to open clinic detail
+- **No trial/plan system** — access managed entirely via feature flags
 
 ### Clinic List (`/clinics`)
 - Search by name, subdomain, or email
-- Filter tabs: All / Active / Trial / Suspended
-- Columns: clinic name, subdomain, owner email, plan badge, status badge, created date, active flags count
+- Filter tabs: All / Active / Suspended
+- Columns: clinic name, subdomain, owner email, status badge, created date, active flags count
 - Click row → Clinic Detail
 
 ### Create New Clinic
-- Form: clinic name (auto-generates subdomain slug), subdomain, owner email/phone, plan, trial days, **initial admin password**
-- On save: inserts `public.tenants` + default feature flags (all OFF) + creates full tenant schema + inserts `clinic_settings` + **creates first admin staff account** using `owner_email` + hashed password
+- Form: clinic name (auto-generates subdomain slug), subdomain, owner email, owner phone, **initial admin password**
+- On save: inserts `public.tenants` (status = 'active') + default feature flags (all OFF) + creates full tenant schema + inserts `clinic_settings` + **creates first admin staff account** using `owner_email` + hashed password
 - After save: modal shows a **Credentials screen** — Login URL, Email, Password — each with a Copy button
 - Warning shown: "password is not stored in plain text — save or send now"
 
 ### Clinic Detail (`/clinics/:id`)
 - Stats: staff count, patient count (queried live from tenant schema)
-- Edit modal: name, email, phone, plan
+- Edit modal: name, email, phone (no plan/trial fields)
 - **Suspend** button — locks all staff out immediately (tenant middleware blocks `status = 'suspended'`)
 - **Activate** button — restores access
 - **Login as Clinic** — generates a 2h clinic-scoped JWT, opens `clinic-frontend/impersonate?token=...` in new tab; "Impersonating" amber badge shown in TopBar

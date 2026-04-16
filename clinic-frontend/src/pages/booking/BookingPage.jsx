@@ -14,6 +14,7 @@ import {
   Phone, AlertCircle, Printer, RefreshCw, Globe
 } from 'lucide-react';
 import { portalApi } from '../../api/portal';
+import { formatPhoneInput } from '../../utils/format';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function todayStr() {
@@ -320,6 +321,7 @@ export default function BookingPage() {
   async function handleSubmit() {
     if (!patientName.trim()) { setSubmitError('Please enter your full name.'); return; }
     if (!patientPhone.trim()) { setSubmitError('Please enter your phone number.'); return; }
+    if (patientPhone.replace(/\D/g, '').length !== 10) { setSubmitError('Phone number must be 10 digits.'); return; }
 
     setSubmitError('');
     setSubmitting(true);
@@ -554,8 +556,8 @@ export default function BookingPage() {
               <FormInput
                 label="Phone Number" required type="tel"
                 value={patientPhone}
-                onChange={setPatientPhone}
-                placeholder="e.g. 0712345678"
+                onChange={v => setPatientPhone(formatPhoneInput(v))}
+                placeholder="077 123 4567"
               />
               <FormInput
                 label="Date of Birth (optional)" type="date"

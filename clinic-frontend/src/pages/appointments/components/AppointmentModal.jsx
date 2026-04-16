@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Phone, Zap, UserPlus, Search, AlertTriangle, RefreshCw, Printer } from 'lucide-react';
@@ -12,6 +12,7 @@ import { appointmentsApi, doctorsApi } from '../../../api/appointments';
 import { patientsApi } from '../../../api/patients';
 import { useAuth }    from '../../../store/AuthContext';
 import { printTokenSlip } from '../../../utils/printTokenSlip';
+import { formatPhoneInput } from '../../../utils/format';
 
 const MODES = [
   { value: 'walkin',    label: 'Walk-in' },
@@ -66,6 +67,33 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   const doctorId = watch('doctor_id');
   const apptDate = watch('appointment_date');
 
+  // Auto-suggest: search as user types once ≥5 digits are entered
+  const searchTimerRef = useRef(null);
+  useEffect(() => {
+    if (patientTab !== 'search' || patient) return;
+    const digits = phoneInput.replace(/\D/g, '');
+    if (digits.length < 5) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
+      setSearching(true);
+      setHasSearched(false);
+      try {
+        const res = await patientsApi.searchReturning(digits);
+        setSearchResults(res.data.data);
+        setHasSearched(true);
+      } catch {
+        setHasSearched(true);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [phoneInput, patientTab, patient]);
+
   // Load doctors when drawer opens
   useEffect(() => {
     if (!open) return;
@@ -114,12 +142,14 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   }
 
   async function searchPatient() {
-    if (!phoneInput.trim()) return;
+    const digits = phoneInput.replace(/\D/g, '');
+    if (!digits) return;
+    clearTimeout(searchTimerRef.current);
     setSearching(true);
     setSearchResults([]);
     setHasSearched(false);
     try {
-      const res = await patientsApi.searchReturning(phoneInput.trim());
+      const res = await patientsApi.searchReturning(digits);
       setSearchResults(res.data.data);
       setHasSearched(true);
     } catch {
@@ -130,6 +160,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   }
 
   function handleClose() {
+    clearTimeout(searchTimerRef.current);
     reset({ appointment_date: today, doctor_id: '', reason: '' });
     setPatient(null);
     setPatientTab('search');
@@ -155,7 +186,11 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     if (patientTab === 'new' && !patient) {
       if (!newFirst.trim())  errs.newFirst  = 'Required';
       if (!newLast.trim())   errs.newLast   = 'Required';
-      if (!newPhone.trim())  errs.newPhone  = 'Required';
+      if (!newPhone.trim()) {
+        errs.newPhone = 'Required';
+      } else if (newPhone.replace(/\D/g, '').length !== 10) {
+        errs.newPhone = 'Phone must be 10 digits';
+      }
       if (!newGender)        errs.newGender = 'Required';
       if (!newDob)           errs.newDob    = 'Required';
     }
@@ -172,7 +207,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       if (!newConfirmed) {
         try {
           const dupRes = await patientsApi.checkDuplicate({
-            phone: newPhone.trim(), first_name: newFirst.trim(), last_name: newLast.trim(),
+            phone: newPhone.replace(/\D/g, ''), first_name: newFirst.trim(), last_name: newLast.trim(),
           });
           if (dupRes.data.data.length > 0) { setNewDuplicates(dupRes.data.data); return; }
         } catch { /* proceed */ }
@@ -358,9 +393,9 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-                      <input type="text" inputMode="numeric" placeholder="Enter phone number..."
+                      <input type="text" inputMode="numeric" placeholder="077 123 4567"
                         value={phoneInput}
-                        onChange={e => { setPhoneInput(e.target.value); setHasSearched(false); }}
+                        onChange={e => { setPhoneInput(formatPhoneInput(e.target.value)); setHasSearched(false); }}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatient())}
                         className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)]"
                       />
@@ -450,8 +485,8 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1">
                           <label className="text-xs font-medium text-[var(--color-text)]">Phone <span className="text-[var(--color-danger)]">*</span></label>
-                          <input type="text" inputMode="numeric" value={newPhone}
-                            onChange={e => { setNewPhone(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newPhone: undefined})); }}
+                          <input type="text" inputMode="numeric" placeholder="077 123 4567" value={newPhone}
+                            onChange={e => { setNewPhone(formatPhoneInput(e.target.value)); setNewConfirmed(false); setFieldErrors(p => ({...p, newPhone: undefined})); }}
                             className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newPhone ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
                           />
                           {fieldErrors.newPhone && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newPhone}</span>}

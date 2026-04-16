@@ -6,6 +6,7 @@ import { Input }      from '../../../components/ui/Input';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { Select }  from '../../../components/ui/Select';
 import { patientsApi } from '../../../api/patients';
+import { formatPhoneInput, validatePhone } from '../../../utils/format';
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v }));
 const GENDERS = [
@@ -73,7 +74,10 @@ export function EditPatientModal({ patient, onClose, onSuccess }) {
           <Select label="Gender" required options={GENDERS}
             value={watch('gender')} onValueChange={v => setValue('gender', v)} />
           <Input label="Phone Number" required error={errors.phone?.message}
-            {...register('phone', { required: 'Phone number is required' })} />
+            placeholder="077 123 4567"
+            value={watch('phone') || ''}
+            {...register('phone', { validate: validatePhone })}
+            onChange={e => setValue('phone', formatPhoneInput(e.target.value), { shouldValidate: !!errors.phone })} />
           <Input label="Email Address" type="email" {...register('email')} />
           <Select label="Blood Group" options={BLOOD_GROUPS}
             value={watch('blood_group')} onValueChange={v => setValue('blood_group', v)} />
@@ -88,7 +92,13 @@ export function EditPatientModal({ patient, onClose, onSuccess }) {
           <Input label="National ID"               {...register('national_id')} />
           <Input label="Address"                   {...register('address')} />
           <Input label="Emergency Contact Name"    {...register('emergency_name')} />
-          <Input label="Emergency Contact Phone"   {...register('emergency_phone')} />
+          <Input label="Emergency Contact Phone"
+            placeholder="077 123 4567"
+            value={watch('emergency_phone') || ''}
+            {...register('emergency_phone', {
+              validate: v => !v || validatePhone(v) === undefined || validatePhone(v)
+            })}
+            onChange={e => setValue('emergency_phone', formatPhoneInput(e.target.value), { shouldValidate: !!errors.emergency_phone })} />
           <Input label="Insurance Provider"        {...register('insurance_provider')} />
           <Input label="Insurance Policy Number"   {...register('insurance_number')} />
         </div>

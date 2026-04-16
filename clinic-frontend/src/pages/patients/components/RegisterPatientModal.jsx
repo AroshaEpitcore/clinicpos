@@ -8,6 +8,7 @@ import { DatePicker } from '../../../components/ui/DatePicker';
 import { Select } from '../../../components/ui/Select';
 import { DuplicateWarningModal } from './DuplicateWarningModal';
 import { patientsApi } from '../../../api/patients';
+import { formatPhoneInput, validatePhone } from '../../../utils/format';
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v }));
 const GENDERS = [
@@ -33,7 +34,7 @@ export function RegisterPatientModal({ open, onClose, onSuccess, prefillPhone = 
     // Run duplicate check first
     try {
       const res = await patientsApi.checkDuplicate({
-        phone:      data.phone,
+        phone:      (data.phone || '').replace(/\D/g, ''),
         first_name: data.first_name,
         last_name:  data.last_name,
         national_id: data.national_id || '',
@@ -125,9 +126,11 @@ export function RegisterPatientModal({ open, onClose, onSuccess, prefillPhone = 
             />
             <Input
               label="Phone Number" required
-              placeholder="+94771234567"
+              placeholder="077 123 4567"
               error={errors.phone?.message}
-              {...register('phone', { required: 'Phone number is required' })}
+              value={watch('phone') || ''}
+              {...register('phone', { validate: validatePhone })}
+              onChange={e => setValue('phone', formatPhoneInput(e.target.value), { shouldValidate: !!errors.phone })}
             />
             <Input
               label="Email Address"
@@ -183,8 +186,12 @@ export function RegisterPatientModal({ open, onClose, onSuccess, prefillPhone = 
             />
             <Input
               label="Emergency Contact Phone"
-              placeholder="+94771234567"
-              {...register('emergency_phone')}
+              placeholder="077 123 4567"
+              value={watch('emergency_phone') || ''}
+              {...register('emergency_phone', {
+                validate: v => !v || validatePhone(v) === undefined || validatePhone(v)
+              })}
+              onChange={e => setValue('emergency_phone', formatPhoneInput(e.target.value), { shouldValidate: !!errors.emergency_phone })}
             />
             <Input
               label="Insurance Provider"

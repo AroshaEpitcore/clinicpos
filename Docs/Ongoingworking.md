@@ -17,8 +17,8 @@
 
 ## Current Status
 
-**Currently working on:** SaaS onboarding flow complete — Phase 6 Beta & Launch next
-**Last updated:** 2026-04-15
+**Currently working on:** All core features complete — Phase 6 Beta & Launch next
+**Last updated:** 2026-04-16
 **Next up:** Phase 6 — deployment, production setup
 
 ### What is fully complete right now
@@ -35,6 +35,9 @@
 | Phase 5.3 — Insurance | ✅ Claims (CLM-XXXXX), Insurance Providers, Corporate Accounts + Monthly Billing Summary (2026-04-15) |
 | Phase 5.4 — Patient Portal | ✅ Online booking (BK-XXXXXX), Settings toggle, Doctor dashboard enhanced, Online badge in queue (2026-04-15) |
 | SaaS Onboarding | ✅ Clinic creation flow (credentials copy screen), staff management UI, removed trial/plan system (2026-04-15) |
+| Token Slip Printing | ✅ 80mm thermal printer slip after Add to Queue — token number or booking ref (2026-04-16) |
+| Phone Number Formatting | ✅ 10-digit validation + `xxx xxx xxxx` format across all inputs + backend normalization (2026-04-16) |
+| Phone Search Fix + Auto-suggest | ✅ Formatted phone now matches stored digits; live search after 5 digits (2026-04-16) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -82,6 +85,83 @@
 2. Edit `clinic-frontend/.env`: `VITE_TENANT_SUBDOMAIN=yournewsubdomain`
 3. Restart clinic-frontend
 4. Login at `http://localhost:5173` with the credentials you copied
+
+---
+
+## Phone Number Formatting + Search Fix + Auto-suggest (2026-04-16)
+
+> Session covering consistent phone formatting across all inputs, backend normalization, search match fix, and live auto-suggest.
+
+### Problem
+Phones were stored as `0762946381` (digits only) by the backend, but the formatted input `076 294 6381` was being sent to search queries — ILIKE never matched. Duplicate check had the same mismatch. No live search — user had to click Search button manually.
+
+### Changes Made
+
+| Change | Files affected | Notes |
+|--------|---------------|-------|
+| Phone normalization on input | `format.js` (new functions) | `formatPhoneInput(v)` — strips non-digits, inserts spaces at pos 3 and 6, max 10 digits. `validatePhone(v)` — returns error string or undefined. `formatPhone(v)` — display formatter (stored digits → `xxx xxx xxxx`). |
+| Patient registration — phone fields | `RegisterPatientModal.jsx` | Phone + emergency phone fields: format on type, validate 10 digits on submit. Placeholder: `077 123 4567`. |
+| Patient edit — phone fields | `EditPatientModal.jsx` | Same pattern as registration. |
+| Appointment modal — search field | `AppointmentModal.jsx` | Phone search input formats on type. Auto-suggest fires 350ms after user stops typing (once ≥5 digits entered). Results appear live — Search button is optional fallback. |
+| Appointment modal — new patient phone | `AppointmentModal.jsx` | Inline new patient form phone field formats on type. Validates 10 digits before submit. |
+| Staff phone field | `StaffPage.jsx` | Staff modal phone input formats on type. |
+| Booking page (patient portal) | `BookingPage.jsx` | Patient phone formats on type. 10-digit validation before submit. |
+| Backend — normalize before storing | `patient.routes.js` | `normalizePhone()` strips spaces/dashes. `validatePhoneDigits()` rejects non-10-digit numbers. Applied to both phone and emergency_phone in POST + PUT. |
+| Backend — normalize before searching | `patient.routes.js` | `/returning` route: strips non-digits from query param before ILIKE. `/check-duplicate` route: strips non-digits from phone param before exact equality check. |
+| Frontend — strip before API calls | `AppointmentModal.jsx`, `RegisterPatientModal.jsx` | `checkDuplicate` and `searchReturning` calls strip non-digits before sending — double normalization safety. |
+| Admin-frontend placeholder | `ClinicsPage.jsx` | Owner phone placeholder updated to `077 123 4567`. |
+
+### How phone is stored
+All phones are stored as 10 raw digits (e.g. `0762946381`). The `formatPhone()` display helper formats them for reading. This is consistent everywhere — registration, edit, portal booking, staff creation.
+
+### Auto-suggest pattern (AppointmentModal)
+```jsx
+// Fires 350ms after user stops typing, once ≥5 digits are present
+useEffect(() => {
+  const digits = phoneInput.replace(/\D/g, '');
+  if (digits.length < 5) { setSearchResults([]); return; }
+  clearTimeout(searchTimerRef.current);
+  searchTimerRef.current = setTimeout(async () => {
+    const res = await patientsApi.searchReturning(digits);
+    setSearchResults(res.data.data);
+  }, 350);
+}, [phoneInput, patientTab, patient]);
+```
+
+---
+
+## Token Slip Printing (2026-04-16)
+
+> After a patient is added to the queue, a confirmation screen shows the token/booking reference with a Print Slip button that sends to a thermal receipt printer.
+
+### How it works
+1. Staff clicks "Add to Queue" or "Book Appointment" and submits the form
+2. Instead of closing the drawer, a **confirmation screen** appears inside the same drawer showing:
+   - Large token number (walk-in / emergency) or BK-XXXXXX booking reference (booked/online)
+   - Patient name, doctor, date, time, type
+3. Footer shows **Done** (closes drawer) and **Print Slip** buttons
+4. Print Slip opens a new 80mm-width browser window and triggers `window.print()` automatically
+
+### Thermal printer format (80mm paper)
+- Clinic name (large bold)
+- "Appointment Token" title
+- Type badge (WALK-IN green / BOOKED blue / ⚡ EMERGENCY red)
+- TOKEN (large 52px number) — or BOOKING REF for booked appointments
+- Patient name, doctor, date, time rows
+- Footer: "Please keep this slip · HH:MM"
+- `@page { size: 80mm auto; margin: 0; }` CSS for thermal printers
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `clinic-frontend/src/utils/printTokenSlip.js` | Opens 80mm popup, generates HTML, auto-prints. Accepts: `{ clinicName, patientName, patientCode, doctorName, tokenNumber, bookingRef, date, time, type }` |
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `AppointmentModal.jsx` | Added `bookedSlip` state. After successful submit → sets `bookedSlip` instead of closing. Drawer title changes to "Booking Confirmed". Form hidden, confirmation screen shown. Footer changes to Done + Print Slip. `handleClose()` resets `bookedSlip`. Imports `Printer`, `printTokenSlip`, `useAuth`. |
 
 ---
 
@@ -153,6 +233,8 @@
 | Phase 5.2 | Lab — test catalog, queue, result entry + file upload, patient history tab | ✅ Complete (2026-04-15) |
 | Phase 5.3 | Insurance — claims, insurance providers, corporate accounts + monthly billing | ✅ Complete (2026-04-15) |
 | Phase 5.4 | Patient Portal — public online booking, BK-XXXXXX reference, Settings toggle, enhanced Doctor dashboard | ✅ Complete (2026-04-15) |
+| Token Slip | 80mm thermal printer slip after Add to Queue — confirmation screen + Print Slip button | ✅ Complete (2026-04-16) |
+| Phone Formatting | 10-digit validation, `xxx xxx xxxx` format, backend normalization, auto-suggest search | ✅ Complete (2026-04-16) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

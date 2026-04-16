@@ -168,9 +168,10 @@ Phase 7  →  Desktop version (later)
 | Duplicate patient warning modal | frontend | [x] |
 | Patient list with search bar and filters | frontend | [x] |
 | Patient profile page (full history timeline) | frontend | [x] |
+| Phone number formatting — `xxx xxx xxxx` format on all inputs, 10-digit validation | both | [x] *(done 2026-04-16 — `format.js` helpers, all patient forms + AppointmentModal + StaffPage + BookingPage; backend normalizes on store and search)* |
 
-**Completed:** 2026-04-08
-**Test:** Register new patient → appears in list. Search by phone → finds existing patient. Register same phone again → duplicate warning shown.
+**Completed:** 2026-04-08 (base) — Phone formatting added 2026-04-16
+**Test:** Register new patient → appears in list. Search by phone → finds existing patient. Register same phone again → duplicate warning shown. Phone field auto-formats as `xxx xxx xxxx`, rejects non-10-digit numbers.
 
 ---
 
@@ -200,9 +201,11 @@ Phase 7  →  Desktop version (later)
 | Doctor schedule setup screen (admin only) | frontend | [x] |
 | Clinic holidays screen (admin only) | frontend | [x] |
 | Online booking page (public URL for patients) | frontend | [x] *(done in Phase 5.4 — `/book` public route, `BookingPage.jsx`, `portal.routes.js`)* |
+| Token slip after queue booking — confirmation screen + 80mm thermal print | frontend | [x] *(done 2026-04-16 — `printTokenSlip.js`, confirmation screen in AppointmentModal drawer)* |
+| Phone auto-suggest search in Add to Queue — live results after 5 digits | frontend | [x] *(done 2026-04-16 — debounced useEffect, 350ms)* |
 
-**Completed:** 2026-04-07
-**Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date.
+**Completed:** 2026-04-07 (base) — Token slip + phone search added 2026-04-16
+**Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date. After booking → confirmation screen shows token/ref + Print Slip button. Phone search shows results live after 5 digits.
 
 ---
 

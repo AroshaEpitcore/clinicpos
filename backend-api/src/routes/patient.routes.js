@@ -6,6 +6,18 @@ const { nextPatientCode }  = require('../utils/patientCode');
 
 const router = express.Router();
 
+// Strip non-digits from phone and validate exactly 10 digits
+function normalizePhone(value) {
+  if (!value) return null;
+  return String(value).replace(/\D/g, '');
+}
+
+function validatePhoneDigits(digits) {
+  if (!digits) return 'Phone number is required';
+  if (digits.length !== 10) return 'Phone number must be exactly 10 digits';
+  return null;
+}
+
 // All patient routes require a valid tenant + authenticated user
 router.use(tenantMiddleware, authMiddleware);
 
@@ -13,6 +25,8 @@ router.use(tenantMiddleware, authMiddleware);
 // MUST be before /:id route
 router.get('/check-duplicate', async (req, res) => {
   const { phone, first_name, last_name, national_id } = req.query;
+  // Normalize phone — strip spaces/dashes so formatted input still matches stored digits
+  const phoneNorm = phone ? String(phone).replace(/\D/g, '') : '';
   try {
     const result = await queryTenant(
       req.tenantSchema,
@@ -25,7 +39,7 @@ router.get('/check-duplicate', async (req, res) => {
            OR ($4 <> '' AND national_id = $4)
          )
        LIMIT 5`,
-      [phone || '', first_name || '', last_name || '', national_id || '']
+      [phoneNorm, first_name || '', last_name || '', national_id || '']
     );
     res.json({ status: 'success', data: result.rows });
   } catch (err) {
@@ -41,6 +55,8 @@ router.get('/returning', async (req, res) => {
   if (!phone) {
     return res.status(400).json({ status: 'error', message: 'Phone number is required' });
   }
+  // Normalize — strip spaces/dashes so formatted input still matches stored digits
+  const phoneNorm = String(phone).replace(/\D/g, '');
   try {
     const result = await queryTenant(
       req.tenantSchema,
@@ -52,7 +68,7 @@ router.get('/returning', async (req, res) => {
        FROM patients p
        WHERE p.phone ILIKE $1 AND p.is_active = TRUE
        LIMIT 5`,
-      [`%${phone}%`]
+      [`%${phoneNorm}%`]
     );
     res.json({ status: 'success', data: result.rows });
   } catch (err) {
@@ -136,6 +152,15 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
   }
 
+  const phoneDigits = normalizePhone(phone);
+  const phoneErr = validatePhoneDigits(phoneDigits);
+  if (phoneErr) return res.status(400).json({ status: 'error', message: phoneErr });
+
+  const emergencyPhoneDigits = emergency_phone ? normalizePhone(emergency_phone) : null;
+  if (emergencyPhoneDigits && emergencyPhoneDigits.length !== 10) {
+    return res.status(400).json({ status: 'error', message: 'Emergency phone number must be exactly 10 digits' });
+  }
+
   try {
     const patient_code = await nextPatientCode(req.tenantSchema);
 
@@ -152,9 +177,9 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       [
         patient_code,
         first_name.trim(), last_name.trim(),
-        date_of_birth, gender, phone.trim(),
+        date_of_birth, gender, phoneDigits,
         email || null, address || null, blood_group || null, allergies || null,
-        emergency_name || null, emergency_phone || null,
+        emergency_name || null, emergencyPhoneDigits || null,
         national_id || null, insurance_provider || null, insurance_number || null,
         req.user.id,
       ]
@@ -215,6 +240,15 @@ router.put('/:id', requireRole('receptionist', 'admin'), async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
   }
 
+  const phoneDigits = normalizePhone(phone);
+  const phoneErr = validatePhoneDigits(phoneDigits);
+  if (phoneErr) return res.status(400).json({ status: 'error', message: phoneErr });
+
+  const emergencyPhoneDigits = emergency_phone ? normalizePhone(emergency_phone) : null;
+  if (emergencyPhoneDigits && emergencyPhoneDigits.length !== 10) {
+    return res.status(400).json({ status: 'error', message: 'Emergency phone number must be exactly 10 digits' });
+  }
+
   try {
     const result = await queryTenant(
       req.tenantSchema,
@@ -227,9 +261,9 @@ router.put('/:id', requireRole('receptionist', 'admin'), async (req, res) => {
        WHERE id=$15 AND is_active=TRUE
        RETURNING *`,
       [
-        first_name.trim(), last_name.trim(), date_of_birth, gender, phone.trim(),
+        first_name.trim(), last_name.trim(), date_of_birth, gender, phoneDigits,
         email || null, address || null, blood_group || null, allergies || null,
-        emergency_name || null, emergency_phone || null,
+        emergency_name || null, emergencyPhoneDigits || null,
         national_id || null, insurance_provider || null, insurance_number || null,
         req.params.id,
       ]

@@ -3,6 +3,7 @@ import { Plus, Users, Edit2, KeyRound, UserX, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/index';
 import { PageLayout } from '../../components/layout/PageLayout';
+import { formatPhoneInput } from '../../utils/format';
 
 const ROLES = ['doctor', 'nurse', 'receptionist', 'admin'];
 
@@ -109,7 +110,7 @@ function StaffModal({ open, onClose, existing, onSaved }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-              <input value={form.phone} onChange={e => onChange('phone', e.target.value)} placeholder="+94771234567" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={form.phone} onChange={e => onChange('phone', formatPhoneInput(e.target.value))} placeholder="077 123 4567" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div>

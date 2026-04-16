@@ -45,6 +45,39 @@ export function formatCurrency(amount, currency = 'LKR') {
 }
 
 /**
+ * Format a phone number for display: "0771234567" → "077 123 4567"
+ * Handles already-formatted input too.
+ */
+export function formatPhone(value) {
+  if (!value) return '—';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length !== 10) return value;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+}
+
+/**
+ * Format phone input as user types: strips non-digits, inserts spaces at 3 and 6.
+ * Max 10 digits. Returns formatted string e.g. "077 123 4567"
+ */
+export function formatPhoneInput(value) {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+}
+
+/**
+ * Validate phone — must be exactly 10 digits.
+ * Returns error string or undefined if valid.
+ */
+export function validatePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return 'Phone number is required';
+  if (digits.length !== 10) return 'Phone number must be 10 digits';
+  return undefined;
+}
+
+/**
  * Format date input value for <input type="date"> — "2026-04-08"
  */
 export function toInputDate(date) {

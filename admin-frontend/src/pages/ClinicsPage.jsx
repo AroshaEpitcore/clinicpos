@@ -146,7 +146,7 @@ function CreateClinicModal({ open, onClose, onCreated }) {
               <input
                 value={form.owner_phone}
                 onChange={e => onChange('owner_phone', e.target.value)}
-                placeholder="+94771234567"
+                placeholder="077 123 4567"
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

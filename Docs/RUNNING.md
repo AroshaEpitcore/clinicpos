@@ -277,14 +277,14 @@ clinicpos/
 │   │   │   ├── pharmacy/         — Phase 5.1 (4 tabs)
 │   │   │   ├── lab/              — Phase 5.2 (2 tabs)
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
-│   │   │   ├── booking/          — Phase 5.4 (public /book page)
-│   │   │   └── staff/            — Staff management (admin only)
+│   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
+│   │   │   └── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar, TopBar, PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Badge, DatePicker, etc.
 │   │   ├── api/                  — One file per module (patients.js, pharmacy.js, lab.js, etc.)
 │   │   ├── store/                — AuthContext, ThemeContext
-│   │   ├── utils/                — format.js, mediaUrl.js
+│   │   ├── utils/                — format.js, mediaUrl.js, printTokenSlip.js
 │   │   ├── styles/               — variables.css (CSS vars + dark mode overrides)
 │   │   ├── App.jsx               — All routes
 │   │   └── main.jsx              — Entry point + providers
