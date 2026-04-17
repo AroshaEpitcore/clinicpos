@@ -235,7 +235,7 @@ CREATE TABLE appointments (
   doctor_id       UUID NOT NULL REFERENCES staff(id),
   appointment_date DATE NOT NULL,
   appointment_time TIME,                          -- nullable: walk-ins may not have a time slot
-  token_number    INTEGER,                        -- auto-assigned for walkin + emergency; null for booked
+  token_number    INTEGER,                        -- auto-assigned for ALL appointment types (walk-in, booked, emergency) — sequential per doctor per date
   type            VARCHAR(20) DEFAULT 'booked',   -- booked | walkin | emergency
   status          VARCHAR(20) DEFAULT 'pending',  -- pending | confirmed | arrived | completed | cancelled
   reason          TEXT,
@@ -436,26 +436,35 @@ Individual medicines in a prescription.
 
 ```sql
 CREATE TABLE prescription_items (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  prescription_id  UUID NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
-  medicine_id      UUID NOT NULL REFERENCES medicines(id),
-  dosage           VARCHAR(100) NOT NULL,    -- e.g. 1 tablet
-  frequency        VARCHAR(100) NOT NULL,    -- e.g. 3 times a day
-  duration         VARCHAR(100) NOT NULL,    -- e.g. 5 days
-  instructions     TEXT,                     -- e.g. take after food
-  quantity_given   INTEGER                   -- dispensed from pharmacy
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prescription_id      UUID NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+  medicine_id          UUID REFERENCES medicines(id),          -- nullable: NULL when custom medicine used
+  custom_medicine_name VARCHAR(255),                           -- used when medicine not in store
+  dosage               VARCHAR(100) NOT NULL,    -- e.g. 1 tablet
+  frequency            VARCHAR(100) NOT NULL,    -- e.g. 3 times a day
+  duration             VARCHAR(100) NOT NULL,    -- e.g. 5 days
+  instructions         TEXT,                     -- e.g. take after food
+  quantity_given       INTEGER                   -- dispensed from pharmacy; auto-calculated on frontend
 );
 ```
 
+**Migration (2026-04-17) — run once on existing schemas:**
+```bash
+node src/db/migrate_custom_medicine.js
+```
+This drops NOT NULL from `medicine_id` and adds `custom_medicine_name VARCHAR(255)` to all `tenant_*` schemas.
+
+**Rule:** Either `medicine_id` (from store) or `custom_medicine_name` (free text) must be set — never both null.
+
 **Connects to:** `prescriptions`, `medicines`
 
-**Get full prescription with medicine details:**
+**Get full prescription with medicine details (including custom medicines):**
 ```sql
 SELECT
   p.rx_number,
   p.created_at,
   s.full_name AS doctor_name,
-  m.name AS medicine_name,
+  COALESCE(m.name, pi.custom_medicine_name) AS medicine_name,   -- handles both store + custom
   m.strength,
   m.unit,
   pi.dosage,
@@ -465,7 +474,7 @@ SELECT
 FROM prescriptions p
 JOIN staff s ON s.id = p.doctor_id
 JOIN prescription_items pi ON pi.prescription_id = p.id
-JOIN medicines m ON m.id = pi.medicine_id
+LEFT JOIN medicines m ON m.id = pi.medicine_id   -- LEFT JOIN because medicine_id may be null
 WHERE p.patient_id = $1
 ORDER BY p.created_at DESC;
 ```

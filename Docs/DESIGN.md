@@ -944,36 +944,43 @@ Standard icon sizes:
 
 ## Patient Search / Quick Registration Pattern
 
-Any modal or screen that needs a patient (appointments, billing, consultations) uses a two-tab pattern:
+Any modal or screen that needs a patient (appointments, billing, consultations) uses a **single-flow pattern** — no tab switching:
 
-### Tab 1 — Search Existing
-- Phone number input with Search button
-- Results dropdown shows matching patients
-- If no results after search: show a "Register New" button inline that switches to Tab 2
-- Pre-fill the phone into Tab 2 when switching
-
-### Tab 2 — New Patient (Quick Registration)
-- Compact inline form: First Name, Last Name, Phone, Gender, Date of Birth
-- These are the 5 required fields on the patients table
-- On submit: create patient first via `POST /api/v1/patients`, then proceed with the main action
+### Single Flow (current implementation)
+- Phone number input — formats as `xxx xxx xxxx` as user types, auto-suggests after 5 digits (350ms debounce)
+- Results list appears live — click any result to select patient
+- If no results found: First Name (required) + Last Name (optional) fields appear inline below the phone input
+- On submit: if no existing patient selected → auto-create patient via `POST /api/v1/patients`, then proceed with the main action
 - Patient gets a full PT-XXXXX record — it is not a temporary record
-- Optional fields (allergy, blood group, etc.) can be filled later via the patient profile
+
+**Required fields for patient creation:** `first_name` + `phone` (10 digits)  
+**Optional fields shown inline:** `last_name` only — all other fields added later via patient profile
 
 ```jsx
-// State pattern for the patient section
-const [patientTab,    setPatientTab]    = useState('search'); // 'search' | 'new'
-const [patient,       setPatient]       = useState(null);     // selected existing
-const [hasSearched,   setHasSearched]   = useState(false);    // only show "no results" after actual search
+// State pattern for the patient section (AppointmentModal)
+const [patient,       setPatient]       = useState(null);     // selected existing patient
+const [phoneInput,    setPhoneInput]    = useState('');        // formatted phone input
+const [searchResults, setSearchResults] = useState([]);        // live search results
+const [newFirst,      setNewFirst]      = useState('');        // shown only when no results
+const [newLast,       setNewLast]       = useState('');
 
-// On submit — resolve patient before main action
+// On submit — resolve patient before creating appointment
 let resolvedPatient = patient;
-if (patientTab === 'new' && !patient) {
-  const res = await patientsApi.create({ first_name, last_name, phone, gender, date_of_birth });
+if (!resolvedPatient) {
+  // Auto-create patient inline
+  const res = await patientsApi.create({
+    first_name: newFirst.trim(),
+    last_name:  newLast.trim() || undefined,
+    phone:      phoneInput.replace(/\D/g, ''),  // strip formatting before sending
+  });
   resolvedPatient = res.data.data;
 }
+// Then create appointment using resolvedPatient.id
 ```
 
-**Why:** Receptionists should not navigate away from the queue/billing screen just to register a new walk-in patient. Quick registration from within the modal removes that friction.
+**Phone formatting rule:** All phone inputs format as `xxx xxx xxxx` while typing. Strip formatting (`replace(/\D/g, '')`) before every API call. Store as raw 10 digits in the database. Display formatted via `formatPhone()` utility.
+
+**Why:** Receptionists should not navigate away from the queue screen to register a walk-in patient. The "New Patient" tab was removed to simplify — one flow handles both returning and new patients naturally.
 
 ---
 

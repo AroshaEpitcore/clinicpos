@@ -113,6 +113,9 @@ node src/db/migrate_optional_patient_fields.js
 
 # Make prescriptions.consultation_id nullable (allows Rx without a consultation link)
 node src/db/migrate_prescription_consultation_nullable.js
+
+# Allow custom medicine names in prescriptions (drops NOT NULL from medicine_id, adds custom_medicine_name column)
+node src/db/migrate_custom_medicine.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  

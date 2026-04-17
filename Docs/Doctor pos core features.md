@@ -223,11 +223,17 @@ Doctors write digital prescriptions linked to each visit. Prescriptions can be p
 
 ### Features
 
-#### Writing a prescription
-- Doctor selects medicines from the **medicine database** (see below)
+#### Writing a prescription (combined with consultation — one step)
+- Prescription is written in the **same modal** as the consultation — doctor fills clinical notes + medicines in one step and saves once
+- Doctor types a medicine name → searches the **medicine database** live (dropdown with stock + price shown)
+- If a medicine is not in the database, doctor can type the name freely — saved as a **custom medicine** (not linked to inventory)
 - Set dosage, frequency, duration, and instructions per medicine
-- Add special notes or warnings (e.g. "take after food")
-- Prescription auto-links to the patient's visit record
+- **Quick-select chips** for common dosage (1 tablet, 2 tablets, 5 ml...), frequency (Once daily, Twice daily...), duration (3 days, 7 days, 1 month...)
+- **Food instruction chips**: Before food · After food · With food · At bedtime — one click sets the instructions field
+- **Quantity auto-calculated**: `doses_per_day × units_per_dose × duration_days` — shown in a "Qty to Dispense (auto)" field. Editable override allowed. Used for invoice qty and pharmacy dispense.
+- Multiple medicine rows per prescription — add / remove rows as needed
+- Medicines section is **optional** — if no medicines added, only the consultation is saved
+- Prescription auto-links to the patient's visit record via `consultation_id`
 
 #### Medicine database (built-in store)
 - Admin can add medicines like a **medicine store inventory**

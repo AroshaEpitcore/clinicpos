@@ -369,8 +369,9 @@ When "New Patient" is submitted:
 
 **Why this exists:** Receptionists should not need to leave the queue screen to register a walk-in patient. The full patient registration form (with all optional fields) is still available from the Patients page for detailed records.
 
-**Required fields for quick registration:** first_name, last_name, phone, gender, date_of_birth  
-**Optional fields** (can be filled in later via patient profile edit): email, address, blood_group, allergies, national_id, insurance, emergency contact
+**Required fields for quick registration:** first_name, phone  
+**Optional fields** (can be filled in during quick-create or later via patient profile edit): last_name, gender, date_of_birth, email, address, blood_group, allergies, national_id, insurance, emergency contact  
+*(last_name, gender, date_of_birth were made optional in 2026-04-16 to speed up receptionist workflow)*
 
 ---
 
