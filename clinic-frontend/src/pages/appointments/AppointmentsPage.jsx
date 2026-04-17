@@ -21,6 +21,7 @@ import { settingsApi }         from '../../api/settings';
 import { useAuth }       from '../../store/AuthContext';
 import { formatDate }    from '../../utils/format';
 import { printTokenSlip } from '../../utils/printTokenSlip';
+import { mediaUrl } from '../../utils/mediaUrl';
 
 const STATUS_ACTIONS = {
   pending:   ['arrived', 'cancelled'],
@@ -302,6 +303,7 @@ export default function AppointmentsPage() {
               onPrint={async () => {
                 printTokenSlip({
                   clinicName:  clinic?.name || 'ClinicPOS',
+                  logoUrl:     mediaUrl(clinic?.logo_url) || null,
                   patientName: appt.patient_name,
                   patientCode: appt.patient_code,
                   doctorName:  appt.doctor_name,
@@ -491,61 +493,44 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
           </div>
         </div>
 
-        {/* ── Actions column ────────────────────────────────────── */}
-        <div className="flex flex-col items-end justify-center gap-1.5 px-3 py-3 bg-[var(--color-surface)] shrink-0 border-l border-[var(--color-border)]">
-          {/* Primary workflow actions */}
-          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-            {canConsult && (
-              <Button size="sm" onClick={onConsult}>Consult</Button>
-            )}
-            {canWriteRx && (
-              <Button size="sm" variant="secondary" onClick={onWriteRx}>
-                <Printer className="w-3.5 h-3.5 mr-1" /> Rx
-              </Button>
-            )}
-            {canBill && (
-              <Button size="sm" variant="secondary" onClick={onBill}>
-                <Receipt className="w-3.5 h-3.5 mr-1" /> Bill
-              </Button>
-            )}
-          </div>
-
-          {/* Status transition buttons */}
-          {isAdmin && (
-            <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {actions.map(action => (
-                <Button
-                  key={action}
-                  variant={ACTION_VARIANTS[action]}
-                  size="sm"
-                  onClick={() => onStatusChange(action)}
-                >
-                  {ACTION_LABELS[action]}
-                </Button>
-              ))}
-
-              {/* Make Emergency */}
-              {!isEmergency && ['pending', 'confirmed', 'arrived'].includes(appt.status) && (
-                <button
-                  onClick={onMakeEmergency}
-                  title="Make Emergency"
-                  className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] transition-colors"
-                >
-                  <Zap className="w-4 h-4" />
-                </button>
-              )}
-
-              {/* Reprint token slip */}
-              {(hasToken || appt.booking_reference) && (
-                <button
-                  onClick={onPrint}
-                  title="Print token slip"
-                  className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors"
-                >
-                  <Printer className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+        {/* ── Actions column — fixed width keeps border aligned on every card ── */}
+        <div className="flex items-center justify-end gap-1.5 px-3 py-3 bg-[var(--color-surface)] shrink-0 border-l border-[var(--color-border)] w-[300px]">
+          {canConsult && (
+            <Button size="sm" onClick={onConsult}>Consult</Button>
+          )}
+          {canWriteRx && (
+            <Button size="sm" variant="secondary" onClick={onWriteRx}>
+              <Printer className="w-3.5 h-3.5 mr-1" /> Rx
+            </Button>
+          )}
+          {canBill && (
+            <Button size="sm" variant="secondary" onClick={onBill}>
+              <Receipt className="w-3.5 h-3.5 mr-1" /> Bill
+            </Button>
+          )}
+          {isAdmin && actions.map(action => (
+            <Button
+              key={action}
+              variant={ACTION_VARIANTS[action]}
+              size="sm"
+              onClick={() => onStatusChange(action)}
+            >
+              {ACTION_LABELS[action]}
+            </Button>
+          ))}
+          {isAdmin && !isEmergency && ['pending', 'confirmed', 'arrived'].includes(appt.status) && (
+            <button
+              onClick={onMakeEmergency}
+              title="Make Emergency"
+              className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+            </button>
+          )}
+          {isAdmin && (hasToken || appt.booking_reference) && (
+            <Button size="sm" variant="secondary" onClick={onPrint}>
+              <Printer className="w-3.5 h-3.5 mr-1" /> Print
+            </Button>
           )}
         </div>
 

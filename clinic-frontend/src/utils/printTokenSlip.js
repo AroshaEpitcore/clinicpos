@@ -12,10 +12,12 @@
  * @param {string} slip.date               — YYYY-MM-DD
  * @param {string|null} slip.time          — HH:MM or null
  * @param {string} slip.type               — walkin | booked | emergency
+ * @param {string|null} slip.logoUrl      — absolute URL to clinic logo image (optional)
  */
 export function printTokenSlip(slip) {
   const {
     clinicName   = 'ClinicPOS',
+    logoUrl      = null,
     patientName  = '—',
     patientCode  = '',
     doctorName   = '—',
@@ -155,6 +157,7 @@ export function printTokenSlip(slip) {
 </head>
 <body>
 
+  ${logoUrl ? `<div class="center" style="margin-bottom:5px;"><img src="${logoUrl}" style="max-height:44px;max-width:56mm;object-fit:contain;" /></div>` : ''}
   <div class="clinic-name">${clinicName}</div>
   <div class="slip-title">Appointment Token</div>
 

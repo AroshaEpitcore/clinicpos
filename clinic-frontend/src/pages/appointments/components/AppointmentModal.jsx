@@ -12,6 +12,7 @@ import { patientsApi } from '../../../api/patients';
 import { useAuth }    from '../../../store/AuthContext';
 import { printTokenSlip } from '../../../utils/printTokenSlip';
 import { formatPhoneInput } from '../../../utils/format';
+import { mediaUrl } from '../../../utils/mediaUrl';
 
 const MODES = [
   { value: 'walkin',    label: 'Walk-in' },
@@ -213,6 +214,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       setBookedSlip({
         apptId:      appt.id || null,
         clinicName:  clinic?.name || 'ClinicPOS',
+        logoUrl:     mediaUrl(clinic?.logo_url) || null,
         patientName: `${resolvedPatient.first_name} ${resolvedPatient.last_name}`,
         patientCode: resolvedPatient.patient_code || '',
         doctorName:  doctorLabel,
