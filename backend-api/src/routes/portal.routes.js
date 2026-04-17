@@ -66,7 +66,7 @@ router.get('/info', async (req, res) => {
     const result = await queryTenant(
       req.tenantSchema,
       `SELECT clinic_name, clinic_address, clinic_phone, clinic_email,
-              allow_walk_ins, patient_portal_enabled
+              clinic_logo_url AS logo_url, allow_walk_ins, patient_portal_enabled
        FROM clinic_settings LIMIT 1`
     );
     if (!result.rows.length) {
