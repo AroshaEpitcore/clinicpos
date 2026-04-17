@@ -18,7 +18,7 @@
 ## Current Status
 
 **Currently working on:** All core features complete — Phase 6 Beta & Launch next
-**Last updated:** 2026-04-16
+**Last updated:** 2026-04-17
 **Next up:** Phase 6 — deployment, production setup
 
 ### What is fully complete right now
@@ -40,6 +40,9 @@
 | Phone Search Fix + Auto-suggest | ✅ Formatted phone now matches stored digits; live search after 5 digits (2026-04-16) |
 | Patient Registration Simplification | ✅ Only first_name + phone required everywhere; all other fields optional; New Patient tab removed from Add to Queue drawer; auto-create on submit (2026-04-16) |
 | Queue & Sync Bug Fixes | ✅ Queue redesign, portal-backend token/slot sync, doctor ownership enforcement, doctor tab fix, nullable consultation_id on prescriptions (2026-04-16) |
+| Billing & Invoice Fixes | ✅ Invoice auto-pull includes all medicines (incl. price=0); Add Item redesigned as dedicated 3-tab modal; prescription qty auto-calculated (2026-04-17) |
+| Double-booking & Slot Fixes | ✅ All appointment types blocked from double-booking same slot; taken slots visually disabled in booking grid (2026-04-17) |
+| Booking Portal UI Redesign | ✅ Full-width, dark/light mode, CSS variables, mobile-friendly, clinic logo + name from backend (2026-04-17) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -170,6 +173,123 @@ useEffect(() => {
   }, 350);
 }, [phoneInput, patientTab, patient]);
 ```
+
+---
+
+## Billing & Invoice Fixes + Booking Portal UI Redesign (2026-04-17)
+
+> Session covering invoice auto-pull bug, Add Item UI redesign, prescription quantity auto-calculation, double-booking fix, slot grid visual disable, and full booking portal UI rewrite.
+
+---
+
+### 1 — Invoice Auto-pull Bug: Missing Medicines
+
+**Problem:** When billing auto-pulled medicines from a prescription, medicines with no selling price (`selling_price IS NULL` or `= 0`) were silently excluded. If a prescription had 3 medicines but only 1 had a price, only 1 appeared on the invoice.
+
+**Root cause:** The invoice creation query had `AND m.selling_price IS NOT NULL AND m.selling_price > 0` — this filtered out unprice medicines entirely instead of including them at price 0.
+
+**Fix:**
+
+| File | Change |
+|------|--------|
+| `invoice.routes.js` | Removed price filter from auto-pull query. Added `COALESCE(m.selling_price, 0) AS selling_price`. Changed `unit_price = parseFloat(row.selling_price)` → `|| 0` fallback so unprice items appear at 0 and can be manually corrected. |
+
+---
+
+### 2 — Add Item UI Redesign: Dedicated 3-Tab Modal
+
+**Problem:** The Add Item form was a small inline expanding row inside the invoice modal — cramped, hard to use, no medicine search.
+
+**Solution:** Replaced with a dedicated `AddItemModal` (separate Radix Dialog) that opens on top of the InvoiceModal via portal rendering. Three tabs:
+
+| Tab | Icon | What it does |
+|-----|------|-------------|
+| **Service** | Wrench | Clickable cards for configured custom services. Select one → qty + price auto-fill. Can also type manually. |
+| **Medicine** | Package | Full-width search bar with live medicine results (stock + price shown). Click to select → description + price auto-fill. |
+| **Custom** | FileText | Free-text description + qty + price. Live preview of line total. |
+
+Footer shows the calculated line total and "Add to Invoice" button. Two modals stack correctly because Radix Dialog renders via React Portal into document body — no z-index conflicts.
+
+| File | Change |
+|------|--------|
+| `InvoiceModal.jsx` | Complete rewrite — added `AddItemModal` sub-component with 3 tabs; `showAddItem` state; `handleAddItem()` merges new line into items array; `+ Add Item` button is now a proper `Button` component |
+
+---
+
+### 3 — Prescription Quantity Auto-calculation
+
+**Problem:** The prescription form had dosage/frequency/duration dropdowns but `quantity_given` was always saved as `1` — the invoice pulled qty=1 for every medicine regardless of how many days were prescribed.
+
+**Fix:** Added `calcQuantity(dosage, frequency, duration)` function in PrescriptionModal. When any of the three fields change, quantity is auto-calculated and shown in a read-only "Qty to Dispense (auto)" field. Staff can override by typing a custom value.
+
+**Formula:** `Math.ceil(units_per_dose × doses_per_day × duration_days)`
+
+Examples:
+- 1 tablet × Twice daily × 7 days = **14**
+- 5 ml × Three times daily × 5 days = **75**
+- ½ tablet × Once daily × 14 days = **7**
+
+| File | Change |
+|------|--------|
+| `PrescriptionModal.jsx` | Added `DOSAGE_UNITS`, `FREQUENCY_PER_DAY`, `DURATION_DAYS` lookup constants; `calcQuantity()` function; `quantity_given` field in `emptyItem()`; `updateItem` triggers auto-calc when dosage/frequency/duration change; `quantity_given` sent in save payload |
+
+---
+
+### 4 — Double-booking Fix: All Appointment Types
+
+**Problem:** Two appointments (e.g. a walk-in and a booked slot) could be created at the same doctor + date + time because the conflict check only ran when `type === 'booked'`, and even then only checked against other `type='booked'` rows.
+
+**Fix:** The conflict check now runs for **any appointment that has an `appointment_time`** (any type), and checks against all non-cancelled appointments regardless of type.
+
+| File | Change |
+|------|--------|
+| `appointment.routes.js` | Removed `if (type === 'booked')` wrapper; removed `AND type = 'booked'` from conflict query. Conflict check now runs for walk-in + booked + emergency if a time is given. |
+
+---
+
+### 5 — Slot Grid Visual Disable
+
+**Problem:** Taken slots (including completed appointments) appeared as available in the booking grid. Users could click them and only got an error after submitting.
+
+**Root cause:** The `GET /doctors/:id/slots` query had `AND type = 'booked'` — this excluded walk-ins and emergencies from the "taken" set. Completed appointments (`status = 'completed'`) also weren't blocked because the original filter used `NOT IN ('cancelled')` inconsistently.
+
+**Fix:** Changed the slot availability query to block any appointment that has a `appointment_time` and is not cancelled.
+
+| File | Change |
+|------|--------|
+| `doctor.routes.js` | Slot query: removed `AND type = 'booked'`; changed `AND status NOT IN ('cancelled')` → `AND appointment_time IS NOT NULL AND status != 'cancelled'` |
+
+**Frontend:** Taken slots now render as a non-interactive `<div>` (line-through, muted colour, no cursor) instead of a disabled `<button>`. Added Available / Taken legend below the time heading.
+
+---
+
+### 6 — Booking Portal UI Redesign
+
+**Problem:** The public `/book` page used hardcoded Tailwind color classes (`blue-*`, `gray-*`, `emerald-*`) — no dark mode support, no mobile optimisation, no clinic logo, gradient background inconsistent with app design patterns.
+
+**Solution:** Complete rewrite of `BookingPage.jsx` using the same design system as the app.
+
+| Feature | Implementation |
+|---------|---------------|
+| CSS variables | All colors via `var(--color-*)` — zero hardcoded Tailwind color classes |
+| Dark / light mode | `useTheme()` hook; Sun/Moon toggle button in page header |
+| Clinic logo | `mediaUrl(clinicInfo.logo_url)` — falls back to Stethoscope icon if no logo set |
+| Clinic name | From `/portal/info` response — shows in header |
+| Full-width layout | `min-h-screen` page + `max-w-2xl mx-auto px-4` container |
+| Mobile-friendly slot grid | `3 cols` on mobile → `5 cols` on `sm+` |
+| Taken slots | Non-interactive `<div>` with line-through (not a disabled button) + Available/Taken legend |
+| Doctor avatars | Shows `avatar_url` image if set, falls back to User icon |
+| Sticky header | Logo + clinic name + dark toggle — stays at top while scrolling |
+| Print | Print/Save PDF button on Step 4 confirmation |
+
+**Backend fix required (done):** `portal.routes.js` GET `/info` was selecting `logo_url` — column does not exist. Corrected to `clinic_logo_url AS logo_url`.
+
+| File | Change |
+|------|--------|
+| `portal.routes.js` | Changed `logo_url` → `clinic_logo_url AS logo_url` in GET /info SELECT query |
+| `BookingPage.jsx` | Complete rewrite — CSS variables, `useTheme`, `mediaUrl`, sticky header, slot legend, doctor avatars |
+
+**Also fixed:** `patient_portal_enabled` defaults to `FALSE` in the DB schema. After enabling via Settings → Security → Patient Portal toggle, or directly via SQL: `UPDATE tenant_*.clinic_settings SET patient_portal_enabled = TRUE;`
 
 ---
 
@@ -331,6 +451,9 @@ node src/db/migrate_prescription_consultation_nullable.js
 | Phone Formatting | 10-digit validation, `xxx xxx xxxx` format, backend normalization, auto-suggest search | ✅ Complete (2026-04-16) |
 | Patient Reg. Simplification | first_name + phone only required; optional last_name/DOB/gender; auto-create in queue drawer | ✅ Complete (2026-04-16) |
 | Queue & Sync Bug Fixes | Queue redesign, portal-backend sync, doctor ownership, doctor tab fix, prescription/consult fixes | ✅ Complete (2026-04-16) |
+| Billing & Invoice Fixes | Invoice auto-pull all medicines; Add Item 3-tab modal; Rx qty auto-calculation | ✅ Complete (2026-04-17) |
+| Double-booking & Slot Fix | All types blocked from double-booking; taken slots visually disabled in grid | ✅ Complete (2026-04-17) |
+| Booking Portal UI Redesign | Full-width, dark/light mode, CSS vars, mobile, clinic logo + name from backend | ✅ Complete (2026-04-17) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

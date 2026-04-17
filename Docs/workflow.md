@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-17
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement complete.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -95,8 +95,12 @@ End-of-Day closing — cash count vs system totals, lock the day
   - If no → creates new invoice (auto-pulls doctor fee from `doctor_fees` + prescribed medicines with prices)
 - **InvoiceModal** — view and manage the invoice:
   - Line items table (consultation fee, medicines, custom services)
-  - **Add Item** — free-text or pick from custom services dropdown, set qty + price
+  - **+ Add Item** → opens a dedicated `AddItemModal` (3-tab overlay):
+    - **Service tab** — clickable cards for configured custom services; select one → qty + price auto-fill
+    - **Medicine tab** — live search bar; shows stock + price; click to select → fills description + price
+    - **Custom tab** — free-text description + qty + price; live line-total preview
   - **Remove Item** — trash icon per row (blocked on paid invoices)
+  - **Auto-pull from Prescription** — pulls all prescribed medicines including those with price=0 (price editable after)
   - Totals: subtotal → discount → tax → total → paid → balance
   - **Record Payment** — select method (Cash / Card / Online / Insurance), enter amount, optional reference field
   - Multiple payment calls allowed — each adds a split record (partial payment support)
@@ -166,9 +170,10 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Patient info + allergies shown at top
 - Search medicines by typing 3+ letters → live dropdown suggestions (debounced 300ms)
 - Select a medicine → name, strength, unit auto-filled into the row
-- Per row: **dosage** (preset chips: 250mg / 500mg / 1g / 5ml / 10ml + free text)
-- Per row: **frequency** (preset chips: Once daily / Twice daily / Three times daily / Four times daily / As needed + free text)
+- Per row: **dosage** (preset chips: 1 tablet / 2 tablets / ½ tablet / 1 capsule / 5 ml / 10 ml / 1 teaspoon + free text)
+- Per row: **frequency** (preset chips: Once daily / Twice daily / Three times daily / Four times daily / Every 8 hours / Every 12 hours + free text)
 - Per row: **duration** (preset chips: 3 days / 5 days / 7 days / 10 days / 14 days / 1 month + free text)
+- Per row: **Qty to Dispense (auto)** — auto-calculated: `Math.ceil(units_per_dose × doses_per_day × duration_days)`. Editable override allowed. Example: 1 tablet × Twice daily × 7 days = **14**.
 - Per row: instructions (free text — "After meals", "At night", etc.)
 - Add more rows / remove rows as needed
 - Save → Rx number auto-generated (RX-00001 format) · success banner shown · Print button activates
@@ -385,7 +390,7 @@ Patient (PT-XXXXX)
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
 | 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
-| 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up) |
+| 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up); UI redesigned full-width dark/light CSS-variable themed with clinic logo (2026-04-17) |
 | Staff Management | ✅ Complete | Admin creates/edits/deactivates staff (all roles). Reset-password. Grouped by role. `/api/v1/staff` backend. `/staff` page in clinic-frontend. |
 | SaaS Onboarding | ✅ Complete | Clinic creation auto-creates first admin staff. Credentials copy screen. No trial/plan system. Super admin manually activates/suspends. |
 | Token Slip Printing | ✅ Complete | After Add to Queue → confirmation screen in same drawer with token/ref. Print Slip button → 80mm thermal printer window. `printTokenSlip.js` utility. |
@@ -427,8 +432,9 @@ Print / Save PDF button (browser print)
 
 ### Slot Conflict Protection
 - **Portal booking:** server checks slot is free before inserting — returns 409 if taken (race condition safe)
-- **Admin/staff booking:** same conflict check added to `POST /appointments` for `type='booked'` appointments
-- The `/doctors/:id/slots` endpoint (used by both portal and admin UI) filters out already-booked times in real time
+- **Admin/staff booking:** conflict check runs for **any appointment type** (walk-in, booked, emergency) that has an `appointment_time`. Previously only ran for `type='booked'` — allowed walk-in double-booking.
+- The `/doctors/:id/slots` endpoint (used by both portal and admin UI) marks a slot unavailable if **any** non-cancelled appointment (any type) holds that time — not just `type='booked'`. Completed appointments also block the slot.
+- **Frontend:** taken slots render as a non-interactive `<div>` (line-through, muted) — cannot be clicked at all. Available / Taken legend shown above the grid.
 
 ### Patient Auto-Registration
 - Lookup by phone number — if patient exists, use their ID
@@ -474,8 +480,11 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 ### Modified Files (Phase 5.4)
 | File | Change |
 |------|--------|
-| `appointment.routes.js` | Added slot conflict check for `type='booked'`; `booking_reference` + `booking_source` in SELECT and INSERT; returns `booking_reference` in response |
+| `appointment.routes.js` | Conflict check now runs for ALL appointment types (not just `type='booked'`); `booking_reference` + `booking_source` in SELECT and INSERT; returns `booking_reference` in response |
+| `doctor.routes.js` | Slot availability query: `AND appointment_time IS NOT NULL AND status != 'cancelled'` — blocks walk-ins, emergencies, completed appointments. Removed `AND type = 'booked'` filter. |
+| `portal.routes.js` | `clinic_logo_url AS logo_url` in GET /info; `nextToken()` added; slot queries use `appointment_time IS NOT NULL`; `resolvedPatientName` from DB lookup; `token_number` in INSERT + response |
 | `patient.routes.js` | Removed local `nextPatientCode` function — now uses shared `utils/patientCode.js` |
+| `invoice.routes.js` | Auto-pull: removed `AND m.selling_price IS NOT NULL AND m.selling_price > 0`; added `COALESCE(m.selling_price, 0)`; `|| 0` fallback in JS |
 | `index.js` | Registered `/api/v1/portal` routes |
 | `SettingsPage.jsx` | Security tab: Patient Portal toggle + shareable URL + Copy button |
 | `AppointmentsPage.jsx` | Globe badge + BK-XXXXXX booking reference displayed in queue rows |
@@ -483,6 +492,9 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 | `App.jsx` | `/book` route (public, no ProtectedRoute) |
 | `AppointmentModal.jsx` | **Complete rewrite**: Modal → Drawer (540px); time slot grid shown for walk-in (optional) and booked (required) modes, hidden only for emergency; slot click-to-deselect toggle; Refresh button; legend; BK-XXXXXX toast for booked appointments |
 | `ConsultationModal.jsx` | Bug fix: added `watch` and `setValue` to `useForm()` destructure (were missing — caused `ReferenceError: watch is not defined` crash) |
+| `InvoiceModal.jsx` | Add Item replaced with `AddItemModal` (3-tab overlay: Service / Medicine / Custom); auto-pull fixed |
+| `PrescriptionModal.jsx` | `calcQuantity()` auto-calc; `quantity_given` field; updated dosage/frequency/duration preset values |
+| `BookingPage.jsx` | **Full rewrite**: CSS variables, `useTheme`, `mediaUrl` logo, sticky header, dark mode toggle, mobile slot grid, taken slots as `<div>` not disabled button, Available/Taken legend |
 
 ---
 
@@ -548,6 +560,11 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 | Super admin trial management UI | Phase 6 (remaining) |
 | Session timeout enforcement (backend) | Phase 6 — UI setting exists but JWT expiry not yet driven by it |
 | `patient_portal_enabled` setting UI | ✅ Done (Phase 5.4) — toggle in Settings → Security tab |
+| Invoice auto-pull missing medicines | ✅ Fixed (2026-04-17) — `COALESCE(m.selling_price, 0)` includes all medicines |
+| Prescription qty auto-calculation | ✅ Done (2026-04-17) — `quantity_given` auto-fills from dosage × frequency × duration |
+| Double-booking same slot (any type) | ✅ Fixed (2026-04-17) — conflict check runs for all appointment types with a time |
+| Taken slots visually disabled in grid | ✅ Fixed (2026-04-17) — `doctor.routes.js` now blocks all types; frontend renders as non-interactive div |
+| Booking portal dark/light mode + UI | ✅ Done (2026-04-17) — `BookingPage.jsx` full rewrite with CSS variables + `useTheme` |
 | `duplicate_check_enabled` setting | Phase 6 — DB column exists; backend does not read/write it; no UI |
 | Calendar view (day/week) for appointments | Deferred — queue view covers the need |
 | Lab result notification to patient (SMS) | Phase 6 (remaining) — results saved but no notification sent yet |

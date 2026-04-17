@@ -548,7 +548,7 @@ Every clinic has exactly one row here. Changing this only affects that clinic â€
 CREATE TABLE clinic_settings (
   id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_name               VARCHAR(255) NOT NULL,
-  clinic_logo_url           VARCHAR(500),              -- uploaded logo file path
+  clinic_logo_url           VARCHAR(500),              -- uploaded logo file path. NOTE: portal.routes.js selects this as `clinic_logo_url AS logo_url`
   clinic_logo_filename      VARCHAR(255),              -- original filename for reference
   clinic_address            TEXT,
   clinic_phone              VARCHAR(20),
