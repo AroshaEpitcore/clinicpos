@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar, Globe, Ticket } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar, Globe, Ticket, Search, X } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -62,6 +62,8 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [doctors,      setDoctors]      = useState([]);
   const [doctorFilter, setDoctorFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search,       setSearch]       = useState('');
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
 
@@ -169,17 +171,57 @@ export default function AppointmentsPage() {
     appointments.some(a => String(a.doctor_id) === String(d.id))
   );
 
-  // Client-side filter — no extra API call when switching tabs
-  const filtered = doctorFilter === 'all'
+  // Step 1 — doctor filter (also basis for stats)
+  const doctorFiltered = doctorFilter === 'all'
     ? appointments
     : appointments.filter(a => String(a.doctor_id) === String(doctorFilter));
 
+  // Step 2 — status + search + sort
+  const q = search.trim().toLowerCase();
+  const filtered = doctorFiltered
+    .filter(a => {
+      if (statusFilter === 'pending' && a.status !== 'pending' && a.status !== 'confirmed') return false;
+      if (statusFilter !== 'all' && statusFilter !== 'pending' && a.status !== statusFilter) return false;
+      if (q) {
+        return (
+          (a.patient_name    || '').toLowerCase().includes(q) ||
+          (a.patient_code    || '').toLowerCase().includes(q) ||
+          (a.booking_reference || '').toLowerCase().includes(q) ||
+          (a.doctor_name     || '').toLowerCase().includes(q) ||
+          (a.reason          || '').toLowerCase().includes(q) ||
+          String(a.token_number || '').includes(q)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // Emergencies always first
+      if (a.type === 'emergency' && b.type !== 'emergency') return -1;
+      if (b.type === 'emergency' && a.type !== 'emergency') return  1;
+      // Then by token number ascending (01 → 02 → 03 …)
+      if (a.token_number != null && b.token_number != null) return a.token_number - b.token_number;
+      if (a.token_number != null) return -1;
+      if (b.token_number != null) return  1;
+      // No token: fall back to appointment_time then created_at
+      if (a.appointment_time && b.appointment_time) return a.appointment_time.localeCompare(b.appointment_time);
+      return 0;
+    });
+
+  // Stats are based on doctor-filtered list (unaffected by status/search so counts stay stable)
   const queueStats = {
-    total:     filtered.length,
-    waiting:   filtered.filter(a => a.status === 'pending' || a.status === 'confirmed').length,
-    arrived:   filtered.filter(a => a.status === 'arrived').length,
-    completed: filtered.filter(a => a.status === 'completed').length,
+    total:     doctorFiltered.length,
+    waiting:   doctorFiltered.filter(a => a.status === 'pending' || a.status === 'confirmed').length,
+    arrived:   doctorFiltered.filter(a => a.status === 'arrived').length,
+    completed: doctorFiltered.filter(a => a.status === 'completed').length,
   };
+
+  const STATUS_FILTERS = [
+    { key: 'all',       label: 'All',       count: doctorFiltered.length },
+    { key: 'pending',   label: 'Waiting',   count: doctorFiltered.filter(a => a.status === 'pending' || a.status === 'confirmed').length },
+    { key: 'arrived',   label: 'With Doctor', count: doctorFiltered.filter(a => a.status === 'arrived').length },
+    { key: 'completed', label: 'Done',      count: doctorFiltered.filter(a => a.status === 'completed').length },
+    { key: 'cancelled', label: 'Cancelled', count: doctorFiltered.filter(a => a.status === 'cancelled').length },
+  ];
 
   return (
     <PageLayout>
@@ -250,7 +292,7 @@ export default function AppointmentsPage() {
 
       {/* Doctor filter tabs — only for admin/receptionist; doctors only see their own queue */}
       {doctorsInQueue.length > 0 && user?.role !== 'doctor' && (
-        <div className="flex gap-1 mb-4 border-b border-[var(--color-border)]">
+        <div className="flex gap-1 mb-3 border-b border-[var(--color-border)]">
           <button
             onClick={() => setDoctorFilter('all')}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -277,15 +319,71 @@ export default function AppointmentsPage() {
         </div>
       )}
 
+      {/* Search + Status filter row */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search patient, token, ref…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Status pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {STATUS_FILTERS.map(({ key, label, count }) => {
+            if (key === 'cancelled' && count === 0) return null;
+            const active = statusFilter === key ||
+              (key === 'pending' && statusFilter === 'confirmed');
+            return (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(prev => prev === key ? 'all' : key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  active
+                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                }`}
+              >
+                {label}
+                <span className={`ml-1.5 ${active ? 'opacity-80' : 'opacity-60'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Queue */}
       {loading ? (
         <LoadingState message="Loading queue..." />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Clock}
-          title="No appointments"
-          description={`Nothing scheduled for ${displayDate.toLowerCase()}.`}
-          action={isAdmin ? <Button size="sm" onClick={() => setApptModalOpen(true)}>+ Add to Queue</Button> : undefined}
+          title={search || statusFilter !== 'all' ? 'No results' : 'No appointments'}
+          description={
+            search
+              ? `No appointments match "${search}".`
+              : statusFilter !== 'all'
+              ? 'No appointments with this status.'
+              : `Nothing scheduled for ${displayDate.toLowerCase()}.`
+          }
+          action={
+            search || statusFilter !== 'all'
+              ? <Button size="sm" variant="secondary" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Clear filters</Button>
+              : isAdmin ? <Button size="sm" onClick={() => setApptModalOpen(true)}>+ Add to Queue</Button> : undefined
+          }
         />
       ) : (
         <div className="flex flex-col gap-2">
