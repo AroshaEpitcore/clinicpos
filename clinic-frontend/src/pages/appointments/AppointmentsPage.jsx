@@ -218,7 +218,7 @@ export default function AppointmentsPage() {
   const STATUS_FILTERS = [
     { key: 'all',       label: 'All',       count: doctorFiltered.length },
     { key: 'pending',   label: 'Waiting',   count: doctorFiltered.filter(a => a.status === 'pending' || a.status === 'confirmed').length },
-    { key: 'arrived',   label: 'With Doctor', count: doctorFiltered.filter(a => a.status === 'arrived').length },
+    { key: 'arrived',   label: 'Arrived',     count: doctorFiltered.filter(a => a.status === 'arrived').length },
     { key: 'completed', label: 'Done',      count: doctorFiltered.filter(a => a.status === 'completed').length },
     { key: 'cancelled', label: 'Cancelled', count: doctorFiltered.filter(a => a.status === 'cancelled').length },
   ];
