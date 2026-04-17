@@ -1,13 +1,12 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, LogOut, Stethoscope, ChevronLeft, ChevronRight, Shield, UserCog,
+  Settings, Stethoscope, Shield, UserCog,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
 import { mediaUrl }  from '../../utils/mediaUrl';
-import { toast }     from 'sonner';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard',     roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
@@ -25,15 +24,8 @@ const NAV_ITEMS = [
   { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
 ];
 
-export function Sidebar({ collapsed, onToggle }) {
-  const { user, tenantFlags, clinic, logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    toast.success('Logged out successfully');
-    navigate('/login');
-  }
+export function Sidebar({ collapsed }) {
+  const { user, tenantFlags, clinic } = useAuth();
 
   const visibleItems = NAV_ITEMS.filter(item => {
     if (!item.roles.includes(user?.role)) return false;
@@ -91,46 +83,19 @@ export function Sidebar({ collapsed, onToggle }) {
         ))}
       </nav>
 
-      {/* User info + logout + toggle */}
+      {/* User info */}
       <div className="border-t border-[var(--color-border)] p-3">
-        {!collapsed && (
-          <div className="flex items-center gap-3 px-2 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-[var(--color-primary)] text-sm font-semibold shrink-0">
-              {user?.name?.charAt(0) || '?'}
-            </div>
+        <div className={clsx('flex items-center gap-3 px-2 py-2', collapsed && 'justify-center')}>
+          <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-[var(--color-primary)] text-sm font-semibold shrink-0">
+            {user?.name?.charAt(0) || '?'}
+          </div>
+          {!collapsed && (
             <div className="overflow-hidden">
               <p className="text-xs font-medium text-[var(--color-text)] truncate">{user?.name}</p>
               <p className="text-xs text-[var(--color-text-secondary)] capitalize">{user?.role}</p>
             </div>
-          </div>
-        )}
-
-        <button
-          onClick={handleLogout}
-          title="Logout"
-          className={clsx(
-            'flex items-center gap-3 w-full px-3 py-2 rounded-[var(--radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-danger)] transition-colors mb-1',
-            collapsed && 'justify-center'
           )}
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && 'Logout'}
-        </button>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggle}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={clsx(
-            'flex items-center gap-3 w-full px-3 py-2 rounded-[var(--radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors',
-            collapsed && 'justify-center'
-          )}
-        >
-          {collapsed
-            ? <ChevronRight className="w-4 h-4 shrink-0" />
-            : <><ChevronLeft className="w-4 h-4 shrink-0" /><span>Collapse</span></>
-          }
-        </button>
+        </div>
       </div>
     </aside>
   );
