@@ -13,10 +13,34 @@ const DOSAGE_PRESETS    = ['1 tablet', '2 tablets', '½ tablet', '1 capsule', '5
 const FREQUENCY_PRESETS = ['Once daily', 'Twice daily', 'Three times daily', 'Four times daily', 'Every 8 hours', 'Every 12 hours', 'As needed'];
 const DURATION_PRESETS  = ['3 days', '5 days', '7 days', '10 days', '14 days', '1 month', 'Ongoing'];
 
+// Units per dose (for quantity calculation)
+const DOSAGE_UNITS = {
+  '1 tablet': 1, '2 tablets': 2, '½ tablet': 0.5,
+  '1 capsule': 1, '5 ml': 5, '10 ml': 10, '1 teaspoon': 5,
+};
+// Doses per day
+const FREQUENCY_PER_DAY = {
+  'Once daily': 1, 'Twice daily': 2, 'Three times daily': 3,
+  'Four times daily': 4, 'Every 8 hours': 3, 'Every 12 hours': 2,
+};
+// Duration in days
+const DURATION_DAYS = {
+  '3 days': 3, '5 days': 5, '7 days': 7, '10 days': 10,
+  '14 days': 14, '1 month': 30,
+};
+
+function calcQuantity(dosage, frequency, duration) {
+  const units   = DOSAGE_UNITS[dosage];
+  const perDay  = FREQUENCY_PER_DAY[frequency];
+  const days    = DURATION_DAYS[duration];
+  if (units == null || perDay == null || days == null) return null; // can't calculate
+  return Math.ceil(units * perDay * days);
+}
+
 function emptyItem() {
   return {
     medicine_id: '', medicine_name: '', generic_name: '', strength: '', unit: '',
-    dosage: '', frequency: '', duration: '', instructions: '',
+    dosage: '', frequency: '', duration: '', instructions: '', quantity_given: null,
   };
 }
 
@@ -50,7 +74,16 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
   }, [open]);
 
   function updateItem(index, field, value) {
-    setItems(prev => prev.map((it, i) => i === index ? { ...it, [field]: value } : it));
+    setItems(prev => prev.map((it, i) => {
+      if (i !== index) return it;
+      const updated = { ...it, [field]: value };
+      // Auto-recalculate quantity when dosage/frequency/duration change
+      if (['dosage', 'frequency', 'duration'].includes(field)) {
+        const auto = calcQuantity(updated.dosage, updated.frequency, updated.duration);
+        if (auto !== null) updated.quantity_given = auto;
+      }
+      return updated;
+    }));
     setItemErrors(prev => prev.map((e, i) => i === index ? { ...e, [field]: undefined } : e));
   }
 
@@ -129,8 +162,10 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
         patient_id:     appointment.patient_id,
         doctor_id:      appointment.doctor_id,
         notes:          notes.trim() || null,
-        items:          items.map(({ medicine_id, dosage, frequency, duration, instructions }) => ({
-          medicine_id, dosage, frequency, duration, instructions: instructions.trim() || null,
+        items:          items.map(({ medicine_id, dosage, frequency, duration, instructions, quantity_given }) => ({
+          medicine_id, dosage, frequency, duration,
+          instructions:   instructions.trim() || null,
+          quantity_given: quantity_given != null ? quantity_given : null,
         })),
       });
       const { id, rx_number } = res.data.data;
@@ -315,17 +350,37 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
               />
             </div>
 
-            {/* Instructions */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[var(--color-text)]">Instructions <span className="text-[var(--color-text-secondary)] font-normal">(optional)</span></label>
-              <input
-                type="text"
-                placeholder="e.g. Take after food, Avoid sunlight"
-                value={item.instructions}
-                onChange={e => updateItem(index, 'instructions', e.target.value)}
-                disabled={!!savedRx}
-                className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:bg-[var(--color-bg)] disabled:cursor-default"
-              />
+            {/* Instructions + Qty to Dispense */}
+            <div className="flex gap-3">
+              <div className="flex-1 flex flex-col gap-1">
+                <label className="text-xs font-medium text-[var(--color-text)]">Instructions <span className="text-[var(--color-text-secondary)] font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  placeholder="e.g. Take after food, Avoid sunlight"
+                  value={item.instructions}
+                  onChange={e => updateItem(index, 'instructions', e.target.value)}
+                  disabled={!!savedRx}
+                  className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:bg-[var(--color-bg)] disabled:cursor-default"
+                />
+              </div>
+              <div className="w-36 flex flex-col gap-1">
+                <label className="text-xs font-medium text-[var(--color-text)]">
+                  Qty to Dispense
+                  {item.quantity_given != null && !savedRx && (
+                    <span className="ml-1 text-[10px] font-normal text-[var(--color-primary)]">(auto)</span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="—"
+                  value={item.quantity_given ?? ''}
+                  onChange={e => updateItem(index, 'quantity_given', e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={!!savedRx}
+                  className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:bg-[var(--color-bg)] disabled:cursor-default"
+                />
+                <span className="text-[10px] text-[var(--color-text-secondary)]">Used for invoice qty</span>
+              </div>
             </div>
           </div>
         ))}

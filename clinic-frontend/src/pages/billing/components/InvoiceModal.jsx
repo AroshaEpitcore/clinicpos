@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, ChevronDown, Download } from 'lucide-react';
 import { Modal }        from '../../../components/ui/Modal';
 import { Button }       from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/Spinner';
 import { invoicesApi, customServicesApi } from '../../../api/invoices';
+import { medicinesApi } from '../../../api/medicines';
 import { formatCurrency, formatDate }     from '../../../utils/format';
 import { PaymentStatusBadge }             from '../BillingPage';
 
@@ -27,6 +28,12 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
   // Add item form
   const [newItem, setNewItem] = useState({ description: '', item_type: 'service', quantity: 1, unit_price: '' });
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
+
+  // Medicine search (for manual item add)
+  const [medSearch,    setMedSearch]    = useState('');
+  const [medResults,   setMedResults]   = useState([]);
+  const [medDropOpen,  setMedDropOpen]  = useState(false);
+  const medTimerRef = useRef(null);
 
   // Payment form
   const [payMethod,    setPayMethod]    = useState('Cash');
@@ -54,8 +61,12 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
   }
 
   async function handleAddItem() {
-    if (!newItem.description || !newItem.unit_price) {
-      toast.error('Description and price are required.');
+    if (!newItem.description.trim()) {
+      toast.error('Description is required.');
+      return;
+    }
+    if (newItem.unit_price === '' || newItem.unit_price === undefined) {
+      toast.error('Price is required.');
       return;
     }
     setSaving(true);
@@ -63,6 +74,8 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
       await invoicesApi.addItem(invoiceId, newItem);
       toast.success('Item added');
       setNewItem({ description: '', item_type: 'service', quantity: 1, unit_price: '' });
+      setMedSearch('');
+      setMedResults([]);
       setShowAddItem(false);
       loadInvoice();
     } catch (err) {
@@ -112,6 +125,40 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
 
   function selectService(svc) {
     setNewItem({ description: svc.name, item_type: 'service', quantity: 1, unit_price: String(svc.price) });
+    setServicePickerOpen(false);
+  }
+
+  function handleMedSearchChange(val) {
+    setMedSearch(val);
+    setMedDropOpen(false);
+    clearTimeout(medTimerRef.current);
+    if (val.trim().length < 2) { setMedResults([]); return; }
+    medTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await medicinesApi.list({ search: val.trim() });
+        setMedResults(res.data.data || []);
+        setMedDropOpen(true);
+      } catch { /* ignore */ }
+    }, 300);
+  }
+
+  function selectMedicine(med) {
+    const label = `${med.name}${med.strength ? ' ' + med.strength : ''}`;
+    setNewItem(p => ({
+      ...p,
+      description: label,
+      item_type:   'medicine',
+      unit_price:  med.selling_price != null ? String(med.selling_price) : '',
+    }));
+    setMedSearch(label);
+    setMedDropOpen(false);
+  }
+
+  function switchItemType(type) {
+    setNewItem({ description: '', item_type: type, quantity: 1, unit_price: '' });
+    setMedSearch('');
+    setMedResults([]);
+    setMedDropOpen(false);
     setServicePickerOpen(false);
   }
 
@@ -195,41 +242,94 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
             {/* Add item form */}
             {showAddItem && (
               <div className="mb-3 p-3 rounded-[var(--radius)] border border-[var(--color-primary)] bg-[var(--color-primary-light)]">
-                <div className="flex items-center gap-2 mb-2">
-                  {/* Service picker */}
+                {/* Type toggle */}
+                <div className="flex gap-1 mb-3">
+                  {['service', 'medicine', 'other'].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => switchItemType(t)}
+                      className={`px-3 py-1 rounded-[var(--radius-sm)] text-xs font-medium capitalize transition-colors ${
+                        newItem.item_type === t
+                          ? 'bg-[var(--color-primary)] text-white'
+                          : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)]'
+                      }`}
+                    >{t}</button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Description / search field */}
                   <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Description"
-                      value={newItem.description}
-                      onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    />
-                    {services.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setServicePickerOpen(v => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    )}
-                    {servicePickerOpen && services.length > 0 && (
-                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg max-h-48 overflow-y-auto">
-                        {services.map(svc => (
+                    {newItem.item_type === 'medicine' ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Search medicine..."
+                          value={medSearch}
+                          onChange={e => handleMedSearchChange(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                          autoFocus
+                        />
+                        {medDropOpen && medResults.length > 0 && (
+                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg max-h-48 overflow-y-auto">
+                            {medResults.map(med => (
+                              <button
+                                key={med.id}
+                                type="button"
+                                onClick={() => selectMedicine(med)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg)] flex items-center justify-between gap-2"
+                              >
+                                <span>
+                                  <span className="font-medium">{med.name}</span>
+                                  {med.strength && <span className="text-[var(--color-text-secondary)]"> {med.strength}</span>}
+                                  {med.generic_name && <span className="text-xs text-[var(--color-text-secondary)]"> · {med.generic_name}</span>}
+                                </span>
+                                <span className="text-xs text-[var(--color-text-secondary)] shrink-0">
+                                  {med.selling_price != null ? formatCurrency(med.selling_price) : 'no price'}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Description"
+                          value={newItem.description}
+                          onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        />
+                        {newItem.item_type === 'service' && services.length > 0 && (
                           <button
-                            key={svc.id}
                             type="button"
-                            onClick={() => selectService(svc)}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg)] flex items-center justify-between"
+                            onClick={() => setServicePickerOpen(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
                           >
-                            <span>{svc.name}</span>
-                            <span className="text-xs text-[var(--color-text-secondary)]">{formatCurrency(svc.price)}</span>
+                            <ChevronDown className="w-4 h-4" />
                           </button>
-                        ))}
-                      </div>
+                        )}
+                        {servicePickerOpen && services.length > 0 && (
+                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius)] shadow-lg max-h-48 overflow-y-auto">
+                            {services.map(svc => (
+                              <button
+                                key={svc.id}
+                                type="button"
+                                onClick={() => selectService(svc)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg)] flex items-center justify-between"
+                              >
+                                <span>{svc.name}</span>
+                                <span className="text-xs text-[var(--color-text-secondary)]">{formatCurrency(svc.price)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
+
                   <input
                     type="number"
                     placeholder="Qty"
@@ -247,7 +347,10 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                     className="w-28 px-2 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                   />
                   <Button size="sm" onClick={handleAddItem} loading={saving}>Add</Button>
-                  <button onClick={() => setShowAddItem(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] text-xs">Cancel</button>
+                  <button
+                    onClick={() => { setShowAddItem(false); setMedSearch(''); setMedResults([]); }}
+                    className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] text-xs"
+                  >Cancel</button>
                 </div>
               </div>
             )}
