@@ -62,11 +62,13 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
 
     // 2. Prescribed medicines (from latest prescription on this consultation)
     const rxRes = await queryTenant(tenantId, `
-      SELECT COALESCE(pi.quantity_given, 1) AS qty, pi.dosage, m.name, m.strength,
+      SELECT COALESCE(pi.quantity_given, 1) AS qty, pi.dosage,
+             COALESCE(m.name, pi.custom_medicine_name) AS name,
+             m.strength,
              COALESCE(m.selling_price, 0) AS selling_price
       FROM prescriptions pr
       JOIN prescription_items pi ON pi.prescription_id = pr.id
-      JOIN medicines m            ON m.id = pi.medicine_id
+      LEFT JOIN medicines m       ON m.id = pi.medicine_id
       WHERE pr.consultation_id = $1
     `, [consultation_id]);
     for (const row of rxRes.rows) {

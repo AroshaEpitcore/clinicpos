@@ -401,7 +401,7 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
   // Doctors can only act on their own appointments; admins can act on any
   const isOwnAppt      = user?.role === 'admin' || String(appt.doctor_id) === String(user?.id);
   const canConsult     = isDoctor       && appt.status === 'arrived'   && isOwnAppt;
-  const canWriteRx     = isDoctor       && appt.status === 'completed' && !!appt.consultation_id && isOwnAppt;
+  const canWriteRx     = isDoctor       && appt.status === 'completed' && !!appt.consultation_id && !appt.prescription_id && isOwnAppt;
   const canBill        = isReceptionist && appt.status === 'completed' && !!appt.consultation_id;
   const hasToken       = appt.token_number != null;
 
@@ -455,7 +455,7 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
               </span>
             )}
             {appt.booked_online && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
                 <Globe className="w-3 h-3" /> Online
               </span>
             )}

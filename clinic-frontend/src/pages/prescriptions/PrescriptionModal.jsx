@@ -12,6 +12,7 @@ import { useAuth } from '../../store/AuthContext';
 const DOSAGE_PRESETS    = ['1 tablet', '2 tablets', '½ tablet', '1 capsule', '5 ml', '10 ml', '1 teaspoon'];
 const FREQUENCY_PRESETS = ['Once daily', 'Twice daily', 'Three times daily', 'Four times daily', 'Every 8 hours', 'Every 12 hours', 'As needed'];
 const DURATION_PRESETS  = ['3 days', '5 days', '7 days', '10 days', '14 days', '1 month', 'Ongoing'];
+const FOOD_PRESETS      = ['Before food', 'After food', 'With food', 'At bedtime'];
 
 // Units per dose (for quantity calculation)
 const DOSAGE_UNITS = {
@@ -141,9 +142,10 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
   }
 
   function validate() {
-    const errors = items.map(item => {
+    const errors = items.map((item, index) => {
       const e = {};
-      if (!item.medicine_id)      e.medicine = 'Select a medicine';
+      const hasMedicine = item.medicine_id || (searchQueries[index]?.trim().length >= 2);
+      if (!hasMedicine)           e.medicine  = 'Enter or select a medicine';
       if (!item.dosage.trim())    e.dosage    = 'Required';
       if (!item.frequency.trim()) e.frequency = 'Required';
       if (!item.duration.trim())  e.duration  = 'Required';
@@ -162,10 +164,12 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
         patient_id:     appointment.patient_id,
         doctor_id:      appointment.doctor_id,
         notes:          notes.trim() || null,
-        items:          items.map(({ medicine_id, dosage, frequency, duration, instructions, quantity_given }) => ({
-          medicine_id, dosage, frequency, duration,
-          instructions:   instructions.trim() || null,
-          quantity_given: quantity_given != null ? quantity_given : null,
+        items:          items.map(({ medicine_id, dosage, frequency, duration, instructions, quantity_given }, idx) => ({
+          medicine_id:          medicine_id || null,
+          custom_medicine_name: !medicine_id && searchQueries[idx]?.trim() ? searchQueries[idx].trim() : null,
+          dosage, frequency, duration,
+          instructions:         instructions.trim() || null,
+          quantity_given:       quantity_given != null ? quantity_given : null,
         })),
       });
       const { id, rx_number } = res.data.data;
@@ -286,6 +290,9 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
                 {itemErrors[index]?.medicine && (
                   <span className="text-xs text-[var(--color-danger)]">{itemErrors[index].medicine}</span>
                 )}
+                {!item.medicine_id && searchQueries[index]?.trim().length >= 2 && !showDropdown[index] && (
+                  <span className="text-[11px] text-[var(--color-text-secondary)] italic">✎ custom medicine name</span>
+                )}
 
                 {/* Suggestions dropdown */}
                 {showDropdown[index] && suggestions[index].length > 0 && (
@@ -362,6 +369,24 @@ export function PrescriptionModal({ open, onClose, onSuccess, appointment }) {
                   disabled={!!savedRx}
                   className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:bg-[var(--color-bg)] disabled:cursor-default"
                 />
+                {!savedRx && (
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {FOOD_PRESETS.map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => updateItem(index, 'instructions', item.instructions === p ? '' : p)}
+                        className={`px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                          item.instructions === p
+                            ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="w-36 flex flex-col gap-1">
                 <label className="text-xs font-medium text-[var(--color-text)]">

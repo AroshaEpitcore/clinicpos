@@ -25,8 +25,9 @@ router.post('/', requireRole('doctor', 'admin'), async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'At least one medicine is required' });
   }
   for (const item of items) {
-    if (!item.medicine_id || !item.dosage?.trim() || !item.frequency?.trim() || !item.duration?.trim()) {
-      return res.status(400).json({ status: 'error', message: 'Each medicine needs dosage, frequency, and duration' });
+    const hasMedicine = item.medicine_id || item.custom_medicine_name?.trim();
+    if (!hasMedicine || !item.dosage?.trim() || !item.frequency?.trim() || !item.duration?.trim()) {
+      return res.status(400).json({ status: 'error', message: 'Each medicine needs a name, dosage, frequency, and duration' });
     }
   }
 
@@ -77,11 +78,12 @@ router.post('/', requireRole('doctor', 'admin'), async (req, res) => {
       await queryTenant(
         req.tenantSchema,
         `INSERT INTO prescription_items
-           (prescription_id, medicine_id, dosage, frequency, duration, instructions, quantity_given)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+           (prescription_id, medicine_id, custom_medicine_name, dosage, frequency, duration, instructions, quantity_given)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
         [
           prescriptionId,
-          item.medicine_id,
+          item.medicine_id          || null,
+          item.custom_medicine_name?.trim() || null,
           item.dosage.trim(),
           item.frequency.trim(),
           item.duration.trim(),
@@ -129,9 +131,10 @@ router.get('/patient/:patientId', async (req, res) => {
           req.tenantSchema,
           `SELECT
              pi.dosage, pi.frequency, pi.duration, pi.instructions,
-             m.name AS medicine_name, m.generic_name, m.strength, m.unit
+             COALESCE(m.name, pi.custom_medicine_name) AS medicine_name,
+             m.generic_name, m.strength, m.unit
            FROM prescription_items pi
-           JOIN medicines m ON m.id = pi.medicine_id
+           LEFT JOIN medicines m ON m.id = pi.medicine_id
            WHERE pi.prescription_id = $1
            ORDER BY pi.id`,
           [pr.id]
@@ -215,10 +218,11 @@ router.get('/:id', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pi.id, pi.dosage, pi.frequency, pi.duration, pi.instructions, pi.quantity_given,
-         m.id AS medicine_id, m.name AS medicine_name, m.generic_name,
-         m.strength, m.unit, m.category
+         pi.medicine_id, pi.custom_medicine_name,
+         COALESCE(m.name, pi.custom_medicine_name) AS medicine_name,
+         m.generic_name, m.strength, m.unit, m.category
        FROM prescription_items pi
-       JOIN medicines m ON m.id = pi.medicine_id
+       LEFT JOIN medicines m ON m.id = pi.medicine_id
        WHERE pi.prescription_id = $1
        ORDER BY pi.id`,
       [req.params.id]
@@ -260,9 +264,10 @@ router.get('/:id/pdf', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pi.id, pi.dosage, pi.frequency, pi.duration, pi.instructions, pi.quantity_given,
-         m.name AS medicine_name, m.generic_name, m.strength, m.unit
+         COALESCE(m.name, pi.custom_medicine_name) AS medicine_name,
+         m.generic_name, m.strength, m.unit
        FROM prescription_items pi
-       JOIN medicines m ON m.id = pi.medicine_id
+       LEFT JOIN medicines m ON m.id = pi.medicine_id
        WHERE pi.prescription_id = $1
        ORDER BY pi.id`,
       [req.params.id]

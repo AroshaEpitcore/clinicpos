@@ -44,12 +44,14 @@ router.get('/', async (req, res) => {
          s.full_name    AS doctor_name,
          s.specialization,
          c.id           AS consultation_id,
+         pr.id          AS prescription_id,
          (SELECT chief_complaint FROM consultations
           WHERE patient_id = p.id ORDER BY visit_date DESC LIMIT 1) AS last_complaint
        FROM appointments a
        JOIN patients p ON p.id = a.patient_id
        JOIN staff    s ON s.id = a.doctor_id
        LEFT JOIN consultations c ON c.appointment_id = a.id
+       LEFT JOIN prescriptions pr ON pr.consultation_id = c.id
        WHERE a.appointment_date = $1
          AND ($2::uuid IS NULL OR a.doctor_id = $2)
          AND ($3 = ''    OR a.status = $3)

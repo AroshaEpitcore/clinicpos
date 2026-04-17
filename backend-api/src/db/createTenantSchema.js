@@ -198,14 +198,15 @@ async function createTenantSchema(client, schemaName) {
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS prescription_items (
-      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      prescription_id UUID         NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
-      medicine_id     UUID         NOT NULL REFERENCES medicines(id),
-      dosage          VARCHAR(100) NOT NULL,
-      frequency       VARCHAR(100) NOT NULL,
-      duration        VARCHAR(100) NOT NULL,
-      instructions    TEXT,
-      quantity_given  INTEGER
+      id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      prescription_id      UUID         NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+      medicine_id          UUID         REFERENCES medicines(id),          -- nullable for custom medicines
+      custom_medicine_name VARCHAR(255),                                   -- used when medicine not in store
+      dosage               VARCHAR(100) NOT NULL,
+      frequency            VARCHAR(100) NOT NULL,
+      duration             VARCHAR(100) NOT NULL,
+      instructions         TEXT,
+      quantity_given       INTEGER
     );
   `);
 
