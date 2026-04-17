@@ -13,8 +13,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   User, Calendar, Clock, CheckCircle, ChevronLeft,
-  Phone, AlertCircle, Printer, RefreshCw, Globe,
-  Moon, Sun, Stethoscope,
+  Phone, AlertCircle, Download, RefreshCw, Globe,
+  Moon, Sun, Stethoscope, MapPin,
 } from 'lucide-react';
 import { portalApi } from '../../api/portal';
 import { formatPhoneInput } from '../../utils/format';
@@ -328,6 +328,189 @@ function Alert({ type = 'warning', children }) {
   );
 }
 
+// ── Canvas helpers ────────────────────────────────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function downloadBookingImage(booking, clinicName) {
+  const W = 520;
+  const pad = 28;
+  const scale = 2;
+  const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+  const rows = [
+    ['PATIENT', booking.patient_name + (booking.patient_phone ? `  ·  ${booking.patient_phone}` : '')],
+    ['DOCTOR',  booking.doctor_name + (booking.specialization ? `  ·  ${booking.specialization}` : '')],
+    ['DATE',    formatDateDisplay(booking.appointment_date)],
+    ['TIME',    formatTime(booking.appointment_time)],
+  ];
+  if (booking.reason) rows.push(['REASON', booking.reason]);
+
+  const rowH = 44;
+  const headerH = 56;
+  const boxH = 80;
+  const H = pad + headerH + 20 + boxH + 20 + rows.length * rowH + 16 + 1 + 36 + pad;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // White background + outer border
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#22c55e';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 1, 1, W - 2, H - 2, 12);
+  ctx.stroke();
+
+  let cy = pad;
+
+  // Header: green circle + check + text
+  ctx.fillStyle = '#dcfce7';
+  ctx.beginPath();
+  ctx.arc(pad + 20, cy + 20, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#16a34a';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pad + 12, cy + 20);
+  ctx.lineTo(pad + 18, cy + 27);
+  ctx.lineTo(pad + 29, cy + 13);
+  ctx.stroke();
+
+  ctx.fillStyle = '#111827';
+  ctx.font = `bold 20px ${font}`;
+  ctx.fillText('Booking Confirmed!', pad + 52, cy + 16);
+  ctx.fillStyle = '#6b7280';
+  ctx.font = `13px ${font}`;
+  ctx.fillText(clinicName || 'Clinic', pad + 52, cy + 36);
+
+  cy += headerH + 20;
+
+  // Token + Reference boxes
+  const innerW = W - pad * 2;
+  const gap = 12;
+
+  if (booking.token_number != null) {
+    const halfW = (innerW - gap) / 2;
+
+    // Token box (blue)
+    ctx.fillStyle = '#2563eb';
+    roundRect(ctx, pad, cy, halfW, boxH, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = `bold 10px ${font}`;
+    ctx.letterSpacing = '2px';
+    ctx.fillText('YOUR TOKEN', pad + halfW / 2, cy + 22);
+    ctx.font = `bold 44px ${font}`;
+    ctx.fillText(String(booking.token_number).padStart(2, '0'), pad + halfW / 2, cy + 64);
+    ctx.letterSpacing = '0px';
+
+    // Ref box
+    const refX = pad + halfW + gap;
+    ctx.fillStyle = '#eff6ff';
+    roundRect(ctx, refX, cy, halfW, boxH, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1;
+    roundRect(ctx, refX, cy, halfW, boxH, 8);
+    ctx.stroke();
+    ctx.fillStyle = '#2563eb';
+    ctx.font = `bold 10px ${font}`;
+    ctx.fillText('BOOKING REFERENCE', refX + halfW / 2, cy + 22);
+    ctx.font = `bold 20px ${font}`;
+    ctx.fillText(booking.booking_reference, refX + halfW / 2, cy + 52);
+    ctx.font = `11px ${font}`;
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText('Keep for your records', refX + halfW / 2, cy + 70);
+  } else {
+    // Ref only — full width
+    ctx.fillStyle = '#eff6ff';
+    roundRect(ctx, pad, cy, innerW, boxH, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1;
+    roundRect(ctx, pad, cy, innerW, boxH, 8);
+    ctx.stroke();
+    ctx.fillStyle = '#2563eb';
+    ctx.textAlign = 'center';
+    ctx.font = `bold 11px ${font}`;
+    ctx.fillText('BOOKING REFERENCE', W / 2, cy + 26);
+    ctx.font = `bold 28px ${font}`;
+    ctx.fillText(booking.booking_reference, W / 2, cy + 60);
+  }
+
+  ctx.textAlign = 'left';
+  cy += boxH + 20;
+
+  // Detail rows
+  rows.forEach(([label, value]) => {
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `bold 10px ${font}`;
+    ctx.fillText(label, pad, cy + 14);
+    ctx.fillStyle = '#111827';
+    ctx.font = `14px ${font}`;
+    // simple word wrap
+    const maxW = innerW;
+    const words = value.split(' ');
+    let line = '';
+    let lineY = cy + 30;
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, pad, lineY);
+        line = word;
+        lineY += 16;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, pad, lineY);
+    cy += rowH;
+  });
+
+  // Divider
+  cy += 8;
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, cy);
+  ctx.lineTo(W - pad, cy);
+  ctx.stroke();
+  cy += 14;
+
+  // Footer
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = `11px ${font}`;
+  ctx.textAlign = 'center';
+  ctx.fillText(
+    'Please arrive 10 minutes early. Show this reference at reception to collect your token.',
+    W / 2, cy + 12,
+  );
+
+  // Trigger download
+  const link = document.createElement('a');
+  link.download = `booking-${booking.booking_reference}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
 // ── Confirmation Card ─────────────────────────────────────────────────────────
 function ConfirmationCard({ booking, clinicName }) {
   return (
@@ -629,18 +812,9 @@ export default function BookingPage() {
       className="min-h-screen flex flex-col"
       style={{ background: 'var(--color-bg)' }}
     >
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body > *:not(#booking-print-root) { display: none !important; }
-          #booking-print-root * { display: block !important; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header
-        className="no-print sticky top-0 z-10 border-b"
+        className="sticky top-0 z-10 border-b"
         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       >
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -902,12 +1076,24 @@ export default function BookingPage() {
 
           {/* ── Step 4: Confirmation ───────────────────────────────────── */}
           {step === 4 && booking && (
-            <div id="booking-print-root">
+            <div>
               <ConfirmationCard booking={booking} clinicName={clinicInfo?.clinic_name} />
 
-              <div className="mt-4 flex flex-wrap gap-3 justify-center no-print">
-                <PrimaryButton onClick={() => window.print()}>
-                  <Printer className="w-4 h-4" /> Print / Save PDF
+              {/* Reception notice */}
+              <div
+                className="mt-4 rounded-[var(--radius-lg)] border p-4 flex items-start gap-3"
+                style={{ background: 'var(--color-primary-light)', borderColor: 'var(--color-primary)' }}
+              >
+                <MapPin className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+                <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                  When you arrive at the clinic, show your <strong>booking reference</strong> at the
+                  reception counter to collect your queue token slip.
+                </p>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3 justify-center">
+                <PrimaryButton onClick={() => downloadBookingImage(booking, clinicInfo?.clinic_name)}>
+                  <Download className="w-4 h-4" /> Download Confirmation
                 </PrimaryButton>
                 <PrimaryButton variant="outline" onClick={resetFlow}>
                   Book Another Appointment
@@ -920,7 +1106,7 @@ export default function BookingPage() {
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       {step < 4 && (
-        <footer className="no-print py-6">
+        <footer className="py-6">
           <p className="text-xs text-center" style={{ color: 'var(--color-text-secondary)' }}>
             Powered by Doctor POS — Secure Online Booking
           </p>

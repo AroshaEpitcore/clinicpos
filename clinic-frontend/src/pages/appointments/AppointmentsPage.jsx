@@ -299,17 +299,27 @@ export default function AppointmentsPage() {
               onConsult={() => setConsultTarget(appt)}
               onWriteRx={() => setRxTarget(appt)}
               onBill={() => handleBill(appt)}
-              onPrint={() => printTokenSlip({
-                clinicName:  clinic?.name || 'ClinicPOS',
-                patientName: appt.patient_name,
-                patientCode: appt.patient_code,
-                doctorName:  appt.doctor_name,
-                tokenNumber: appt.token_number,
-                bookingRef:  appt.booking_reference,
-                date:        appt.appointment_date,
-                time:        appt.appointment_time,
-                type:        appt.type,
-              })}
+              onPrint={async () => {
+                printTokenSlip({
+                  clinicName:  clinic?.name || 'ClinicPOS',
+                  patientName: appt.patient_name,
+                  patientCode: appt.patient_code,
+                  doctorName:  appt.doctor_name,
+                  tokenNumber: appt.token_number,
+                  bookingRef:  appt.booking_reference,
+                  date:        appt.appointment_date,
+                  time:        appt.appointment_time,
+                  type:        appt.type,
+                });
+                // Auto-mark arrived when printing for a patient who hasn't arrived yet
+                if (appt.status === 'pending' || appt.status === 'confirmed') {
+                  try {
+                    await appointmentsApi.updateStatus(appt.id, 'arrived');
+                    toast.success(`${appt.patient_name} marked as arrived`);
+                    load(true);
+                  } catch { /* slip printed — swallow error */ }
+                }
+              }}
             />
           ))}
         </div>

@@ -211,6 +211,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
 
       // Show slip screen instead of closing
       setBookedSlip({
+        apptId:      appt.id || null,
         clinicName:  clinic?.name || 'ClinicPOS',
         patientName: `${resolvedPatient.first_name} ${resolvedPatient.last_name}`,
         patientCode: resolvedPatient.patient_code || '',
@@ -228,6 +229,19 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     }
   }
 
+  async function handlePrintAndArrive() {
+    printTokenSlip(bookedSlip);
+    if (bookedSlip?.apptId) {
+      try {
+        await appointmentsApi.updateStatus(bookedSlip.apptId, 'arrived');
+        toast.success('Patient marked as arrived');
+        onSuccess();
+      } catch {
+        // slip was printed — swallow the status update error silently
+      }
+    }
+  }
+
   const showSlots = mode !== 'emergency' && doctorId && apptDate;
 
   return (
@@ -240,7 +254,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         bookedSlip ? (
           <>
             <Button variant="secondary" onClick={handleClose}>Done</Button>
-            <Button onClick={() => printTokenSlip(bookedSlip)}>
+            <Button onClick={handlePrintAndArrive}>
               <Printer className="w-4 h-4" /> Print Slip
             </Button>
           </>
@@ -299,7 +313,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
             ))}
           </div>
 
-          <p className="text-xs text-[var(--color-text-secondary)]">Click <strong>Print Slip</strong> to print a token for the patient.</p>
+          <p className="text-xs text-[var(--color-text-secondary)]">Click <strong>Print Slip</strong> to print a token and mark the patient as <strong>arrived</strong>.</p>
         </div>
       )}
 
