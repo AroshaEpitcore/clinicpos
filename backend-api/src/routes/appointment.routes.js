@@ -85,22 +85,21 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
       }
     }
 
-    // For booked type, check if the time slot is already taken (prevents double-booking of online slots)
-    if (type === 'booked' && appointment_time) {
+    // Block any appointment type from taking an already-occupied time slot
+    if (appointment_time) {
       const conflict = await queryTenant(
         req.tenantSchema,
         `SELECT id FROM appointments
          WHERE doctor_id = $1
            AND appointment_date = $2
            AND appointment_time = $3
-           AND status NOT IN ('cancelled')
-           AND type = 'booked'`,
+           AND status NOT IN ('cancelled')`,
         [doctor_id, appointment_date, appointment_time]
       );
       if (conflict.rows.length > 0) {
         return res.status(409).json({
           status: 'error',
-          message: 'This time slot is already booked. Please select a different time.',
+          message: 'This time slot is already taken. Please select a different time.',
         });
       }
     }

@@ -80,14 +80,14 @@ router.get('/:id/slots', async (req, res) => {
       slot_duration_minutes
     );
 
-    // Get already-booked slots for that doctor on that date
+    // Get all taken time slots for that doctor on that date (any type, any non-cancelled status)
     const booked = await queryTenant(
       req.tenantSchema,
       `SELECT appointment_time FROM appointments
        WHERE doctor_id = $1
          AND appointment_date = $2
-         AND status NOT IN ('cancelled')
-         AND type = 'booked'`,
+         AND appointment_time IS NOT NULL
+         AND status != 'cancelled'`,
       [req.params.id, date]
     );
     const bookedTimes = new Set(booked.rows.map(r => r.appointment_time?.slice(0, 5)));
