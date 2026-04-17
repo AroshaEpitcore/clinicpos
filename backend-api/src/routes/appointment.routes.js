@@ -25,6 +25,9 @@ router.get('/', async (req, res) => {
   const { date, doctor_id, status } = req.query;
   if (!date) return res.status(400).json({ status: 'error', message: 'date is required' });
 
+  // Doctors can only see their own appointments — ignore any doctor_id param they send
+  const effectiveDoctorId = req.user.role === 'doctor' ? req.user.id : (doctor_id || null);
+
   try {
     const result = await queryTenant(
       req.tenantSchema,
@@ -34,7 +37,7 @@ router.get('/', async (req, res) => {
          a.booking_reference, a.booking_source,
          p.id           AS patient_id,
          p.patient_code,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.phone        AS patient_phone,
          p.allergies    AS patient_allergies,
          s.id           AS doctor_id,
@@ -55,7 +58,7 @@ router.get('/', async (req, res) => {
          CASE WHEN a.type = 'emergency' THEN 0 ELSE 1 END,
          a.token_number  ASC NULLS LAST,
          a.appointment_time ASC NULLS LAST`,
-      [date, doctor_id || null, status || '']
+      [date, effectiveDoctorId, status || '']
     );
 
     res.json({ status: 'success', data: result.rows });
@@ -143,7 +146,7 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
     res.status(201).json({
       status: 'success',
       message: type === 'emergency' ? 'Emergency patient added to queue' : 'Appointment created successfully',
-      data: { id: result.rows[0].id, booking_reference: bookingRef },
+      data: { id: result.rows[0].id, token_number: token, booking_reference: bookingRef },
     });
   } catch (err) {
     console.error(err);

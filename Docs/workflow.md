@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-16
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting complete.
+## Last updated: 2026-04-17
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement complete.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -62,7 +62,7 @@ End-of-Day closing — cash count vs system totals, lock the day
 #### Queue Management
 - Opens Appointments page each morning — today's date loaded by default
 - Date navigation (prev/next arrows, date picker, back-to-today button)
-- Doctor filter tabs appear automatically when multiple doctors are in the queue
+- **Doctor filter tabs** appear automatically when multiple doctors have appointments. Tabs always stay visible regardless of which tab is selected — all appointment data loads once, filtering is done client-side. No extra API call per tab click.
 - **Add to Queue** — opens AppointmentModal with three modes:
   - **Walk-in** — token number auto-assigned, time slot optional *(tab hidden if Allow Walk-ins is OFF in Settings → Appointments)*
   - **Book** — date + doctor + time slot grid (blocked on holidays / no schedule)
@@ -147,10 +147,11 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Online bookings shown with Globe icon badge + BK-XXXXXX reference number
 
 #### Queue View
-- Sees today's appointments, can filter to own name via doctor tab
+- **Sees only their own appointments** — the backend filters by `doctor_id = req.user.id` for doctor-role users regardless of any query parameters. Doctor filter tabs are hidden on the Appointments page when logged in as a doctor.
 - Cannot add to queue or change appointment status
-- **Consult button** appears on a row when status = `arrived` (doctor + admin only)
-- **Write Rx button** appears on a row when status = `completed` (doctor + admin only)
+- **Consult button** appears only on rows where status = `arrived` AND the appointment belongs to this doctor. Clicking Consult on another doctor's patient is blocked both in the UI and at the backend (403).
+- **Write Rx button** appears only on rows where status = `completed`, a consultation has been saved (`consultation_id` exists), AND the appointment belongs to this doctor. Standalone Rx without a consultation is not possible.
+- Writing a consultation auto-flips the appointment to `completed`
 
 #### Writing a Consultation
 - Click **Consult** on an arrived appointment → ConsultationModal opens

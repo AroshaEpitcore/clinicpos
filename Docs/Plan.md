@@ -169,9 +169,10 @@ Phase 7  →  Desktop version (later)
 | Patient list with search bar and filters | frontend | [x] |
 | Patient profile page (full history timeline) | frontend | [x] |
 | Phone number formatting — `xxx xxx xxxx` format on all inputs, 10-digit validation | both | [x] *(done 2026-04-16 — `format.js` helpers, all patient forms + AppointmentModal + StaffPage + BookingPage; backend normalizes on store and search)* |
+| Only first_name + phone required — last_name, date_of_birth, gender all optional | both | [x] *(done 2026-04-16 — `createTenantSchema.js` nullable columns; `migrate_optional_patient_fields.js` for existing schemas; `patient.routes.js` POST+PUT updated; RegisterPatientModal + EditPatientModal required fields removed)* |
 
-**Completed:** 2026-04-08 (base) — Phone formatting added 2026-04-16
-**Test:** Register new patient → appears in list. Search by phone → finds existing patient. Register same phone again → duplicate warning shown. Phone field auto-formats as `xxx xxx xxxx`, rejects non-10-digit numbers.
+**Completed:** 2026-04-08 (base) — Phone formatting + optional fields added 2026-04-16
+**Test:** Register new patient with only first name + phone → saves successfully. Search by phone → finds existing patient. Register same phone again → duplicate warning shown. Phone field auto-formats as `xxx xxx xxxx`, rejects non-10-digit numbers. Last name, DOB, gender can be left blank.
 
 ---
 
@@ -203,9 +204,10 @@ Phase 7  →  Desktop version (later)
 | Online booking page (public URL for patients) | frontend | [x] *(done in Phase 5.4 — `/book` public route, `BookingPage.jsx`, `portal.routes.js`)* |
 | Token slip after queue booking — confirmation screen + 80mm thermal print | frontend | [x] *(done 2026-04-16 — `printTokenSlip.js`, confirmation screen in AppointmentModal drawer)* |
 | Phone auto-suggest search in Add to Queue — live results after 5 digits | frontend | [x] *(done 2026-04-16 — debounced useEffect, 350ms)* |
+| Simplified Add to Queue — New Patient tab removed; auto-create patient on submit | frontend | [x] *(done 2026-04-16 — single phone search flow; first/last name shown only when no match; patient auto-created before appointment is saved)* |
 
-**Completed:** 2026-04-07 (base) — Token slip + phone search added 2026-04-16
-**Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date. After booking → confirmation screen shows token/ref + Print Slip button. Phone search shows results live after 5 digits.
+**Completed:** 2026-04-07 (base) — Token slip + phone search + queue simplification added 2026-04-16
+**Test:** Book appointment → appears in queue. Mark arrived → status updates live. Add emergency → appears at top. Holiday blocked — cannot book on that date. After booking → confirmation screen shows token/ref + Print Slip button. Phone search shows results live after 5 digits. No match → enter first name → patient auto-created and appointment booked in one step.
 
 ---
 

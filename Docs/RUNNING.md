@@ -107,6 +107,12 @@ node src/db/migrate_insurance.js
 
 # Patient Portal module (adds booking_reference, booking_source columns to appointments)
 node src/db/migrate_portal.js
+
+# Make patient last_name, date_of_birth, gender optional (NOT NULL dropped)
+node src/db/migrate_optional_patient_fields.js
+
+# Make prescriptions.consultation_id nullable (allows Rx without a consultation link)
+node src/db/migrate_prescription_consultation_nullable.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -254,7 +260,9 @@ clinicpos/
 │   │   │   ├── migrate_pharmacy.js — Phase 5.1 tables
 │   │   │   ├── migrate_lab.js      — Phase 5.2 tables
 │   │   │   ├── migrate_insurance.js — Phase 5.3 tables
-│   │   │   └── migrate_portal.js   — Phase 5.4 columns
+│   │   │   ├── migrate_portal.js   — Phase 5.4 columns
+│   │   │   ├── migrate_optional_patient_fields.js — drops NOT NULL from last_name/dob/gender
+│   │   │   └── migrate_prescription_consultation_nullable.js — drops NOT NULL from consultation_id
 │   │   └── index.js              — Express entry point
 │   ├── uploads/                  — Uploaded files (gitignored)
 │   ├── .env                      — Secrets (gitignored)

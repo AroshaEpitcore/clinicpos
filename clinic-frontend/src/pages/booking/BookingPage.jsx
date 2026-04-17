@@ -186,11 +186,20 @@ function ConfirmationCard({ booking, clinicName }) {
         </div>
       </div>
 
-      {/* Reference number */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-center">
-        <p className="text-xs font-medium text-blue-600 mb-1">Your Booking Reference</p>
-        <p className="text-3xl font-black text-blue-700 tracking-wider">{booking.booking_reference}</p>
-        <p className="text-xs text-blue-500 mt-1">Keep this number for your records</p>
+      {/* Token + Reference */}
+      <div className="flex gap-3 mb-5">
+        {booking.token_number != null && (
+          <div className="flex-1 bg-blue-600 rounded-xl p-4 text-center text-white">
+            <p className="text-xs font-semibold uppercase tracking-widest opacity-80 mb-1">Your Token</p>
+            <p className="text-5xl font-black leading-none">{String(booking.token_number).padStart(2, '0')}</p>
+            <p className="text-xs opacity-70 mt-1">Queue number</p>
+          </div>
+        )}
+        <div className={`${booking.token_number != null ? 'flex-1' : 'w-full'} bg-blue-50 border border-blue-200 rounded-xl p-4 text-center`}>
+          <p className="text-xs font-medium text-blue-600 mb-1">Booking Reference</p>
+          <p className="text-2xl font-black text-blue-700 tracking-wider">{booking.booking_reference}</p>
+          <p className="text-xs text-blue-500 mt-1">Keep for your records</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -101,7 +101,10 @@ export default function PatientList() {
       key: 'dob', header: 'Age / DOB',
       render: row => (
         <span className="text-sm">
-          {formatAge(row.date_of_birth)} &nbsp;·&nbsp; {formatDate(row.date_of_birth)}
+          {row.date_of_birth
+            ? <>{formatAge(row.date_of_birth)} &nbsp;·&nbsp; {formatDate(row.date_of_birth)}</>
+            : <span className="text-[var(--color-text-secondary)]">—</span>
+          }
         </span>
       ),
     },
@@ -169,7 +172,9 @@ export default function PatientList() {
                     <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{p.patient_code}</span>
                   </p>
                   <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    {p.phone} &nbsp;·&nbsp; {formatAge(p.date_of_birth)} &nbsp;·&nbsp; {p.gender}
+                    {p.phone}
+                    {p.date_of_birth && <> &nbsp;·&nbsp; {formatAge(p.date_of_birth)}</>}
+                    {p.gender && <> &nbsp;·&nbsp; {p.gender}</>}
                     {p.allergies && <span className="text-[var(--color-danger)] ml-2">⚠ {p.allergies}</span>}
                   </p>
                 </div>

@@ -20,6 +20,11 @@ router.post('/', requireRole('doctor', 'nurse', 'admin'), async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
   }
 
+  // Doctors can only write consultations for their own appointments
+  if (req.user.role === 'doctor' && String(doctor_id) !== String(req.user.id)) {
+    return res.status(403).json({ status: 'error', message: 'You can only write consultations for your own patients' });
+  }
+
   try {
     // Check for existing consultation on this appointment (prevent duplicates)
     if (appointment_id) {
@@ -109,7 +114,7 @@ router.get('/', async (req, res) => {
       `SELECT
          c.id, c.visit_date, c.chief_complaint, c.diagnosis, c.icd_code,
          c.follow_up_date, c.created_at,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.id AS patient_id, p.allergies,
          s.full_name AS doctor_name, s.id AS doctor_id
        FROM consultations c
@@ -158,7 +163,7 @@ router.get('/:id', async (req, res) => {
       req.tenantSchema,
       `SELECT
          c.*,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.phone, p.date_of_birth, p.gender, p.allergies,
          p.blood_group,
          s.full_name   AS doctor_name,

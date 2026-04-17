@@ -280,7 +280,7 @@ router.get('/dispense', async (req, res) => {
       req.tenantSchema,
       `SELECT rx.id, rx.rx_number, rx.is_dispensed, rx.dispensed_at,
               rx.created_at,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code,
               p.allergies,
               d.full_name AS doctor_name,

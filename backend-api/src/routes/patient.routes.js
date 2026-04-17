@@ -97,7 +97,7 @@ router.get('/', async (req, res) => {
               last_name     ILIKE $1 OR
               phone         ILIKE $1 OR
               patient_code  ILIKE $1 OR
-              (first_name || ' ' || last_name) ILIKE $1
+              (first_name || COALESCE(' ' || last_name, '')) ILIKE $1
          )`,
       [searchParam]
     );
@@ -114,7 +114,7 @@ router.get('/', async (req, res) => {
               last_name     ILIKE $1 OR
               phone         ILIKE $1 OR
               patient_code  ILIKE $1 OR
-              (first_name || ' ' || last_name) ILIKE $1
+              (first_name || COALESCE(' ' || last_name, '')) ILIKE $1
          )
        ORDER BY created_at DESC
        LIMIT $2 OFFSET $3`,
@@ -148,8 +148,9 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     national_id, insurance_provider, insurance_number,
   } = req.body;
 
-  if (!first_name || !last_name || !date_of_birth || !gender || !phone) {
-    return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
+  // Only first_name and phone are required — everything else is optional
+  if (!first_name || !phone) {
+    return res.status(400).json({ status: 'error', message: 'First name and phone number are required' });
   }
 
   const phoneDigits = normalizePhone(phone);
@@ -176,8 +177,8 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
        RETURNING *`,
       [
         patient_code,
-        first_name.trim(), last_name.trim(),
-        date_of_birth, gender, phoneDigits,
+        first_name.trim(), last_name?.trim() || null,
+        date_of_birth || null, gender || null, phoneDigits,
         email || null, address || null, blood_group || null, allergies || null,
         emergency_name || null, emergencyPhoneDigits || null,
         national_id || null, insurance_provider || null, insurance_number || null,
@@ -236,8 +237,9 @@ router.put('/:id', requireRole('receptionist', 'admin'), async (req, res) => {
     national_id, insurance_provider, insurance_number,
   } = req.body;
 
-  if (!first_name || !last_name || !date_of_birth || !gender || !phone) {
-    return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
+  // Only first_name and phone are required — everything else is optional
+  if (!first_name || !phone) {
+    return res.status(400).json({ status: 'error', message: 'First name and phone number are required' });
   }
 
   const phoneDigits = normalizePhone(phone);
@@ -261,7 +263,7 @@ router.put('/:id', requireRole('receptionist', 'admin'), async (req, res) => {
        WHERE id=$15 AND is_active=TRUE
        RETURNING *`,
       [
-        first_name.trim(), last_name.trim(), date_of_birth, gender, phoneDigits,
+        first_name.trim(), last_name?.trim() || null, date_of_birth || null, gender || null, phoneDigits,
         email || null, address || null, blood_group || null, allergies || null,
         emergency_name || null, emergencyPhoneDigits || null,
         national_id || null, insurance_provider || null, insurance_number || null,

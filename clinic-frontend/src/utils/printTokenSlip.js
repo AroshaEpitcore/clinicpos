@@ -28,7 +28,8 @@ export function printTokenSlip(slip) {
 
   const formatDate = (d) => {
     if (!d) return '';
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', {
+    const clean = String(d).slice(0, 10); // handles both 'YYYY-MM-DD' and full ISO strings
+    return new Date(clean + 'T00:00:00').toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric',
     });
   };
@@ -99,25 +100,25 @@ export function printTokenSlip(slip) {
     /* Big token */
     .token-box {
       text-align: center;
-      padding: 6px 0 4px;
+      padding: 8px 0 6px;
     }
     .token-label {
       font-size: 9px;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: #555;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
     .token-number {
-      font-size: 52px;
+      font-size: 72px;
       font-weight: 900;
       line-height: 1;
-      letter-spacing: -2px;
+      letter-spacing: -3px;
     }
     .token-ref {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
     }
 
     /* Info rows */

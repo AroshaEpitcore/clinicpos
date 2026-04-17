@@ -15,6 +15,12 @@ router.post('/', requireRole('doctor', 'admin'), async (req, res) => {
   if (!patient_id || !doctor_id) {
     return res.status(400).json({ status: 'error', message: 'patient_id and doctor_id are required' });
   }
+
+  // Doctors can only write prescriptions for their own patients
+  if (req.user.role === 'doctor' && String(doctor_id) !== String(req.user.id)) {
+    return res.status(403).json({ status: 'error', message: 'You can only write prescriptions for your own patients' });
+  }
+
   if (!items.length) {
     return res.status(400).json({ status: 'error', message: 'At least one medicine is required' });
   }
@@ -161,7 +167,7 @@ router.get('/', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pr.id, pr.rx_number, pr.created_at,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.id AS patient_id,
          s.full_name AS doctor_name,
          COUNT(pi.id) AS item_count
@@ -190,7 +196,7 @@ router.get('/:id', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pr.id, pr.rx_number, pr.created_at, pr.notes,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.date_of_birth, p.gender, p.phone, p.allergies,
          p.id AS patient_id,
          s.full_name AS doctor_name, s.specialization,

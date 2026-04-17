@@ -38,6 +38,8 @@
 | Token Slip Printing | ✅ 80mm thermal printer slip after Add to Queue — token number or booking ref (2026-04-16) |
 | Phone Number Formatting | ✅ 10-digit validation + `xxx xxx xxxx` format across all inputs + backend normalization (2026-04-16) |
 | Phone Search Fix + Auto-suggest | ✅ Formatted phone now matches stored digits; live search after 5 digits (2026-04-16) |
+| Patient Registration Simplification | ✅ Only first_name + phone required everywhere; all other fields optional; New Patient tab removed from Add to Queue drawer; auto-create on submit (2026-04-16) |
+| Queue & Sync Bug Fixes | ✅ Queue redesign, portal-backend token/slot sync, doctor ownership enforcement, doctor tab fix, nullable consultation_id on prescriptions (2026-04-16) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -88,6 +90,47 @@
 
 ---
 
+## Patient Registration Simplification (2026-04-16)
+
+> Only first name and mobile number are required. All other patient fields are optional. New Patient tab removed from Add to Queue drawer — a patient is auto-created the moment staff submit any of the three queue actions (walk-in, booked appointment, emergency).
+
+### Problem
+Registering a patient required last name, date of birth, and gender — slow for front desk, blocked quick-add to queue. "New Patient" tab in the Add to Queue drawer was verbose and duplicated the full registration form.
+
+### Changes Made
+
+| Change | Files affected | Notes |
+|--------|---------------|-------|
+| `patients` table — nullable fields | `createTenantSchema.js` | Dropped `NOT NULL` from `last_name`, `date_of_birth`, `gender` for all new tenant schemas. |
+| Migration for existing schemas | `src/db/migrate_optional_patient_fields.js` (NEW) | One-time script that ALTERs all existing `tenant_*` schemas to drop NOT NULL from those three columns. Run once: `node src/db/migrate_optional_patient_fields.js` |
+| Backend POST patients | `patient.routes.js` | Only `first_name` + `phone` required. `last_name`, `date_of_birth`, `gender` accepted but all `\|\| null`. |
+| Backend PUT patients | `patient.routes.js` | Same — only `first_name` + `phone` enforced. |
+| Portal public booking | `portal.routes.js` | Auto-create no longer inserts `gender='unknown'` placeholder; `last_name` uses `\|\| null`. Phone lookup normalizes digits before query. |
+| RegisterPatientModal | `RegisterPatientModal.jsx` | Removed `required` rule and error display from Last Name, Date of Birth, Gender fields. Only First Name + Phone still required. |
+| EditPatientModal | `EditPatientModal.jsx` | Same — Last Name, Date of Birth, Gender all optional. |
+| AppointmentModal — removed New Patient tab | `AppointmentModal.jsx` | Entire tab system removed. Single flow: phone input → live search → select existing OR type first name to auto-create. `newPhone`, `newGender`, `newDob`, `newDuplicates`, `newConfirmed`, `patientTab` states all removed. |
+| AppointmentModal — auto-create on submit | `AppointmentModal.jsx` | If no existing patient selected: validates phone + first name → calls `patientsApi.create()` inline, then books appointment. No separate form — first/last name fields appear only when search returns no results. |
+
+### New patient auto-create pattern (AppointmentModal)
+```js
+if (!resolvedPatient) {
+  const res = await patientsApi.create({
+    first_name: newFirst.trim(),
+    last_name:  newLast.trim() || undefined,
+    phone:      phoneInput.replace(/\D/g, ''),
+  });
+  resolvedPatient = res.data.data;
+}
+// Then proceed to create appointment with resolvedPatient.id
+```
+
+### Migration command (run once on dev DB)
+```bash
+node src/db/migrate_optional_patient_fields.js
+```
+
+---
+
 ## Phone Number Formatting + Search Fix + Auto-suggest (2026-04-16)
 
 > Session covering consistent phone formatting across all inputs, backend normalization, search match fix, and live auto-suggest.
@@ -127,6 +170,57 @@ useEffect(() => {
   }, 350);
 }, [phoneInput, patientTab, patient]);
 ```
+
+---
+
+## Queue & Sync Bug Fixes (2026-04-16)
+
+> Multiple bugs fixed in a single session: queue redesign, portal-backend token/slot sync, doctor ownership enforcement, nullable prescription constraint, and doctor filter tab disappearing.
+
+### Problems fixed
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | AppointmentModal crash on open | `DatePicker` imported from wrong path (or not at all) + stale `switchToNew()` function calling deleted state setters | Added correct import; removed dead `switchToNew()` function |
+| 2 | Queue table data not clear; token number too small | Token column was inline text, no visual hierarchy | QueueRow redesigned: `w-20` left sidebar with `text-5xl font-black` token, colour-coded by type (blue=walk-in, red=emergency) |
+| 3 | Token slip showed "Invalid Date" | Date `"2026-04-16T00:00:00.000Z"` + `"T00:00:00"` appended = invalid ISO | `String(d).slice(0, 10)` normalises to `YYYY-MM-DD` before parsing |
+| 4 | Token slip number too small for doctor to read at a glance | Default 52px font | Token font increased to 72px |
+| 5 | Online bookings had no token number | Portal POST didn't call `nextToken()` | Added `nextToken()` helper to `portal.routes.js`; portal INSERT now includes `token_number`; confirmation card shows token |
+| 6 | Portal slot availability allowed double-booking of walk-in times | Slot query filtered `AND type = 'booked'` — missed walk-ins at same time | Changed to `AND appointment_time IS NOT NULL` in both the availability query and conflict check |
+| 7 | Portal confirmation showed typed name ("Kumudu"), not DB name ("shamantha") | Response used `req.body.patient_name` | Introduced `resolvedPatientName` — set from DB lookup when existing patient found |
+| 8 | Patient name returned NULL for patients with no last name | `first_name \|\| ' ' \|\| last_name` returns NULL when last_name IS NULL in PostgreSQL | Changed to `first_name \|\| COALESCE(' ' \|\| last_name, '')` across all 7 route files |
+| 9 | Prescription POST returned 500 (NOT NULL violation on `consultation_id`) | `prescriptions.consultation_id` had `NOT NULL` constraint | Removed NOT NULL from `createTenantSchema.js`; added migration `migrate_prescription_consultation_nullable.js` for existing schemas |
+| 10 | "Rx" button appeared even when no consultation existed | `canWriteRx` didn't check `appt.consultation_id` | Added `!!appt.consultation_id` guard to `canWriteRx` |
+| 11 | Doctor "indika" could open Consult on Dr. James Silva's patients | No ownership check in UI or backend | Frontend: `isOwnAppt = user?.role === 'admin' \|\| String(appt.doctor_id) === String(user?.id)` guards `canConsult`/`canWriteRx`; Backend: 403 check added to both `consultation.routes.js` and `prescription.routes.js` POST handlers |
+| 12 | Doctor filter tabs disappeared when clicking non-"All" tab | `load()` passed `doctor_id` to API → smaller result set → `doctorsInQueue` re-filtered from shrunken list → other tabs vanished | Removed `doctor_id` from API call; all doctor filtering is now client-side |
+
+### Architecture decisions
+
+- **Client-side doctor tab filter** — all appointments for the day load once (`load({ date })`). Tabs filter `appointments` array in memory. One API call per date navigation, zero per tab switch. Backend `effectiveDoctorId` still enforces role isolation so doctors can't bypass via direct API calls.
+- **Doctor ownership two-layer enforcement** — frontend hides/disables buttons for `isOwnAppt === false`; backend returns 403 if `req.user.role === 'doctor' && doctor_id !== req.user.id`. Belt and suspenders.
+- **Portal slot conflict check uses `appointment_time IS NOT NULL`** — any appointment (walk-in, booked, emergency) that has a time blocks that slot. Previously only `type='booked'` was excluded, allowing walk-in double-booking.
+
+### Migration commands (run once)
+
+```bash
+# Drop NOT NULL from prescription.consultation_id on all existing tenant schemas
+node src/db/migrate_prescription_consultation_nullable.js
+```
+
+### Files changed
+
+| File | Change summary |
+|------|---------------|
+| `AppointmentsPage.jsx` | Removed `doctor_id` from `load()`; client-side `filtered`; `doctorsInQueue` from full list; doctor tabs hidden for doctor role; `isOwnAppt` ownership guard; QueueRow token column redesign; `onPrint` prop plumbed |
+| `printTokenSlip.js` | Token font 72px; date normaliser `slice(0,10)` fix |
+| `appointment.routes.js` | `COALESCE(' ' \|\| last_name, '')` fix; `effectiveDoctorId` enforces doctor isolation |
+| `portal.routes.js` | `nextToken()` added; slot queries use `appointment_time IS NOT NULL`; `resolvedPatientName` from DB; `token_number` in INSERT and response |
+| `consultation.routes.js` | `COALESCE` patient_name fix; doctor ownership 403 check |
+| `prescription.routes.js` | `COALESCE` patient_name fix; doctor ownership 403 check |
+| `patient.routes.js` | `COALESCE` patient_name fix in search queries |
+| `pharmacy.routes.js`, `insurance.routes.js`, `lab.routes.js` | `COALESCE` patient_name fix |
+| `createTenantSchema.js` | `consultation_id UUID REFERENCES consultations(id)` — removed NOT NULL |
+| `migrate_prescription_consultation_nullable.js` | NEW — one-time migration to drop NOT NULL on existing schemas |
 
 ---
 
@@ -235,6 +329,8 @@ useEffect(() => {
 | Phase 5.4 | Patient Portal — public online booking, BK-XXXXXX reference, Settings toggle, enhanced Doctor dashboard | ✅ Complete (2026-04-15) |
 | Token Slip | 80mm thermal printer slip after Add to Queue — confirmation screen + Print Slip button | ✅ Complete (2026-04-16) |
 | Phone Formatting | 10-digit validation, `xxx xxx xxxx` format, backend normalization, auto-suggest search | ✅ Complete (2026-04-16) |
+| Patient Reg. Simplification | first_name + phone only required; optional last_name/DOB/gender; auto-create in queue drawer | ✅ Complete (2026-04-16) |
+| Queue & Sync Bug Fixes | Queue redesign, portal-backend sync, doctor ownership, doctor tab fix, prescription/consult fixes | ✅ Complete (2026-04-16) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

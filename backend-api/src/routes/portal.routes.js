@@ -15,6 +15,18 @@ const { nextBookingReference } = require('../utils/bookingReference');
 const router = express.Router();
 router.use(tenantMiddleware);
 
+// ── Helper: next token number for a doctor on a date ─────────────────────────
+async function nextToken(schema, doctorId, date) {
+  const r = await queryTenant(
+    schema,
+    `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
+     FROM appointments
+     WHERE doctor_id = $1 AND appointment_date = $2`,
+    [doctorId, date]
+  );
+  return r.rows[0].next;
+}
+
 // ── Helper: generate slot times ───────────────────────────────────────────────
 function generateSlots(startTime, endTime, durationMinutes) {
   const slots = [];
@@ -128,14 +140,14 @@ router.get('/doctors/:id/slots', async (req, res) => {
       slot_duration_minutes
     );
 
-    // Already booked slots for this doctor on this date
+    // All taken time slots for this doctor on this date (any type — walk-in, booked, online)
     const booked = await queryTenant(
       req.tenantSchema,
       `SELECT appointment_time FROM appointments
        WHERE doctor_id = $1
          AND appointment_date = $2
          AND status NOT IN ('cancelled')
-         AND type = 'booked'`,
+         AND appointment_time IS NOT NULL`,
       [req.params.id, date]
     );
     const bookedTimes = new Set(booked.rows.map(r => r.appointment_time?.slice(0, 5)));
@@ -190,7 +202,7 @@ router.post('/book', async (req, res) => {
       });
     }
 
-    // Slot conflict check — prevent double booking
+    // Slot conflict check — prevent double booking (any appointment type at this time)
     const conflict = await queryTenant(
       req.tenantSchema,
       `SELECT id FROM appointments
@@ -198,7 +210,7 @@ router.post('/book', async (req, res) => {
          AND appointment_date = $2
          AND appointment_time = $3
          AND status NOT IN ('cancelled')
-         AND type = 'booked'`,
+         AND appointment_time IS NOT NULL`,
       [doctor_id, appointment_date, appointment_time]
     );
     if (conflict.rows.length > 0) {
@@ -208,49 +220,57 @@ router.post('/book', async (req, res) => {
       });
     }
 
-    // Find or create patient by phone number
+    // Find or create patient by phone number (normalize digits to match stored format)
+    const phoneDigits = patient_phone.replace(/\D/g, '');
     const existing = await queryTenant(
       req.tenantSchema,
-      `SELECT id FROM patients WHERE phone = $1 LIMIT 1`,
-      [patient_phone.trim()]
+      `SELECT id, first_name, last_name FROM patients WHERE phone = $1 LIMIT 1`,
+      [phoneDigits]
     );
 
     let patientId;
+    let resolvedPatientName;
     if (existing.rows.length > 0) {
-      patientId = existing.rows[0].id;
+      // Use existing patient — return their actual name, not what was typed
+      const p = existing.rows[0];
+      patientId = p.id;
+      resolvedPatientName = p.first_name + (p.last_name ? ' ' + p.last_name : '');
     } else {
-      // Create minimal patient record
+      // Create minimal patient record — only first_name and phone are required
       const nameParts = patient_name.trim().split(' ');
       const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' ') || '-';
+      const lastName = nameParts.slice(1).join(' ') || null;
       const code = await nextPatientCode(req.tenantSchema);
 
       const newPatient = await queryTenant(
         req.tenantSchema,
         `INSERT INTO patients
-           (patient_code, first_name, last_name, phone, date_of_birth, gender)
-         VALUES ($1, $2, $3, $4, $5, 'unknown')
+           (patient_code, first_name, last_name, phone, date_of_birth)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id`,
-        [code, firstName, lastName, patient_phone.trim(), patient_dob || null]
+        [code, firstName, lastName, patient_phone.replace(/\D/g, ''), patient_dob || null]
       );
       patientId = newPatient.rows[0].id;
+      resolvedPatientName = patient_name.trim();
     }
 
-    // Generate booking reference
-    const bookingRef = await nextBookingReference(req.tenantSchema);
+    // Generate booking reference and assign token number
+    const bookingRef  = await nextBookingReference(req.tenantSchema);
+    const tokenNumber = await nextToken(req.tenantSchema, doctor_id, appointment_date);
 
     // Create appointment
     await queryTenant(
       req.tenantSchema,
       `INSERT INTO appointments
          (patient_id, doctor_id, appointment_date, appointment_time,
-          type, status, reason, booked_online, booking_reference, booking_source)
-       VALUES ($1,$2,$3,$4,'booked','pending',$5,TRUE,$6,'online')`,
+          token_number, type, status, reason, booked_online, booking_reference, booking_source)
+       VALUES ($1,$2,$3,$4,$5,'booked','pending',$6,TRUE,$7,'online')`,
       [
         patientId,
         doctor_id,
         appointment_date,
         appointment_time,
+        tokenNumber,
         reason || null,
         bookingRef,
       ]
@@ -269,11 +289,12 @@ router.post('/book', async (req, res) => {
       message: 'Appointment booked successfully',
       data: {
         booking_reference: bookingRef,
+        token_number: tokenNumber,
         doctor_name: doctor.full_name,
         specialization: doctor.specialization,
         appointment_date,
         appointment_time,
-        patient_name,
+        patient_name: resolvedPatientName,
         patient_phone,
         reason: reason || null,
       },
@@ -293,7 +314,7 @@ router.get('/booking/:reference', async (req, res) => {
       `SELECT
          a.id, a.booking_reference, a.appointment_date, a.appointment_time,
          a.status, a.reason, a.type,
-         p.first_name || ' ' || p.last_name AS patient_name,
+         p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.phone AS patient_phone,
          s.full_name AS doctor_name,
          s.specialization

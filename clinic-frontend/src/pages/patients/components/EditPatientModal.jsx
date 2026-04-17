@@ -64,14 +64,13 @@ export function EditPatientModal({ patient, onClose, onSuccess }) {
         <div className="grid grid-cols-2 gap-4">
           <Input label="First Name" required error={errors.first_name?.message}
             {...register('first_name', { required: 'First name is required' })} />
-          <Input label="Last Name" required error={errors.last_name?.message}
-            {...register('last_name', { required: 'Last name is required' })} />
-          <DatePicker label="Date of Birth" required
+          <Input label="Last Name"
+            {...register('last_name')} />
+          <DatePicker label="Date of Birth"
             max={new Date().toISOString().slice(0, 10)}
             value={watch('date_of_birth') || ''}
-            onChange={v => setValue('date_of_birth', v, { shouldValidate: true })}
-            error={errors.date_of_birth?.message} />
-          <Select label="Gender" required options={GENDERS}
+            onChange={v => setValue('date_of_birth', v)} />
+          <Select label="Gender" options={GENDERS}
             value={watch('gender')} onValueChange={v => setValue('gender', v)} />
           <Input label="Phone Number" required error={errors.phone?.message}
             placeholder="077 123 4567"

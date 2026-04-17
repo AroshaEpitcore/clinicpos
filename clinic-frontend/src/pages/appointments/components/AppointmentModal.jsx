@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Phone, Zap, UserPlus, Search, AlertTriangle, RefreshCw, Printer } from 'lucide-react';
-import { Drawer }     from '../../../components/ui/Drawer';
-import { Button }     from '../../../components/ui/Button';
-import { Input }      from '../../../components/ui/Input';
-import { Select }     from '../../../components/ui/Select';
+import { Phone, Zap, Search, RefreshCw, Printer } from 'lucide-react';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { Spinner }    from '../../../components/ui/Spinner';
+import { Drawer }  from '../../../components/ui/Drawer';
+import { Button }  from '../../../components/ui/Button';
+import { Select }  from '../../../components/ui/Select';
+import { Spinner } from '../../../components/ui/Spinner';
 import { appointmentsApi, doctorsApi } from '../../../api/appointments';
 import { patientsApi } from '../../../api/patients';
 import { useAuth }    from '../../../store/AuthContext';
@@ -18,12 +17,6 @@ const MODES = [
   { value: 'walkin',    label: 'Walk-in' },
   { value: 'booked',    label: 'Book Appointment' },
   { value: 'emergency', label: '⚡ Emergency' },
-];
-
-const GENDER_OPTIONS = [
-  { value: 'male',   label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other',  label: 'Other' },
 ];
 
 export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowWalkIns = true }) {
@@ -42,23 +35,17 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   const [selectedSlot, setSelectedSlot] = useState('');
 
   // Patient
-  const [patientTab,    setPatientTab]    = useState('search');
   const [phoneInput,    setPhoneInput]    = useState('');
   const [searching,     setSearching]     = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched,   setHasSearched]   = useState(false);
   const [patient,       setPatient]       = useState(null);
 
-  // New patient inline form
-  const [newFirst,  setNewFirst]  = useState('');
-  const [newLast,   setNewLast]   = useState('');
-  const [newPhone,  setNewPhone]  = useState('');
-  const [newGender, setNewGender] = useState('');
-  const [newDob,    setNewDob]    = useState('');
+  // Auto-register inline (shown only when phone search returns no results)
+  const [newFirst, setNewFirst] = useState('');
+  const [newLast,  setNewLast]  = useState('');
 
-  const [newDuplicates, setNewDuplicates] = useState([]);
-  const [newConfirmed,  setNewConfirmed]  = useState(false);
-  const [fieldErrors,   setFieldErrors]   = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const { register, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: { appointment_date: today, doctor_id: '', reason: '' },
@@ -70,11 +57,13 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   // Auto-suggest: search as user types once ≥5 digits are entered
   const searchTimerRef = useRef(null);
   useEffect(() => {
-    if (patientTab !== 'search' || patient) return;
+    if (patient) return;
     const digits = phoneInput.replace(/\D/g, '');
     if (digits.length < 5) {
       setSearchResults([]);
       setHasSearched(false);
+      setNewFirst('');
+      setNewLast('');
       return;
     }
     clearTimeout(searchTimerRef.current);
@@ -92,7 +81,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       }
     }, 350);
     return () => clearTimeout(searchTimerRef.current);
-  }, [phoneInput, patientTab, patient]);
+  }, [phoneInput, patient]);
 
   // Load doctors when drawer opens
   useEffect(() => {
@@ -135,12 +124,6 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     setSearchResults([]);
   }
 
-  function switchToNew() {
-    setPatientTab('new');
-    setNewPhone(phoneInput);
-    setSearchResults([]);
-  }
-
   async function searchPatient() {
     const digits = phoneInput.replace(/\D/g, '');
     if (!digits) return;
@@ -163,16 +146,14 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     clearTimeout(searchTimerRef.current);
     reset({ appointment_date: today, doctor_id: '', reason: '' });
     setPatient(null);
-    setPatientTab('search');
     setPhoneInput('');
     setSearchResults([]);
     setHasSearched(false);
     setSlots([]);
     setSelectedSlot('');
     setMode(allowWalkIns ? 'walkin' : 'booked');
-    setNewFirst(''); setNewLast(''); setNewPhone('');
-    setNewGender(''); setNewDob('');
-    setNewDuplicates([]); setNewConfirmed(false);
+    setNewFirst('');
+    setNewLast('');
     setFieldErrors({});
     setBookedSlip(null);
     onClose();
@@ -182,40 +163,31 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     const errs = {};
     let resolvedPatient = patient;
 
-    if (!resolvedPatient && patientTab === 'search') errs.patient = 'Please search and select a patient';
-    if (patientTab === 'new' && !patient) {
-      if (!newFirst.trim())  errs.newFirst  = 'Required';
-      if (!newLast.trim())   errs.newLast   = 'Required';
-      if (!newPhone.trim()) {
-        errs.newPhone = 'Required';
-      } else if (newPhone.replace(/\D/g, '').length !== 10) {
-        errs.newPhone = 'Phone must be 10 digits';
+    if (!resolvedPatient) {
+      const digits = phoneInput.replace(/\D/g, '');
+      if (!digits) {
+        errs.phone = 'Phone number is required';
+      } else if (digits.length !== 10) {
+        errs.phone = 'Must be exactly 10 digits';
+      } else if (searchResults.length > 0) {
+        errs.phone = 'Please select a patient from the list';
+      } else if (!newFirst.trim()) {
+        errs.newFirst = 'First name is required to register this patient';
       }
-      if (!newGender)        errs.newGender = 'Required';
-      if (!newDob)           errs.newDob    = 'Required';
     }
     if (!data.doctor_id) errs.doctor = 'Please select a doctor';
-
-    // Slot required for booked mode
     if (mode === 'booked' && !selectedSlot) errs.slot = 'Please select a time slot';
 
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
     setFieldErrors({});
 
-    // Create new patient on the fly if needed
-    if (patientTab === 'new' && !patient) {
-      if (!newConfirmed) {
-        try {
-          const dupRes = await patientsApi.checkDuplicate({
-            phone: newPhone.replace(/\D/g, ''), first_name: newFirst.trim(), last_name: newLast.trim(),
-          });
-          if (dupRes.data.data.length > 0) { setNewDuplicates(dupRes.data.data); return; }
-        } catch { /* proceed */ }
-      }
+    // Auto-create patient if no existing patient was selected
+    if (!resolvedPatient) {
       try {
         const res = await patientsApi.create({
-          first_name: newFirst.trim(), last_name: newLast.trim(),
-          phone: newPhone.trim(), gender: newGender, date_of_birth: newDob,
+          first_name: newFirst.trim(),
+          last_name:  newLast.trim() || undefined,
+          phone:      phoneInput.replace(/\D/g, ''),
         });
         resolvedPatient = res.data.data;
       } catch (err) {
@@ -367,146 +339,76 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
                 </p>
                 <p className="text-xs text-[var(--color-text-secondary)]">{patient.phone}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => { setPatient(null); setPatientTab('search'); }}>Change</Button>
+              <Button variant="ghost" size="sm" onClick={() => {
+                setPatient(null); setPhoneInput('');
+                setSearchResults([]); setHasSearched(false);
+                setNewFirst(''); setNewLast('');
+              }}>Change</Button>
             </div>
           ) : (
             <>
-              {/* Search / New tabs */}
-              <div className="flex rounded-[var(--radius-sm)] border border-[var(--color-border)] overflow-hidden mb-3">
-                <button type="button" onClick={() => setPatientTab('search')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-                    patientTab === 'search' ? 'bg-[var(--color-primary)] text-white' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
-                  }`}>
-                  <Search className="w-3.5 h-3.5" /> Search Existing
-                </button>
-                <button type="button" onClick={() => { setPatientTab('new'); setNewDuplicates([]); setNewConfirmed(false); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-                    patientTab === 'new' ? 'bg-[var(--color-primary)] text-white' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
-                  }`}>
-                  <UserPlus className="w-3.5 h-3.5" /> New Patient
-                </button>
+              {/* Phone search */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+                  <input type="text" inputMode="numeric" placeholder="077 123 4567"
+                    value={phoneInput}
+                    onChange={e => { setPhoneInput(formatPhoneInput(e.target.value)); setHasSearched(false); setNewFirst(''); setNewLast(''); }}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatient())}
+                    className={`w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.phone ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
+                  />
+                </div>
+                <Button type="button" variant="secondary" size="md" onClick={searchPatient} loading={searching}>
+                  <Search className="w-4 h-4" />
+                </Button>
               </div>
+              {fieldErrors.phone && <p className="text-xs text-[var(--color-danger)] mt-1">{fieldErrors.phone}</p>}
 
-              {/* Search tab */}
-              {patientTab === 'search' && (
-                <>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-                      <input type="text" inputMode="numeric" placeholder="077 123 4567"
-                        value={phoneInput}
-                        onChange={e => { setPhoneInput(formatPhoneInput(e.target.value)); setHasSearched(false); }}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatient())}
-                        className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)]"
-                      />
-                    </div>
-                    <Button type="button" variant="secondary" size="md" onClick={searchPatient} loading={searching}>Search</Button>
-                  </div>
-
-                  {searching && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-[var(--color-text-secondary)]">
-                      <Spinner size="sm" /> Searching...
-                    </div>
-                  )}
-
-                  {searchResults.length > 0 && (
-                    <div className="mt-2 border border-[var(--color-border)] rounded-[var(--radius)] overflow-hidden">
-                      {searchResults.map(p => (
-                        <button key={p.id} type="button" onClick={() => selectPatient(p)}
-                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-[var(--color-primary-light)] border-b border-[var(--color-border)] last:border-0 transition-colors">
-                          <span className="font-medium">{p.first_name} {p.last_name}</span>
-                          <span className="text-[var(--color-text-secondary)] ml-2 text-xs">{p.phone} · {p.patient_code}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {hasSearched && searchResults.length === 0 && !searching && (
-                    <div className="mt-2 p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-between">
-                      <p className="text-xs text-[var(--color-text-secondary)]">
-                        No patient found for <strong>{phoneInput}</strong>
-                      </p>
-                      <button type="button" onClick={switchToNew}
-                        className="text-xs text-[var(--color-primary)] font-medium hover:underline flex items-center gap-1">
-                        <UserPlus className="w-3.5 h-3.5" /> Register New
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* New patient tab */}
-              {patientTab === 'new' && (
-                <div className="flex flex-col gap-3 p-3 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)]">
-                  {newDuplicates.length > 0 ? (
-                    <div className="rounded-[var(--radius)] border border-[var(--color-warning)] bg-[var(--color-warning-light)] p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
-                        <p className="text-xs font-semibold text-[var(--color-warning)]">Possible duplicate</p>
-                      </div>
-                      <div className="flex flex-col gap-1.5 mb-3">
-                        {newDuplicates.map(dup => (
-                          <button key={dup.id} type="button" onClick={() => { setPatient(dup); setNewDuplicates([]); }}
-                            className="w-full text-left px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-surface)] border border-[var(--color-border)] text-sm hover:border-[var(--color-primary)] transition-colors">
-                            <span className="font-medium">{dup.first_name} {dup.last_name}</span>
-                            <span className="text-[var(--color-text-secondary)] ml-2 text-xs">{dup.phone} · {dup.patient_code}</span>
-                          </button>
-                        ))}
-                      </div>
-                      <button type="button" onClick={() => { setNewConfirmed(true); setNewDuplicates([]); }}
-                        className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] underline">
-                        None of these — register anyway
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-xs text-[var(--color-text-secondary)]">
-                        Patient will be registered when you submit.
-                        {newConfirmed && <span className="text-[var(--color-warning)] ml-1">(Duplicate check skipped)</span>}
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-[var(--color-text)]">First Name <span className="text-[var(--color-danger)]">*</span></label>
-                          <input type="text" value={newFirst}
-                            onChange={e => { setNewFirst(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newFirst: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newFirst ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
-                          />
-                          {fieldErrors.newFirst && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newFirst}</span>}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-[var(--color-text)]">Last Name <span className="text-[var(--color-danger)]">*</span></label>
-                          <input type="text" value={newLast}
-                            onChange={e => { setNewLast(e.target.value); setNewConfirmed(false); setFieldErrors(p => ({...p, newLast: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newLast ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
-                          />
-                          {fieldErrors.newLast && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newLast}</span>}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-[var(--color-text)]">Phone <span className="text-[var(--color-danger)]">*</span></label>
-                          <input type="text" inputMode="numeric" placeholder="077 123 4567" value={newPhone}
-                            onChange={e => { setNewPhone(formatPhoneInput(e.target.value)); setNewConfirmed(false); setFieldErrors(p => ({...p, newPhone: undefined})); }}
-                            className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newPhone ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
-                          />
-                          {fieldErrors.newPhone && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newPhone}</span>}
-                        </div>
-                        <Select label="Gender" required options={GENDER_OPTIONS} value={newGender}
-                          onValueChange={v => { setNewGender(v); setFieldErrors(p => ({...p, newGender: undefined})); }}
-                          placeholder="Select..." error={fieldErrors.newGender}
-                        />
-                      </div>
-                      <DatePicker label="Date of Birth" required value={newDob} max={today}
-                        onChange={v => { setNewDob(v); setFieldErrors(p => ({...p, newDob: undefined})); }}
-                        error={fieldErrors.newDob}
-                      />
-                    </>
-                  )}
+              {searching && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-[var(--color-text-secondary)]">
+                  <Spinner size="sm" /> Searching...
                 </div>
               )}
 
-              {fieldErrors.patient && (
-                <p className="text-xs text-[var(--color-danger)] mt-1">{fieldErrors.patient}</p>
+              {/* Matching patients */}
+              {searchResults.length > 0 && (
+                <div className="mt-2 border border-[var(--color-border)] rounded-[var(--radius)] overflow-hidden">
+                  {searchResults.map(p => (
+                    <button key={p.id} type="button" onClick={() => selectPatient(p)}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-[var(--color-primary-light)] border-b border-[var(--color-border)] last:border-0 transition-colors">
+                      <span className="font-medium">{p.first_name} {p.last_name}</span>
+                      <span className="text-[var(--color-text-secondary)] ml-2 text-xs">{p.phone} · {p.patient_code}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No match → inline name fields for auto-registration */}
+              {hasSearched && searchResults.length === 0 && !searching && (
+                <div className="mt-2 p-3 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)]">
+                  <p className="text-xs text-[var(--color-text-secondary)] mb-2">
+                    No patient found — enter a name to register automatically.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-[var(--color-text)]">
+                        First Name <span className="text-[var(--color-danger)]">*</span>
+                      </label>
+                      <input type="text" placeholder="First name" value={newFirst}
+                        onChange={e => { setNewFirst(e.target.value); setFieldErrors(p => ({...p, newFirst: undefined})); }}
+                        className={`px-2.5 py-1.5 rounded-[var(--radius-sm)] border text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)] ${fieldErrors.newFirst ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`}
+                      />
+                      {fieldErrors.newFirst && <span className="text-xs text-[var(--color-danger)]">{fieldErrors.newFirst}</span>}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-[var(--color-text)]">Last Name</label>
+                      <input type="text" placeholder="Last name (optional)" value={newLast}
+                        onChange={e => setNewLast(e.target.value)}
+                        className="px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] bg-[var(--color-surface)]"
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}

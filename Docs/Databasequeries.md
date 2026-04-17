@@ -190,9 +190,9 @@ CREATE TABLE patients (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_code     VARCHAR(20) NOT NULL UNIQUE,  -- auto-generated e.g. PT-00234
   first_name       VARCHAR(100) NOT NULL,
-  last_name        VARCHAR(100) NOT NULL,
-  date_of_birth    DATE NOT NULL,
-  gender           VARCHAR(10) NOT NULL,          -- male | female | other
+  last_name        VARCHAR(100),                  -- optional (dropped NOT NULL 2026-04-16)
+  date_of_birth    DATE,                          -- optional (dropped NOT NULL 2026-04-16)
+  gender           VARCHAR(10),                   -- male | female | other — optional (dropped NOT NULL 2026-04-16)
   phone            VARCHAR(20) NOT NULL,
   email            VARCHAR(255),
   address          TEXT,
@@ -268,7 +268,7 @@ SELECT
   a.appointment_time,
   a.status,
   a.type,
-  p.first_name || ' ' || p.last_name AS patient_name,
+  p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
   p.phone
 FROM appointments a
 JOIN patients p ON p.id = a.patient_id
@@ -417,7 +417,7 @@ One prescription per consultation. Links to prescription items.
 CREATE TABLE prescriptions (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rx_number       VARCHAR(20) NOT NULL UNIQUE,  -- auto-generated e.g. RX-00891
-  consultation_id UUID NOT NULL REFERENCES consultations(id),
+  consultation_id UUID REFERENCES consultations(id),  -- nullable: Rx can exist without a linked consultation
   patient_id      UUID NOT NULL REFERENCES patients(id),
   doctor_id       UUID NOT NULL REFERENCES staff(id),
   notes           TEXT,                          -- general prescription notes
@@ -425,7 +425,8 @@ CREATE TABLE prescriptions (
 );
 ```
 
-**Connects to:** `consultations`, `patients`, `staff`, `prescription_items`
+**Connects to:** `consultations`, `patients`, `staff`, `prescription_items`  
+**Note:** `consultation_id` was originally NOT NULL — changed to nullable via `migrate_prescription_consultation_nullable.js` (2026-04-16) to allow standalone prescriptions.
 
 ---
 
@@ -508,7 +509,7 @@ SELECT
   i.total_amount,
   i.paid_amount,
   i.balance_due,
-  p.first_name || ' ' || p.last_name AS patient_name,
+  p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
   p.phone
 FROM invoices i
 JOIN patients p ON p.id = i.patient_id
@@ -1233,7 +1234,7 @@ SELECT
   a.appointment_time,
   a.status,
   a.type,
-  p.first_name || ' ' || p.last_name AS patient_name,
+  p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
   p.phone,
   p.allergies,
   (SELECT chief_complaint FROM consultations

@@ -32,7 +32,7 @@ router.get('/lookup-invoice', requireRole('admin', 'receptionist'), async (req, 
     const r = await queryTenant(req.tenantSchema,
       `SELECT i.id AS invoice_id, i.invoice_number, i.total_amount, i.status AS invoice_status,
               p.id AS patient_id,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code
        FROM invoices i
        JOIN patients p ON i.patient_id = p.id
@@ -144,7 +144,7 @@ router.get('/claims', async (req, res) => {
     const r = await queryTenant(req.tenantSchema,
       `SELECT c.id, c.claim_number, c.claim_date, c.amount_claimed, c.amount_approved,
               c.status, c.notes, c.submitted_at, c.resolved_at, c.created_at,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code, p.id AS patient_id,
               ip.name AS provider_name, ip.id AS provider_id,
               i.invoice_number, i.total_amount AS invoice_total,
@@ -198,7 +198,7 @@ router.get('/claims/:id', async (req, res) => {
   try {
     const r = await queryTenant(req.tenantSchema,
       `SELECT c.*,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code, p.phone AS patient_phone,
               ip.name AS provider_name,
               i.invoice_number, i.total_amount AS invoice_total,
@@ -363,7 +363,7 @@ router.get('/corporate-accounts/:id/summary', async (req, res) => {
 
     const invoices = await queryTenant(req.tenantSchema,
       `SELECT i.id, i.invoice_number, i.invoice_date, i.total_amount, i.status,
-              p.first_name || ' ' || p.last_name AS patient_name, p.patient_code
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name, p.patient_code
        FROM invoices i
        JOIN patients p ON i.patient_id = p.id
        WHERE p.corporate_account_id = $1

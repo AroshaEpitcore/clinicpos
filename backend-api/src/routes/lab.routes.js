@@ -155,7 +155,7 @@ router.get('/requests', async (req, res) => {
     const r = await queryTenant(
       req.tenantSchema,
       `SELECT lr.id, lr.status, lr.notes, lr.created_at,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code, p.id AS patient_id,
               t.name AS test_name, t.code AS test_code,
               t.normal_range, t.unit, t.category,
@@ -226,7 +226,7 @@ router.get('/requests/:id', async (req, res) => {
     const r = await queryTenant(
       req.tenantSchema,
       `SELECT lr.id, lr.status, lr.notes, lr.created_at,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
               p.patient_code, p.id AS patient_id,
               t.name AS test_name, t.code AS test_code,
               t.normal_range, t.unit, t.category, t.description,
