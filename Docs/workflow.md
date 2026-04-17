@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-17
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign complete.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -20,14 +20,18 @@ Patient books online at /book (no login) — OR — walk-in at clinic
 Patient registered (auto-created from phone number if first visit)
       ↓
 Appointment booked (walk-in / booked slot / online via portal)
+ALL bookings get a sequential token number per doctor per date
       ↓
 Patient marked as Arrived
       ↓
-Doctor writes Consultation (vitals + diagnosis + notes)
-      ↓         ← appointment auto-flips to "completed"
-Doctor writes Prescription (medicine search + dosage + print)
+Doctor clicks Consult → ONE modal: vitals + diagnosis + notes + medicines (optional)
+      ↓         ← appointment auto-flips to "completed" on Save & Complete
+If medicines were added → Prescription auto-saved in same submit (Rx number shown, Print Rx button activates)
+If no medicines → only consultation saved (Write Rx button stays available for later)
       ↓
-Receptionist clicks "Bill" → Invoice auto-created (doctor fee + medicines)
+[ Optional ] If pharmacy module is ON: pharmacist dispenses Rx from Pharmacy → Dispense Queue → stock deducted
+      ↓
+Receptionist clicks "Bill" → Invoice auto-created (doctor fee + prescribed medicines)
       ↓
 Add extra services if needed → Record payment (Cash / Card / Online / Insurance)
       ↓
@@ -157,27 +161,40 @@ End-of-Day closing — cash count vs system totals, lock the day
 - **Write Rx button** appears only on rows where status = `completed`, a consultation has been saved (`consultation_id` exists), AND the appointment belongs to this doctor. Standalone Rx without a consultation is not possible.
 - Writing a consultation auto-flips the appointment to `completed`
 
-#### Writing a Consultation
-- Click **Consult** on an arrived appointment → ConsultationModal opens
-- Top bar shows patient name, code, age, allergies alert (red banner if allergies on record)
-- **Vitals** — BP systolic/diastolic, pulse (bpm), temperature (°C), weight (kg)
-- **Clinical** — chief complaint (required), symptoms, diagnosis, ICD-10 code, doctor notes
-- **Follow-up** date picker
-- Save → appointment auto-flips to `completed` · consultation stored in patient record
+#### Writing a Consultation + Prescription (One Step)
+- Click **Consult** on an arrived appointment → **ConsultationModal** opens (one combined modal)
+- Patient info bar at top: name, code, doctor, reason for visit
+- Allergies alert (red banner) if allergies on record
+- **Form sections (top to bottom):**
+  1. **Chief Complaint** (required) — first field, immediately visible on open
+  2. **Vitals** — BP systolic/diastolic, pulse (bpm), temperature (°C), weight (kg)
+  3. **Clinical Notes** — symptoms, diagnosis, ICD-10 code, doctor's notes
+  4. **Follow-up** — optional follow-up date picker
+  5. **Medicines** (optional) — embedded prescription section
+- **Medicines section:**
+  - Type in search box → live suggestions from medicine store (300ms debounce)
+  - Select from dropdown → fills name, strength, unit (shows **✓ from store** label)
+  - Type and don't select → saved as custom medicine name (shows **✎ custom name** label) — for medicines not yet in the store
+  - Per row: **Dosage** preset chips (1 tablet / 2 tablets / ½ tablet / 1 capsule / 5 ml / 10 ml / 1 teaspoon) + free text
+  - Per row: **Frequency** preset chips (Once daily / Twice daily / Three times daily / Four times daily / Every 8 hours / Every 12 hours) + free text
+  - Per row: **Duration** preset chips (3 days / 5 days / 7 days / 10 days / 14 days / 1 month) + free text
+  - Per row: **Qty to Dispense (auto)** — auto-calculated: `Math.ceil(units_per_dose × doses_per_day × duration_days)`. Editable override allowed.
+  - Per row: **Instructions** text input + **food chips**: Before food · After food · With food · At bedtime (click to set, click again to clear)
+  - Add more rows / remove rows
+  - Rows with no medicine entered are ignored — prescription only saved if at least one medicine row is filled
+- Click **Save & Complete** → consultation saved → if medicines entered, prescription auto-saved in same action
+- Success: appointment flips to `completed`, Rx number shown in banner, **Print Rx** button activates
 
-#### Writing a Prescription
-- Click **Write Rx** on a completed appointment → PrescriptionModal opens
-- Patient info + allergies shown at top
-- Search medicines by typing 3+ letters → live dropdown suggestions (debounced 300ms)
-- Select a medicine → name, strength, unit auto-filled into the row
-- Per row: **dosage** (preset chips: 1 tablet / 2 tablets / ½ tablet / 1 capsule / 5 ml / 10 ml / 1 teaspoon + free text)
-- Per row: **frequency** (preset chips: Once daily / Twice daily / Three times daily / Four times daily / Every 8 hours / Every 12 hours + free text)
-- Per row: **duration** (preset chips: 3 days / 5 days / 7 days / 10 days / 14 days / 1 month + free text)
-- Per row: **Qty to Dispense (auto)** — auto-calculated: `Math.ceil(units_per_dose × doses_per_day × duration_days)`. Editable override allowed. Example: 1 tablet × Twice daily × 7 days = **14**.
-- Per row: instructions (free text — "After meals", "At night", etc.)
-- Add more rows / remove rows as needed
-- Save → Rx number auto-generated (RX-00001 format) · success banner shown · Print button activates
-- **Print** → browser print window: clinic header, patient info, allergies, medicines table, doctor signature block
+#### Write Rx Separately (Standalone — Optional)
+- If the doctor saved the consultation without medicines, a **Write Rx** button appears on the completed appointment row
+- Opens `PrescriptionModal` — same medicine search + dosage + food chips + custom medicines
+- Once a prescription is saved, the Write Rx button disappears (hidden when `appt.prescription_id` is set)
+
+#### Stock Deduction (Pharmacy Module)
+- Saving a prescription does **not** reduce stock automatically
+- Stock deducts only when the pharmacist goes to **Pharmacy → Dispense Queue** and marks the prescription as dispensed
+- Dispense checks for sufficient stock — blocks if any item has insufficient quantity and shows which medicine is short
+- If clinic has no pharmacist and pharmacy module is OFF, stock is never deducted (manual stock management)
 
 #### Consultations Page
 - Browse all consultations by date (date navigation)
@@ -379,8 +396,8 @@ Patient (PT-XXXXX)
 | 2.0 Role dashboards | ✅ Complete | Live data — uses existing report + appointment APIs |
 | 2.1 Patient registration | ✅ Complete | |
 | 2.2 Appointments & queue | ✅ Complete | |
-| 2.3 Consultations | ✅ Complete | |
-| 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print + server-side PDF both done |
+| 2.3 Consultations | ✅ Complete | Combined with prescription in one modal (2026-04-17) |
+| 2.4 Prescriptions & Medicine Store | ✅ Complete | Browser print + server-side PDF; food chips; custom medicines; qty auto-calc (2026-04-17) |
 | 2.5 Billing & payments | ✅ Complete | Invoice PDF done in Phase 3 |
 | 2.6 Reports | ✅ Complete | 7 tabs, CSV export; PDF export deferred to Phase 5 |
 | 2.7 Clinic settings | ✅ Complete | Logo/signature upload; 8-tab settings page; doctor fees; custom services; syncs public.tenants on name change |
@@ -480,21 +497,24 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 ### Modified Files (Phase 5.4)
 | File | Change |
 |------|--------|
-| `appointment.routes.js` | Conflict check now runs for ALL appointment types (not just `type='booked'`); `booking_reference` + `booking_source` in SELECT and INSERT; returns `booking_reference` in response |
-| `doctor.routes.js` | Slot availability query: `AND appointment_time IS NOT NULL AND status != 'cancelled'` — blocks walk-ins, emergencies, completed appointments. Removed `AND type = 'booked'` filter. |
-| `portal.routes.js` | `clinic_logo_url AS logo_url` in GET /info; `nextToken()` added; slot queries use `appointment_time IS NOT NULL`; `resolvedPatientName` from DB lookup; `token_number` in INSERT + response |
+| `appointment.routes.js` | Conflict check runs for ALL types; `booking_reference` + `booking_source` in SELECT + INSERT; `pr.id AS prescription_id` + `LEFT JOIN prescriptions` added; `nextToken()` now runs for ALL types (walk-in, booked, emergency — not just walk-in) |
+| `doctor.routes.js` | Slot availability: `AND appointment_time IS NOT NULL AND status != 'cancelled'`; removed `AND type = 'booked'` |
+| `portal.routes.js` | `clinic_logo_url AS logo_url` in GET /info; `nextToken()` added; `token_number` in INSERT + response |
 | `patient.routes.js` | Removed local `nextPatientCode` function — now uses shared `utils/patientCode.js` |
 | `invoice.routes.js` | Auto-pull: removed `AND m.selling_price IS NOT NULL AND m.selling_price > 0`; added `COALESCE(m.selling_price, 0)`; `|| 0` fallback in JS |
 | `index.js` | Registered `/api/v1/portal` routes |
 | `SettingsPage.jsx` | Security tab: Patient Portal toggle + shareable URL + Copy button |
-| `AppointmentsPage.jsx` | Globe badge + BK-XXXXXX booking reference displayed in queue rows |
+| `AppointmentsPage.jsx` | Globe badge + BK-XXXXXX in queue rows; Online badge → CSS variables; `canWriteRx` includes `!appt.prescription_id` guard |
 | `DoctorDashboard.jsx` | Now Seeing + Next Up cards + Online Booked stat card + Globe badge |
 | `App.jsx` | `/book` route (public, no ProtectedRoute) |
-| `AppointmentModal.jsx` | **Complete rewrite**: Modal → Drawer (540px); time slot grid shown for walk-in (optional) and booked (required) modes, hidden only for emergency; slot click-to-deselect toggle; Refresh button; legend; BK-XXXXXX toast for booked appointments |
-| `ConsultationModal.jsx` | Bug fix: added `watch` and `setValue` to `useForm()` destructure (were missing — caused `ReferenceError: watch is not defined` crash) |
-| `InvoiceModal.jsx` | Add Item replaced with `AddItemModal` (3-tab overlay: Service / Medicine / Custom); auto-pull fixed |
-| `PrescriptionModal.jsx` | `calcQuantity()` auto-calc; `quantity_given` field; updated dosage/frequency/duration preset values |
-| `BookingPage.jsx` | **Full rewrite**: CSS variables, `useTheme`, `mediaUrl` logo, sticky header, dark mode toggle, mobile slot grid, taken slots as `<div>` not disabled button, Available/Taken legend |
+| `AppointmentModal.jsx` | **Complete rewrite**: Modal → Drawer (540px); time slot grid for walk-in (optional) + booked (required); BK-XXXXXX toast |
+| `ConsultationModal.jsx` | **Full rewrite**: combined consultation + prescription in one modal; `MedicineRow` sub-component; `FOOD_PRESETS`; custom medicine detection; `getFilledRxItems()` + `validateRx()`; Chief Complaint moved to top of form |
+| `InvoiceModal.jsx` | Add Item replaced with `AddItemModal` (3-tab overlay: Service / Medicine / Custom); auto-pull fixed; LEFT JOIN + COALESCE for custom medicines |
+| `PrescriptionModal.jsx` | `calcQuantity()` auto-calc; `quantity_given` field; `FOOD_PRESETS` chips; custom medicine support (`custom_medicine_name`); validation updated |
+| `prescription.routes.js` | Validation: `medicine_id \|\| custom_medicine_name?.trim()`; INSERT includes `custom_medicine_name`; all GET queries: LEFT JOIN + COALESCE |
+| `createTenantSchema.js` | `prescription_items`: `medicine_id` nullable; `custom_medicine_name VARCHAR(255)` added |
+| `migrate_custom_medicine.js` (NEW) | One-time migration: drops NOT NULL from `medicine_id`, adds `custom_medicine_name` to all tenant schemas |
+| `BookingPage.jsx` | **Full rewrite**: CSS variables, `useTheme`, `mediaUrl` logo, sticky header, dark mode toggle, mobile slot grid, taken slots as `<div>`, Available/Taken legend |
 
 ---
 
@@ -565,6 +585,13 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 | Double-booking same slot (any type) | ✅ Fixed (2026-04-17) — conflict check runs for all appointment types with a time |
 | Taken slots visually disabled in grid | ✅ Fixed (2026-04-17) — `doctor.routes.js` now blocks all types; frontend renders as non-interactive div |
 | Booking portal dark/light mode + UI | ✅ Done (2026-04-17) — `BookingPage.jsx` full rewrite with CSS variables + `useTheme` |
+| Consult + Rx in one step | ✅ Done (2026-04-17) — `ConsultationModal.jsx` combined; medicines optional in same form |
+| Custom medicine names (not in store) | ✅ Done (2026-04-17) — `custom_medicine_name` column; nullable `medicine_id`; migration run |
+| Food instruction quick-chips | ✅ Done (2026-04-17) — Before food / After food / With food / At bedtime chips in both modals |
+| Token for all booking types | ✅ Fixed (2026-04-17) — `nextToken()` runs for walk-in, booked, and emergency alike |
+| Write Rx button hidden after Rx saved | ✅ Fixed (2026-04-17) — `prescription_id` in appointment list query; `canWriteRx` guards it |
+| Online badge hardcoded colors | ✅ Fixed (2026-04-17) — CSS variables used; works in dark mode |
+| Stock auto-deduct on Rx save | Deferred — not implemented; stock only deducts via Pharmacy dispense flow |
 | `duplicate_check_enabled` setting | Phase 6 — DB column exists; backend does not read/write it; no UI |
 | Calendar view (day/week) for appointments | Deferred — queue view covers the need |
 | Lab result notification to patient (SMS) | Phase 6 (remaining) — results saved but no notification sent yet |

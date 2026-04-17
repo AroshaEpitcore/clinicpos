@@ -43,6 +43,9 @@
 | Billing & Invoice Fixes | ✅ Invoice auto-pull includes all medicines (incl. price=0); Add Item redesigned as dedicated 3-tab modal; prescription qty auto-calculated (2026-04-17) |
 | Double-booking & Slot Fixes | ✅ All appointment types blocked from double-booking same slot; taken slots visually disabled in booking grid (2026-04-17) |
 | Booking Portal UI Redesign | ✅ Full-width, dark/light mode, CSS variables, mobile-friendly, clinic logo + name from backend (2026-04-17) |
+| Consult + Rx Combined Modal | ✅ Doctor writes consultation AND prescription in one step; food chips; custom medicine names; stock deduction clarified (2026-04-17) |
+| Token for All Booking Types | ✅ Every booking (walk-in, booked, emergency) gets a sequential token number (2026-04-17) |
+| Queue Badge Fixes | ✅ Online badge uses CSS variables; Rx button hidden if prescription already exists (2026-04-17) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -293,6 +296,138 @@ Examples:
 
 ---
 
+## Consult + Rx Combined, Custom Medicines, Food Chips, Token Fix, Badge Fixes (2026-04-17)
+
+> Doctor no longer needs two separate steps to write a consultation then a prescription. Both are done in a single modal. Custom medicines (not in the store) are now supported. Food instruction chips added. All bookings now get a token. Online badge and Rx button badge fixed to use theme variables.
+
+---
+
+### 1 — Consultation + Prescription in One Modal
+
+**Problem:** Doctor had to click Consult → save → then click Write Rx → save. Two steps, two modals, too slow.
+
+**Solution:** `ConsultationModal.jsx` fully rewritten to include the entire prescription section at the bottom. The doctor fills vitals, clinical notes, and medicines all in one screen and clicks **Save & Complete** once.
+
+**Save flow:**
+1. Consultation saved via `consultationsApi.create()`
+2. If any medicine rows are filled → prescription saved via `prescriptionsApi.create({ appointment_id, ... })`
+3. The prescription route resolves `consultation_id` from `appointment_id` automatically — no extra input needed
+4. After save: success banner shows Rx number + **Print Rx** button activates
+
+**Medicines section behaviour:**
+- All medicine rows are optional — if no medicines are entered, only the consultation is saved (no error)
+- Rows are validated only if at least one medicine field is partially filled
+- Empty row at bottom stays as a placeholder — only filled rows are submitted
+
+**Form section order (top to bottom):**
+1. Patient info bar (name, code, doctor, reason)
+2. Allergy alert (if allergies on file)
+3. **Chief Complaint** (required) — moved to very top for speed
+4. Vitals (BP, pulse, temperature, weight)
+5. Clinical Notes (symptoms, diagnosis, ICD-10, doctor's notes)
+6. Follow-up date
+7. Medicines (optional — embedded prescription section)
+
+| File | Change |
+|------|--------|
+| `ConsultationModal.jsx` | Complete rewrite — prescription state + `MedicineRow` sub-component embedded; `PresetChips` component; `FOOD_PRESETS` + `DOSAGE/FREQUENCY/DURATION` presets; `getFilledRxItems()` + `validateRx()` helpers; combined `onSubmit()` saves both consultation and prescription; `handlePrintRx()`; `savedRx` state; Chief Complaint moved to top of form |
+
+**The standalone "Write Rx" button on the queue** still exists for cases where a consultation was saved without medicines — the doctor can open `PrescriptionModal` separately to add a prescription later. But once a prescription exists (`appt.prescription_id` set), the Write Rx button disappears.
+
+---
+
+### 2 — Custom Medicine Names (Medicines Not in Store)
+
+**Problem:** Prescription form required selecting a medicine from the store. Doctors couldn't prescribe medicines that weren't in the inventory yet.
+
+**Solution:** The medicine search field now accepts free text. If the doctor types a name but doesn't select from the dropdown, the typed text is saved as `custom_medicine_name`. The medicine row shows **✎ custom name** label to make this clear.
+
+**Database changes:**
+- `prescription_items.medicine_id` — dropped `NOT NULL` constraint (now nullable)
+- `prescription_items.custom_medicine_name VARCHAR(255)` — new column added
+- All `SELECT` queries on `prescription_items` updated to `LEFT JOIN medicines m ON m.id = pi.medicine_id` + `COALESCE(m.name, pi.custom_medicine_name) AS medicine_name`
+
+| File | Change |
+|------|--------|
+| `createTenantSchema.js` | `prescription_items` table: `medicine_id` nullable; `custom_medicine_name VARCHAR(255)` column added |
+| `migrate_custom_medicine.js` (NEW) | One-time migration: drops NOT NULL from `medicine_id`; adds `custom_medicine_name` to all existing `tenant_*` schemas. Run: `node src/db/migrate_custom_medicine.js` |
+| `prescription.routes.js` | Validation: `item.medicine_id \|\| item.custom_medicine_name?.trim()`; INSERT includes `$3 = custom_medicine_name`; GET /patient/:id, GET /:id, GET /:id/pdf all use LEFT JOIN + COALESCE |
+| `invoice.routes.js` | Auto-pull query: `LEFT JOIN medicines m ON m.id = pi.medicine_id`; `COALESCE(m.name, pi.custom_medicine_name) AS name` |
+| `ConsultationModal.jsx` | `emptyItem()` includes `custom_medicine_name: ''`; `isCustomName` flag drives the `✎ custom name` label; submitted payload sets `medicine_id: null, custom_medicine_name: searchQuery` for typed-not-selected entries |
+| `PrescriptionModal.jsx` | Same — validation accepts `searchQueries[index].trim().length >= 2`; payload sends `custom_medicine_name`; `✎ custom medicine name` label shown |
+
+---
+
+### 3 — Food Instruction Chips
+
+**Problem:** Instructions field was a plain text box — doctors had to type "Before food", "After food" etc. every time.
+
+**Solution:** Quick-select chip buttons added below the instructions text input in both modals.
+
+**Chips:** `Before food` · `After food` · `With food` · `At bedtime`
+
+Clicking a chip sets the instructions field to that value (toggle — clicking the active chip clears it). Doctor can still type any custom instruction manually.
+
+| File | Change |
+|------|--------|
+| `ConsultationModal.jsx` | `FOOD_PRESETS` constant; food chips rendered via `PresetChips` component inside each `MedicineRow` below the instructions input |
+| `PrescriptionModal.jsx` | `FOOD_PRESETS` constant; chip buttons rendered inline below the instructions input inside each medicine card |
+
+---
+
+### 4 — prescription_id in Appointment List Query
+
+**Problem:** The queue had no way to know if a prescription had already been written for a consultation. The "Write Rx" button stayed visible even after a prescription existed, and clicking it returned a 409 error.
+
+**Fix:** Appointment list query now LEFT JOINs prescriptions and returns `prescription_id`. The `canWriteRx` guard in the frontend includes `!appt.prescription_id`.
+
+| File | Change |
+|------|--------|
+| `appointment.routes.js` | Added `pr.id AS prescription_id` to SELECT; added `LEFT JOIN prescriptions pr ON pr.consultation_id = c.id` |
+| `AppointmentsPage.jsx` | `canWriteRx` now: `isDoctor && appt.status === 'completed' && !!appt.consultation_id && !appt.prescription_id && isOwnAppt` |
+
+---
+
+### 5 — Token for ALL Booking Types
+
+**Problem:** Only walk-in and emergency bookings got a token number. Booked appointments (with a time slot) had `token_number = null` — no token column shown in the queue, confusing for the receptionist.
+
+**Fix:** `nextToken()` now runs for every appointment type. All bookings get a sequential token per doctor per date.
+
+| File | Change |
+|------|--------|
+| `appointment.routes.js` | Removed `if (type === 'walkin' \|\| type === 'emergency')` condition. `const token = await nextToken(...)` now runs unconditionally for all types. |
+
+**Note:** Emergency appointments still sort to the top (token = 0 via the `CASE WHEN type = 'emergency' THEN 0` ORDER BY). Booked appointments keep their `appointment_time` slot in addition to their token.
+
+---
+
+### 6 — Online Badge + Rx Button CSS Fix
+
+**Problem:** Online booking badge in the queue used hardcoded `bg-blue-100 text-blue-700` — invisible in dark mode.
+
+**Fix:** Replaced with `bg-[var(--color-primary-light)] text-[var(--color-primary)]` — follows the theme in both dark and light mode.
+
+| File | Change |
+|------|--------|
+| `AppointmentsPage.jsx` | `QueueRow` Online badge: `bg-blue-100 text-blue-700` → `bg-[var(--color-primary-light)] text-[var(--color-primary)]` |
+
+---
+
+### Stock Deduction Clarification (Not a Bug — By Design)
+
+Saving a prescription does **not** reduce stock. Stock only decreases when a pharmacist goes to **Pharmacy → Dispense Queue** and clicks "Dispense" on the prescription. This is the correct clinical flow:
+
+1. Doctor writes prescription → stored in DB, items added to dispense queue
+2. Patient goes to pharmacy window
+3. Pharmacist checks stock, physically hands over medicines
+4. Pharmacist clicks Dispense → `POST /pharmacy/dispense/:id` → stock deducted per `quantity_given`
+5. If insufficient stock, dispense is blocked with a clear error showing which medicine is short
+
+If a clinic has no dedicated pharmacist and wants stock to auto-deduct on Rx save, that would need a separate setting — not yet implemented (deferred to Phase 6 if requested).
+
+---
+
 ## Queue & Sync Bug Fixes (2026-04-16)
 
 > Multiple bugs fixed in a single session: queue redesign, portal-backend token/slot sync, doctor ownership enforcement, nullable prescription constraint, and doctor filter tab disappearing.
@@ -454,6 +589,9 @@ node src/db/migrate_prescription_consultation_nullable.js
 | Billing & Invoice Fixes | Invoice auto-pull all medicines; Add Item 3-tab modal; Rx qty auto-calculation | ✅ Complete (2026-04-17) |
 | Double-booking & Slot Fix | All types blocked from double-booking; taken slots visually disabled in grid | ✅ Complete (2026-04-17) |
 | Booking Portal UI Redesign | Full-width, dark/light mode, CSS vars, mobile, clinic logo + name from backend | ✅ Complete (2026-04-17) |
+| Consult + Rx Combined Modal | One-step consultation + prescription; food chips; custom medicines; Chief Complaint moved to top | ✅ Complete (2026-04-17) |
+| Token for All Booking Types | walk-in, booked, emergency all get sequential token numbers | ✅ Complete (2026-04-17) |
+| Queue Badge Fixes | Online badge CSS variables; Rx button hidden when prescription already exists | ✅ Complete (2026-04-17) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

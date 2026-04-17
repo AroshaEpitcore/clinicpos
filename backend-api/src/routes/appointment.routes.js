@@ -116,11 +116,8 @@ router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res
       return res.status(400).json({ status: 'error', message: 'This date is a clinic holiday. Booking not allowed.' });
     }
 
-    // Assign token for walk-ins and emergency
-    let token = null;
-    if (type === 'walkin' || type === 'emergency') {
-      token = await nextToken(req.tenantSchema, doctor_id, appointment_date);
-    }
+    // Assign token for all appointment types
+    const token = await nextToken(req.tenantSchema, doctor_id, appointment_date);
 
     // Generate booking reference for booked appointments (staff or online)
     let bookingRef = null;
