@@ -36,4 +36,7 @@ export const portalApi = {
 
   /** Look up a booking by reference (e.g., BK-000001) */
   getBooking: (reference) => publicApi.get(`/portal/booking/${reference}`),
+
+  /** Waiting-room TV display — public queue data grouped by doctor */
+  getQueueDisplay: () => publicApi.get('/portal/queue-display'),
 };

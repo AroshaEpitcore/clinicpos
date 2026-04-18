@@ -331,6 +331,8 @@ Every service the clinic provides generates an itemized invoice. The receptionis
 - Unique invoice number per bill
 - View all invoices — paid, unpaid, partial
 - **Search bar** with X clear button on BillingPage — filters invoices client-side by patient name, patient code, or invoice number; count shown when filtered
+- **+ Add Item** — 3-tab modal inside InvoiceModal: Service (pre-configured clinic services), Medicine (live stock search), Custom (free-text)
+- **Dispense Rx** quick action inside InvoiceModal — appears when a linked prescription hasn't been dispensed yet; opens `DispenseModal` to confirm dispense (allergy warning + stock levels) without leaving the invoice
 - Send invoice to patient via email or WhatsApp
 - Reprint receipt at any time
 - Apply discounts with reason (audit logged)
@@ -447,10 +449,13 @@ Full in-clinic pharmacy management. Tracks supplier purchases, stock levels, and
 #### Tab 1 — Dispense Queue
 - Lists all prescriptions that have medicines not yet dispensed
 - Each card shows: patient name, doctor, date, list of prescribed medicines with quantity
-- "Dispense" button marks prescription medicines as dispensed and deducts stock automatically
+- "Dispense" button opens **DispenseModal** — a two-step confirmation flow:
+  - Red allergy warning banner (if patient has allergies on record)
+  - Medicines table showing each item's stock quantity (red highlight + "LOW" label when stock ≤ 5)
+  - Confirm button → deducts stock and marks prescription as dispensed
 - Dispensed prescriptions move to a separate "Dispensed" section below the Pending section
 - **Filter pills** (All / Pending / Dispensed) — instantly show all, only pending, or only dispensed prescriptions
-- **Search bar** — filters by patient name or doctor name; section headers show current count ("Pending Dispense (X)", "Dispensed (X)")
+- **Search bar** — filters by patient name, Rx number, or doctor; section headers show current count ("Pending Dispense (X)", "Dispensed (X)")
 - Context-aware empty state with "Clear filters" action
 
 #### Tab 2 — Stock
@@ -694,7 +699,96 @@ node src/db/migrate_portal.js
 
 ---
 
-## 11. Clinic Self-Customization ⚙️
+## 11. Queue Display / Waiting Room TV Screen 📺 *(Phase 5.5 — Settings Toggle: `queue_display_enabled`)*
+
+### Purpose
+Display the current patient queue on a TV or monitor in the waiting room. Patients can see their token number and whose turn it is without asking reception. No login required — just open the URL on any display.
+
+### What Patients See
+- A **dark-themed, full-screen grid** showing each active doctor's section
+- **Now Seeing:** Large token number (red for emergency) + patient first name
+- **Next Up:** Up to 5 token chips showing who's waiting next
+- **Status badges:** In Consultation, Available, No Patients
+- **Count:** How many waiting + how many completed today per doctor
+- **Header:** Clinic logo + name + real-time clock (live seconds)
+- **Footer:** Online/offline status + next refresh countdown
+
+### Auto-Adjusting Grid
+The screen adapts to however many doctors are active:
+
+| # Active Doctors | Layout |
+|-----------------|--------|
+| 1 | Full-width single column |
+| 2 | Side-by-side (2 columns) |
+| 3 | 3 columns |
+| 4 | 2×2 grid |
+| 5 or more | 3-column wrap |
+
+### How to Set Up
+1. Admin opens **Settings → Security tab → Waiting Room Display**
+2. Enable the "Queue Display Screen" toggle
+3. Copy the shareable URL (or click Open to preview)
+4. Open the URL on the waiting room TV / any browser
+5. Press the fullscreen button (bottom-right corner) for true kiosk mode
+
+### Features
+- **Auto-refresh:** page refreshes queue data every 30 seconds automatically
+- **Manual refresh:** button in footer for instant update
+- **Fullscreen:** button to enter/exit browser fullscreen (no toolbar shown)
+- **Online/offline:** footer shows connection status — display keeps working on cached data if internet drops briefly
+- **Emergency highlighting:** emergency patients shown with red token + lightning bolt icon
+- **Privacy-first:** only patient first names shown — never full name, phone, or patient code
+
+### Admin — Enable/Disable
+- **Settings → Security tab → Waiting Room Display section**
+- Toggle ON → shows the shareable `/display` URL with Copy + Open buttons
+- Toggle OFF → the `/display` page shows "Queue display is not enabled for this clinic" (clean message, not a crash)
+- When disabled: API returns 403 — the frontend shows a retry screen with the reason
+
+### Backend Endpoint
+```
+GET /api/v1/portal/queue-display   (public — no JWT required)
+```
+Returns:
+```json
+{
+  "clinic": { "name": "...", "logo_url": "...", "phone": "..." },
+  "doctors": [
+    {
+      "id": "...",
+      "name": "Dr. Saman Perera",
+      "specialization": "General Practice",
+      "now_seeing": { "token": 3, "first_name": "Kasun", "type": "normal", "time": "09:30" },
+      "next_up": [{ "token": 4, "type": "normal" }, { "token": 5, "type": "emergency" }],
+      "waiting_count": 4,
+      "completed_today": 7
+    }
+  ]
+}
+```
+
+### Who Can Access
+| Who | What |
+|-----|------|
+| Anyone (public, no login) | View the `/display` TV screen |
+| Admin | Enable/disable in Settings → Security |
+| Patients in waiting room | See their token number and queue position |
+
+### Database Changes
+```
+clinic_settings table:
+  + queue_display_enabled  BOOLEAN DEFAULT FALSE   — display on/off toggle
+```
+
+### Migration
+```bash
+cd backend-api
+node src/db/migrate_queue_display.js
+```
+
+---
+
+## 12. Clinic Self-Customization ⚙️
 
 ### Purpose
 Each clinic that buys the software can make it look and behave like their own system — without needing you to do anything for them.

@@ -40,6 +40,9 @@ import InsurancePage from './pages/insurance/InsurancePage';
 // Phase 5.4 — Patient Portal / Online Booking (public)
 import BookingPage from './pages/booking/BookingPage';
 
+// Phase 5.5 — Queue Display (public waiting-room TV screen)
+import DisplayPage from './pages/display/DisplayPage';
+
 // Staff Management (admin only)
 import StaffPage from './pages/staff/StaffPage';
 
@@ -50,6 +53,7 @@ export default function App() {
       <Route path="/login"       element={<LoginPage />} />
       <Route path="/impersonate" element={<ImpersonatePage />} />
       <Route path="/book"        element={<BookingPage />} />
+      <Route path="/display"     element={<DisplayPage />} />
 
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -116,6 +116,9 @@ node src/db/migrate_prescription_consultation_nullable.js
 
 # Allow custom medicine names in prescriptions (drops NOT NULL from medicine_id, adds custom_medicine_name column)
 node src/db/migrate_custom_medicine.js
+
+# Queue Display — adds queue_display_enabled column to clinic_settings
+node src/db/migrate_queue_display.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -257,7 +260,7 @@ clinicpos/
 │   │   │   ├── pharmacy.routes.js  — Phase 5.1
 │   │   │   ├── lab.routes.js       — Phase 5.2
 │   │   │   ├── insurance.routes.js — Phase 5.3
-│   │   │   └── portal.routes.js    — Phase 5.4 (public, no auth)
+│   │   │   └── portal.routes.js    — Phase 5.4 + 5.5 (public, no auth)
 │   │   ├── db/
 │   │   │   ├── migrate.js          — Core tables + seed
 │   │   │   ├── migrate_pharmacy.js — Phase 5.1 tables
@@ -289,6 +292,7 @@ clinicpos/
 │   │   │   ├── lab/              — Phase 5.2 (2 tabs)
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
+│   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
 │   │   │   └── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar, TopBar, PageLayout, ProtectedRoute

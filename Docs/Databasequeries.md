@@ -571,6 +571,7 @@ CREATE TABLE clinic_settings (
   appointment_slot_duration INTEGER DEFAULT 15,         -- minutes per slot
   max_patients_per_day      INTEGER DEFAULT 0,          -- 0 = unlimited
   patient_portal_enabled    BOOLEAN DEFAULT FALSE,      -- online booking on/off
+  queue_display_enabled     BOOLEAN DEFAULT FALSE,      -- waiting room TV display on/off (Phase 5.5)
   reminder_enabled          BOOLEAN DEFAULT FALSE,      -- SMS/WhatsApp reminders on/off
   reminder_hours_before     INTEGER DEFAULT 24,         -- how many hours before to send reminder
   reminder_message          TEXT,                      -- custom reminder message template
@@ -1341,6 +1342,50 @@ LIMIT 1;
 | 2026-04-15 | CREATE | `insurance_providers`, `corporate_accounts`, `insurance_claims` | Phase 5.3 insurance migration via `migrate_insurance.js` | ✅ Done |
 | 2026-04-15 | ALTER | `patients` | Added `corporate_account_id INTEGER REFERENCES corporate_accounts(id)` via `migrate_insurance.js` | ✅ Done |
 | 2026-04-15 | INSERT | `insurance_providers` | 4 common providers seeded (Ceylinco, AIA, Union Assurance, Softlogic) | ✅ Done |
+| 2026-04-15 | ALTER | `appointments` | Added `booking_reference VARCHAR(20)`, `booking_source VARCHAR(20) DEFAULT 'admin'` via `migrate_portal.js` | ✅ Done |
+| 2026-04-16 | ALTER | `patients` | Dropped NOT NULL from `last_name`, `date_of_birth`, `gender` via `migrate_optional_patient_fields.js` | ✅ Done |
+| 2026-04-16 | ALTER | `prescriptions` | Dropped NOT NULL from `consultation_id` via `migrate_prescription_consultation_nullable.js` | ✅ Done |
+| 2026-04-17 | ALTER | `prescription_items` | Dropped NOT NULL from `medicine_id`; added `custom_medicine_name VARCHAR(255)` via `migrate_custom_medicine.js` | ✅ Done |
+| 2026-04-18 | ALTER | `clinic_settings` | Added `queue_display_enabled BOOLEAN NOT NULL DEFAULT FALSE` to all tenant schemas via `migrate_queue_display.js` | ✅ Done |
+
+---
+
+### Queue Display — Key Queries (Phase 5.5)
+
+**Check if display is enabled:**
+```sql
+SELECT queue_display_enabled FROM clinic_settings LIMIT 1;
+```
+
+**Get all doctors with appointments today (for TV display):**
+```sql
+SELECT DISTINCT s.id, s.full_name, s.specialization
+FROM appointments a
+JOIN staff s ON s.id = a.doctor_id
+WHERE a.appointment_date = CURRENT_DATE
+  AND a.status != 'cancelled'
+ORDER BY s.full_name;
+```
+
+**Get queue data per doctor for TV display:**
+```sql
+SELECT
+  a.id, a.token_number, a.status, a.appointment_time, a.type,
+  p.first_name
+FROM appointments a
+JOIN patients p ON p.id = a.patient_id
+WHERE a.doctor_id = $1
+  AND a.appointment_date = $2
+  AND a.status != 'cancelled'
+ORDER BY
+  CASE WHEN a.type = 'emergency' THEN 0 ELSE 1 END,
+  a.token_number ASC NULLS LAST,
+  a.appointment_time ASC NULLS LAST;
+```
+- `now_seeing` = rows where `status = 'arrived'` (first match)
+- `next_up` = rows where `status IN ('pending', 'confirmed')` — take first 5
+- `completed_today` = count of rows where `status = 'completed'`
+- `waiting_count` = count of `pending` + `confirmed` rows
 
 ---
 

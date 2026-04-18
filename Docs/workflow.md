@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-18
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -116,6 +116,7 @@ End-of-Day closing — cash count vs system totals, lock the day
     - **Custom tab** — free-text description + qty + price; live line-total preview
   - **Remove Item** — trash icon per row (blocked on paid invoices)
   - **Auto-pull from Prescription** — pulls all prescribed medicines including those with price=0 (price editable after)
+  - **Dispense Rx** quick action — appears when invoice has a linked prescription that hasn't been dispensed yet; opens `DispenseModal` (allergy warning + medicines + stock levels); dispenses and deducts stock without leaving the invoice
   - Totals: subtotal → discount → tax → total → paid → balance
   - **Record Payment** — select method (Cash / Card / Online / Insurance), enter amount, optional reference field
   - Multiple payment calls allowed — each adds a split record (partial payment support)
@@ -140,7 +141,7 @@ End-of-Day closing — cash count vs system totals, lock the day
   - **Filter pills**: All · Pending · Dispensed
   - **Search bar**: filter by patient name, Rx number, or doctor
   - Section headers show count: "Pending Dispense (X)" and "Dispensed (X)"
-  - Click card to expand medicines list; "Dispense" button deducts stock on confirm
+  - Click card to expand medicines list; "Dispense" button opens **DispenseModal** → shows allergy warning banner (red, if allergies on record), medicines table with stock qty (red + LOW label when ≤5), confirm button → deducts stock on confirm
 - **Purchase Orders tab** — full PO history
   - **Status filter pills**: All · Draft · Ordered · Received · Cancelled
   - **Search bar**: filter by PO number or supplier name
@@ -438,6 +439,8 @@ Patient (PT-XXXXX)
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
 | 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
 | 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up); UI redesigned full-width dark/light CSS-variable themed with clinic logo (2026-04-17) |
+| 5.5 Queue Display | ✅ Complete | Public `/display` TV screen (no login), per-doctor grid (auto-adjusting columns), now_seeing + next_up + token chips, real-time clock, 30s auto-refresh, fullscreen API, online/offline indicator, emergency badges; Settings toggle + shareable URL (2026-04-18) |
+| Dispense Confirmation Modal | ✅ Complete | Reusable `DispenseModal` used in PharmacyPage, PrescriptionsPage, InvoiceModal; shows allergy warning, medicines table with stock levels, LOW stock highlighted red (2026-04-18) |
 | Staff Management | ✅ Complete | Admin creates/edits/deactivates staff (all roles). Reset-password. Grouped by role. `/api/v1/staff` backend. `/staff` page in clinic-frontend. |
 | SaaS Onboarding | ✅ Complete | Clinic creation auto-creates first admin staff. Credentials copy screen. No trial/plan system. Super admin manually activates/suspends. |
 | Token Slip Printing | ✅ Complete | After Add to Queue → confirmation screen in same drawer with token/ref. Print Slip button → 80mm thermal printer window. `printTokenSlip.js` utility. |
@@ -545,6 +548,85 @@ All routes are **public** (no JWT). Tenant identified via `X-Tenant-Subdomain` h
 | `createTenantSchema.js` | `prescription_items`: `medicine_id` nullable; `custom_medicine_name VARCHAR(255)` added |
 | `migrate_custom_medicine.js` (NEW) | One-time migration: drops NOT NULL from `medicine_id`, adds `custom_medicine_name` to all tenant schemas |
 | `BookingPage.jsx` | **Full rewrite**: CSS variables, `useTheme`, `mediaUrl` logo, sticky header, dark mode toggle, mobile slot grid, taken slots as `<div>`, Available/Taken legend |
+
+---
+
+---
+
+## Phase 5.5 — Queue Display / Waiting Room TV Screen
+
+### Overview
+A public full-screen TV display at `/display` — no login required. Shows each active doctor's current patient and queue in a dark-themed, auto-adjusting grid. Designed to be opened on a waiting room monitor or TV. Auto-refreshes every 30 seconds. Gated by `queue_display_enabled` in clinic_settings.
+
+### How it works
+
+```
+Admin enables "Queue Display" toggle in Settings → Security
+      ↓
+Copy the /display URL and open it on a waiting room TV (any browser, no login)
+      ↓
+TV shows: Clinic logo + name + live clock in header
+          Per-doctor cards (auto-grid based on doctor count)
+          Each card: doctor name, specialization, status badge
+          Now Seeing: large token number (red=emergency) + patient first name
+          Next Up: up to 5 token chips
+          Footer: online/offline + 30s countdown + manual refresh + fullscreen toggle
+      ↓
+Page auto-refreshes every 30 seconds (no interaction needed)
+```
+
+### Grid Layout
+| # Doctors | Layout |
+|-----------|--------|
+| 1 | Full-width single column |
+| 2 | 2 columns side by side |
+| 3 | 3 columns |
+| 4 | 2×2 grid |
+| 5+ | 3-column wrap |
+
+### Privacy
+- Patients shown by **first name only** — suitable for a public display
+- No patient codes, phone numbers, or full names shown
+
+### Feature Toggle
+- **Settings → Security tab → Waiting Room Display section**
+- Toggle: Enable Queue Display Screen (ON/OFF)
+- When ON: shows shareable `/display` URL + Copy button + Open button
+- When OFF: `/display` returns 403 ("Queue display is not enabled for this clinic")
+
+### Backend Route (`GET /api/v1/portal/queue-display`)
+Public route (no JWT). Returns:
+```json
+{
+  "clinic": { "name": "...", "logo_url": "...", "phone": "..." },
+  "doctors": [
+    {
+      "id": "...",
+      "name": "Dr. Saman Perera",
+      "specialization": "General Practice",
+      "now_seeing": { "token": 3, "first_name": "Kasun", "type": "normal", "time": "09:30" },
+      "next_up": [{ "token": 4, "type": "normal" }, ...],
+      "waiting_count": 5,
+      "completed_today": 2
+    }
+  ],
+  "generated_at": "2026-04-18T09:45:00.000Z"
+}
+```
+
+### New Files (Phase 5.5)
+| File | Type | Purpose |
+|------|------|---------|
+| `backend-api/src/db/migrate_queue_display.js` | Migration | Adds `queue_display_enabled BOOLEAN DEFAULT FALSE` to all tenant `clinic_settings` |
+| `clinic-frontend/src/pages/display/DisplayPage.jsx` | Page | TV waiting room display — dark theme, auto-adjusting grid, real-time clock |
+
+### Modified Files (Phase 5.5)
+| File | Change |
+|------|--------|
+| `portal.routes.js` | Added `GET /portal/queue-display` public route |
+| `settings.routes.js` | Added `queue_display_enabled` to `PUT /settings` — destructuring + UPDATE query |
+| `SettingsPage.jsx` | Security tab: Queue Display toggle + shareable URL + Copy + Open buttons |
+| `App.jsx` | `/display` route (public, no ProtectedRoute) |
 
 ---
 

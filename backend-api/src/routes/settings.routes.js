@@ -62,7 +62,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
     currency, tax_rate, tax_label,
     appointment_slot_duration, max_patients_per_day, allow_walk_ins,
     reminder_enabled, reminder_hours_before, reminder_message,
-    session_timeout_minutes, patient_portal_enabled,
+    session_timeout_minutes, patient_portal_enabled, queue_display_enabled,
   } = req.body;
 
   try {
@@ -86,6 +86,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
         reminder_message          = COALESCE($16, reminder_message),
         session_timeout_minutes   = COALESCE($17, session_timeout_minutes),
         patient_portal_enabled    = COALESCE($18, patient_portal_enabled),
+        queue_display_enabled     = COALESCE($19, queue_display_enabled),
         updated_at                = NOW()
     `, [
       clinic_name    || null, clinic_address  || null, clinic_phone  || null, clinic_email  || null,
@@ -100,6 +101,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
       reminder_message          || null,
       session_timeout_minutes   != null ? session_timeout_minutes   : null,
       patient_portal_enabled    != null ? patient_portal_enabled    : null,
+      queue_display_enabled     != null ? queue_display_enabled     : null,
     ]);
 
     // Keep public.tenants in sync when clinic_name changes

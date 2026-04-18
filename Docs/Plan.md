@@ -465,6 +465,7 @@ Phase 7  →  Desktop version (later)
 | Lab test requests and results | `lab` | ✅ Complete (2026-04-15) |
 | Insurance claims management | `insurance` | ✅ Complete (2026-04-15) |
 | Patient Portal / Online Booking | `online_booking` + `patient_portal_enabled` | ✅ Complete (2026-04-15) |
+| Queue Display / Waiting Room TV Screen | `queue_display_enabled` | ✅ Complete (2026-04-18) |
 | Multi-branch support | `multi_branch` | Not started |
 
 ---
@@ -597,6 +598,35 @@ Phase 7  →  Desktop version (later)
 | Bug fix: double "Dr." prefix removed across all 11 affected files | frontend | [x] |
 
 **Access:** Public (no login) for `/book`. All roles see Online badge. Doctor gets enhanced dashboard. Admin controls toggle.
+
+---
+
+### Module 5.5 — Queue Display / Waiting Room TV Screen ✅
+
+**Completed:** 2026-04-18
+
+| Task | Project | Done |
+|------|---------|------|
+| Add `queue_display_enabled` column to `clinic_settings` | backend | [x] |
+| `GET /portal/queue-display` — public route, no auth | backend | [x] |
+| Feature gated by `queue_display_enabled` (returns 403 if disabled) | backend | [x] |
+| Returns clinic info + per-doctor queue: now_seeing, next_up (5), waiting_count, completed_today | backend | [x] |
+| Emergency appointments shown first (priority sort) | backend | [x] |
+| Patient privacy — shows first_name only (not full name) | backend | [x] |
+| Migration script — `migrate_queue_display.js` | backend | [x] |
+| `DisplayPage.jsx` — full-screen TV display at `/display` (public, no login) | frontend | [x] |
+| Auto-adjusting CSS Grid: 1 doctor=1col, 2=2col, 3=3col, 4=2×2, 5+=3col | frontend | [x] |
+| `DoctorCard` component — header (name, specialization, status badge), Now Seeing (large token + first name), Next Up (token chips) | frontend | [x] |
+| Emergency badges — red token + Zap icon | frontend | [x] |
+| Header — clinic logo + name, real-time live clock (seconds) | frontend | [x] |
+| Footer — online/offline indicator, 30s countdown, manual refresh, fullscreen toggle | frontend | [x] |
+| Auto-refresh every 30 seconds | frontend | [x] |
+| Fullscreen API support (toggle + keyboard-exit detection) | frontend | [x] |
+| Online/offline detection via `navigator.onLine` + window events | frontend | [x] |
+| Settings → Security tab — Queue Display toggle + shareable `/display` URL + Copy + Open buttons | frontend | [x] |
+| `/display` public route registered in `App.jsx` | frontend | [x] |
+
+**Access:** Public (no login). Admin enables the toggle in Settings → Security. Staff do not need to be logged in to view the display on a waiting room TV.
 
 ---
 

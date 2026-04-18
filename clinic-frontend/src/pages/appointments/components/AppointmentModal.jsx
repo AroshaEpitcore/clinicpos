@@ -251,7 +251,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       open={open}
       onClose={handleClose}
       title={bookedSlip ? 'Booking Confirmed' : 'Add to Queue'}
-      width="540px"
+      width="50vw"
       footer={
         bookedSlip ? (
           <>

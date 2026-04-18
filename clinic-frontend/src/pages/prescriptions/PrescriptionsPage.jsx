@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle, Search, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle, Search, Calendar, Check } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Modal }        from '../../components/ui/Modal';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -9,8 +9,10 @@ import { EmptyState }   from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/Spinner';
 import { Button }       from '../../components/ui/Button';
 import { prescriptionsApi }  from '../../api/prescriptions';
+import { pharmacyApi }        from '../../api/pharmacy';
 import { settingsApi }        from '../../api/settings';
 import { printPrescription }  from '../../utils/printPrescription';
+import { DispenseModal }      from '../../components/ui/DispenseModal';
 import { formatDate, toInputDate } from '../../utils/format';
 import { toast } from 'sonner';
 
@@ -32,10 +34,12 @@ export default function PrescriptionsPage() {
   const [clinicSettings, setClinicSettings] = useState(null);
 
   // Modal state
-  const [selectedRx,   setSelectedRx]   = useState(null); // full rx object
-  const [loadingRx,    setLoadingRx]    = useState(false);
-  const [printing,     setPrinting]     = useState(false);
-  const [downloading,  setDownloading]  = useState(false);
+  const [selectedRx,      setSelectedRx]      = useState(null); // full rx object
+  const [loadingRx,       setLoadingRx]        = useState(false);
+  const [printing,        setPrinting]         = useState(false);
+  const [downloading,     setDownloading]      = useState(false);
+  const [dispenseOpen,    setDispenseOpen]     = useState(false);
+  const [dispensing,      setDispensing]       = useState(false);
 
   const load = useCallback(async (d) => {
     setLoading(true);
@@ -95,6 +99,24 @@ export default function PrescriptionsPage() {
       toast.error('Could not generate PDF.');
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleDispense() {
+    if (!selectedRx) return;
+    setDispensing(true);
+    try {
+      await pharmacyApi.dispense(selectedRx.id);
+      toast.success(`${selectedRx.rx_number} dispensed successfully`);
+      setDispenseOpen(false);
+      // Refresh the prescription detail so is_dispensed reflects the change
+      const res = await prescriptionsApi.getById(selectedRx.id);
+      setSelectedRx(res.data.data);
+      load(date);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong.');
+    } finally {
+      setDispensing(false);
     }
   }
 
@@ -301,6 +323,7 @@ export default function PrescriptionsPage() {
                 PDF
               </Button>
               <Button
+                variant="secondary"
                 size="sm"
                 loading={printing}
                 onClick={handlePrint}
@@ -308,6 +331,21 @@ export default function PrescriptionsPage() {
                 <Printer className="w-3.5 h-3.5 mr-1" />
                 Print
               </Button>
+              {!selectedRx.is_dispensed && (
+                <Button
+                  size="sm"
+                  onClick={() => setDispenseOpen(true)}
+                >
+                  <Check className="w-3.5 h-3.5 mr-1" />
+                  Dispense
+                </Button>
+              )}
+              {selectedRx.is_dispensed && (
+                <span className="text-xs text-[var(--color-success)] font-medium flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  Dispensed{selectedRx.dispensed_by_name ? ` by ${selectedRx.dispensed_by_name}` : ''}
+                </span>
+              )}
             </div>
           ) : null
         }
@@ -406,6 +444,14 @@ export default function PrescriptionsPage() {
           </div>
         )}
       </Modal>
+      {/* Dispense confirmation modal */}
+      <DispenseModal
+        open={dispenseOpen}
+        onClose={() => setDispenseOpen(false)}
+        rx={selectedRx}
+        onConfirm={handleDispense}
+        confirming={dispensing}
+      />
     </PageLayout>
   );
 }

@@ -339,4 +339,86 @@ router.get('/booking/:reference', async (req, res) => {
   }
 });
 
+// ── GET /portal/queue-display ─────────────────────────────────────────────────
+// Public waiting-room display — returns today's queue grouped per doctor.
+// Gated by queue_display_enabled in clinic_settings.
+router.get('/queue-display', async (req, res) => {
+  const schema = req.tenantSchema;
+  const today  = new Date().toISOString().split('T')[0];
+
+  try {
+    const cfg = await queryTenant(schema, `SELECT * FROM clinic_settings LIMIT 1`);
+    const settings = cfg.rows[0] || {};
+
+    if (!settings.queue_display_enabled) {
+      return res.status(403).json({ status: 'error', message: 'Queue display is not enabled for this clinic.' });
+    }
+
+    // Clinic info for the display header
+    const clinic = {
+      name:     settings.clinic_name     || 'Clinic',
+      logo_url: settings.clinic_logo_url || null,
+      phone:    settings.clinic_phone    || null,
+    };
+
+    // All active doctors who have appointments today
+    const doctorsRes = await queryTenant(schema, `
+      SELECT DISTINCT
+        s.id, s.full_name, s.specialization
+      FROM appointments a
+      JOIN staff s ON s.id = a.doctor_id
+      WHERE a.appointment_date = $1
+        AND a.status != 'cancelled'
+      ORDER BY s.full_name
+    `, [today]);
+
+    const doctors = await Promise.all(doctorsRes.rows.map(async doc => {
+      // Appointments for this doctor today (non-cancelled), ordered by queue
+      const appts = await queryTenant(schema, `
+        SELECT
+          a.id, a.token_number, a.status, a.appointment_time, a.type,
+          p.first_name
+        FROM appointments a
+        JOIN patients p ON p.id = a.patient_id
+        WHERE a.doctor_id = $1
+          AND a.appointment_date = $2
+          AND a.status != 'cancelled'
+        ORDER BY
+          CASE WHEN a.type = 'emergency' THEN 0 ELSE 1 END,
+          a.token_number ASC NULLS LAST,
+          a.appointment_time ASC NULLS LAST
+      `, [doc.id, today]);
+
+      const all          = appts.rows;
+      const nowSeeing    = all.find(a => a.status === 'arrived') || null;
+      const waiting      = all.filter(a => a.status === 'pending' || a.status === 'confirmed');
+      const completedCnt = all.filter(a => a.status === 'completed').length;
+
+      return {
+        id:            doc.id,
+        name:          doc.full_name,
+        specialization: doc.specialization || null,
+        now_seeing:    nowSeeing ? {
+          token:       nowSeeing.token_number,
+          first_name:  nowSeeing.first_name,
+          type:        nowSeeing.type,
+          time:        nowSeeing.appointment_time,
+        } : null,
+        next_up: waiting.slice(0, 5).map(a => ({
+          token: a.token_number,
+          type:  a.type,
+          time:  a.appointment_time,
+        })),
+        waiting_count:   waiting.length,
+        completed_today: completedCnt,
+      };
+    }));
+
+    res.json({ status: 'success', data: { clinic, doctors, generated_at: new Date().toISOString() } });
+  } catch (err) {
+    console.error('GET /portal/queue-display', err);
+    res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
+  }
+});
+
 module.exports = router;

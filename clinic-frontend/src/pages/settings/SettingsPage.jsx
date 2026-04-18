@@ -584,10 +584,12 @@ function SecurityTab({ settings, onSave, saving }) {
     setForm({
       session_timeout_minutes: settings.session_timeout_minutes ?? 30,
       patient_portal_enabled:  settings.patient_portal_enabled  ?? false,
+      queue_display_enabled:   settings.queue_display_enabled   ?? false,
     });
   }, [settings]);
 
-  const portalUrl = `${window.location.origin}/book`;
+  const portalUrl  = `${window.location.origin}/book`;
+  const displayUrl = `${window.location.origin}/display`;
 
   return (
     <div className="flex flex-col gap-5">
@@ -630,6 +632,42 @@ function SecurityTab({ settings, onSave, saving }) {
             </div>
             <p className="text-xs text-[var(--color-text-secondary)] mt-2">
               Share this link with patients so they can book appointments online.
+            </p>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Waiting Room Display">
+        <Toggle
+          label="Enable Queue Display Screen"
+          description="Show a public TV screen with each doctor's current patient and queue. No login required — open this on any monitor in your waiting room."
+          checked={!!form.queue_display_enabled}
+          onChange={v => setForm(f => ({ ...f, queue_display_enabled: v }))}
+        />
+        {form.queue_display_enabled && (
+          <div className="mt-4 p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
+            <p className="text-xs text-[var(--color-text-secondary)] mb-1">Queue Display URL</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs text-[var(--color-primary)] break-all">{displayUrl}</code>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(displayUrl); }}
+                className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] shrink-0"
+              >
+                Copy
+              </button>
+              <a
+                href={displayUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] shrink-0"
+              >
+                Open
+              </a>
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+              Open this link on your waiting room TV or any display. Auto-refreshes every 30 seconds.
+              Shows only patient first names for privacy.
             </p>
           </div>
         )}

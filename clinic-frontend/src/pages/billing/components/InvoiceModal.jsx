@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, Download, Search, Package, Wrench, FileText, Check, X } from 'lucide-react';
-import { Modal }        from '../../../components/ui/Modal';
-import { Button }       from '../../../components/ui/Button';
-import { LoadingState } from '../../../components/ui/Spinner';
+import { Modal }          from '../../../components/ui/Modal';
+import { Button }         from '../../../components/ui/Button';
+import { LoadingState }   from '../../../components/ui/Spinner';
+import { DispenseModal }  from '../../../components/ui/DispenseModal';
 import { invoicesApi, customServicesApi } from '../../../api/invoices';
-import { medicinesApi } from '../../../api/medicines';
+import { medicinesApi }   from '../../../api/medicines';
+import { pharmacyApi }    from '../../../api/pharmacy';
+import { prescriptionsApi } from '../../../api/prescriptions';
 import { formatCurrency, formatDate }     from '../../../utils/format';
 import { PaymentStatusBadge }             from '../BillingPage';
 
@@ -404,6 +407,11 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
   const [saving,      setSaving]      = useState(false);
   const [downloading, setDownloading] = useState(false);
 
+  // Dispense
+  const [dispenseRx,   setDispenseRx]   = useState(null);
+  const [dispenseOpen, setDispenseOpen] = useState(false);
+  const [dispensing,   setDispensing]   = useState(false);
+
   // Payment form
   const [payMethod,    setPayMethod]    = useState('Cash');
   const [payAmount,    setPayAmount]    = useState('');
@@ -418,8 +426,18 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
     setLoading(true);
     try {
       const res = await invoicesApi.getById(invoiceId);
-      setInvoice(res.data.data);
-      setPayAmount(String(parseFloat(res.data.data.balance_due || 0).toFixed(2)));
+      const inv = res.data.data;
+      setInvoice(inv);
+      setPayAmount(String(parseFloat(inv.balance_due || 0).toFixed(2)));
+
+      // Load full prescription (with items + stock) if this invoice has one
+      if (inv.prescription_id) {
+        prescriptionsApi.getById(inv.prescription_id)
+          .then(r => setDispenseRx(r.data.data))
+          .catch(() => setDispenseRx(null));
+      } else {
+        setDispenseRx(null);
+      }
     } catch {
       toast.error('Could not load invoice.');
       onClose();
@@ -479,6 +497,23 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
     }
   }
 
+  async function handleDispense() {
+    if (!dispenseRx) return;
+    setDispensing(true);
+    try {
+      await pharmacyApi.dispense(dispenseRx.id);
+      toast.success(`${dispenseRx.rx_number} dispensed successfully`);
+      setDispenseOpen(false);
+      // Refresh prescription state so button reflects dispensed
+      const r = await prescriptionsApi.getById(dispenseRx.id);
+      setDispenseRx(r.data.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong.');
+    } finally {
+      setDispensing(false);
+    }
+  }
+
   async function handleDownloadPdf() {
     setDownloading(true);
     try {
@@ -509,6 +544,22 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
           <div className="flex items-center justify-between w-full">
             <Button variant="secondary" onClick={onClose}>Close</Button>
             <div className="flex items-center gap-2">
+              {/* Prescription dispense status / button */}
+              {dispenseRx && (
+                dispenseRx.is_dispensed ? (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)] px-2">
+                    <Check className="w-3.5 h-3.5" />
+                    Dispensed{dispenseRx.dispensed_by_name ? ` by ${dispenseRx.dispensed_by_name}` : ''}
+                  </span>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setDispenseOpen(true)}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Dispense Rx
+                  </Button>
+                )
+              )}
               {invoice && (
                 <Button variant="secondary" onClick={handleDownloadPdf} loading={downloading}>
                   <Download className="w-4 h-4 mr-1" /> PDF
@@ -717,6 +768,15 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
         onAdd={handleAddItem}
         services={services}
         saving={saving}
+      />
+
+      {/* Dispense confirmation */}
+      <DispenseModal
+        open={dispenseOpen}
+        onClose={() => setDispenseOpen(false)}
+        rx={dispenseRx}
+        onConfirm={handleDispense}
+        confirming={dispensing}
       />
     </>
   );

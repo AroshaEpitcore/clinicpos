@@ -16,9 +16,10 @@ import { EmptyState }    from '../../components/ui/EmptyState';
 import { LoadingState }  from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DatePicker }    from '../../components/ui/DatePicker';
-import { pharmacyApi }   from '../../api/pharmacy';
-import { medicinesApi }  from '../../api/medicines';
+import { pharmacyApi }     from '../../api/pharmacy';
+import { medicinesApi }    from '../../api/medicines';
 import { formatDate, toInputDate } from '../../utils/format';
+import { DispenseModal }   from '../../components/ui/DispenseModal';
 
 const TABS = [
   { key: 'dispense',    label: 'Dispense Queue', icon: Pill   },
@@ -83,10 +84,11 @@ function DispenseTab() {
   const [date, setDate] = useState(today);
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [dispensing, setDispensing] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
-  const [search, setSearch] = useState('');
+  const [dispensing,     setDispensing]     = useState(null);
+  const [expandedId,     setExpandedId]     = useState(null);
+  const [search,         setSearch]         = useState('');
   const [dispenseFilter, setDispenseFilter] = useState('all');
+  const [dispenseTarget, setDispenseTarget] = useState(null); // rx object pending modal confirm
 
   const load = useCallback(async (d) => {
     setLoading(true);
@@ -113,6 +115,7 @@ function DispenseTab() {
     try {
       await pharmacyApi.dispense(rx.id);
       toast.success(`${rx.rx_number} dispensed successfully`);
+      setDispenseTarget(null);
       load(date);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
@@ -216,7 +219,7 @@ function DispenseTab() {
                   key={rx.id} rx={rx}
                   expanded={expandedId === rx.id}
                   onToggle={() => setExpandedId(expandedId === rx.id ? null : rx.id)}
-                  onDispense={() => handleDispense(rx)}
+                  onDispense={() => setDispenseTarget(rx)}
                   dispensing={dispensing === rx.id}
                 />
               ))}
@@ -240,6 +243,15 @@ function DispenseTab() {
           )}
         </div>
       )}
+
+      {/* Dispense confirmation modal */}
+      <DispenseModal
+        open={!!dispenseTarget}
+        onClose={() => setDispenseTarget(null)}
+        rx={dispenseTarget}
+        onConfirm={() => handleDispense(dispenseTarget)}
+        confirming={dispensing === dispenseTarget?.id}
+      />
     </div>
   );
 }

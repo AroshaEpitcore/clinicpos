@@ -17,7 +17,7 @@
 
 ## Current Status
 
-**Currently working on:** All core features complete — Phase 6 Beta & Launch next
+**Currently working on:** All core + add-on features complete through Phase 5.5 — Phase 6 Beta & Launch next
 **Last updated:** 2026-04-18
 **Next up:** Phase 6 — deployment, production setup
 
@@ -53,6 +53,9 @@
 | Consultations Page — Search + Filters | ✅ Search bar, doctor filter tabs, follow-up filter pill (2026-04-17) |
 | Prescriptions Page — Modal Detail | ✅ Clicking Rx row opens detail modal with medicines table instead of navigating (2026-04-17) |
 | UI Consistency — Search + Filters on All List Pages | ✅ Consistent search bar (X clear button, CSS variables), filter pills/tabs added to: Appointments, Consultations, Prescriptions (doctor tabs + search), Billing (search), Staff (role pills + active/inactive pills + search), Medicine Store (layout fixed — tabs full-width, search below, count), Patient List (X clear button), Pharmacy Dispense Queue (filter pills + search), Pharmacy Purchase Orders (status pills + search), Pharmacy Suppliers (search), Lab Test Catalog (search), Insurance Claims (search + existing status/date filters) (2026-04-17–2026-04-18) |
+| Dispense Confirmation Modal | ✅ Reusable `DispenseModal` component — shows allergy warning (red banner), medicines table with stock levels (red + LOW label when ≤5), confirm button. Used in PharmacyPage (Dispense button on Rx cards), PrescriptionsPage (Dispense Rx button in modal footer), InvoiceModal (Dispense Rx quick action when Rx linked to invoice). (2026-04-18) |
+| Queue Display / Waiting Room TV Screen | ✅ Public `/display` page (no login). Dark-themed auto-adjusting grid. Now Seeing (large token + first name), Next Up chips, emergency badges (red+Zap), real-time clock, 30s auto-refresh, fullscreen API, online/offline detection. Settings toggle + URL in Security tab. `migrate_queue_display.js` run. (2026-04-18) |
+| Add to Queue Drawer Width | ✅ Changed from 540px to 50vw (half screen) for easier use on large monitors. (2026-04-18) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -68,6 +71,30 @@
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
 | System health display in admin panel | Phase 6 |
 | Audit log viewer | Phase 6 |
+
+---
+
+## Queue Display + Dispense Modal + UI Polish (2026-04-18)
+
+> Session covering waiting room TV display, dispense confirmation modals, and drawer width fix.
+
+### Changes Made
+
+| Change | Files affected | Notes |
+|--------|---------------|-------|
+| Dispense confirmation modal | `DispenseModal.jsx` (NEW), `PharmacyPage.jsx`, `PrescriptionsPage.jsx`, `InvoiceModal.jsx` | Reusable modal — shows allergy warning banner, medicines table with stock qty (red+LOW ≤5), confirm button. Replaces direct dispense action with a two-step confirm flow. |
+| Dispense Rx in InvoiceModal | `InvoiceModal.jsx`, `invoice.routes.js` | InvoiceModal now fetches linked prescription (via JOIN consultations → prescriptions). Shows "Dispense Rx" button when undispensed. Fixed `GET /invoices/:id` to LEFT JOIN prescriptions. |
+| Add to Queue drawer width | `AppointmentModal.jsx` | Changed width from `540px` to `50vw` for more working space on large monitors. |
+| Queue Display migration | `migrate_queue_display.js` (NEW) | Adds `queue_display_enabled BOOLEAN NOT NULL DEFAULT FALSE` to all tenant `clinic_settings` tables. Run once. |
+| Queue Display backend route | `portal.routes.js` | `GET /portal/queue-display` — public, no auth. Returns clinic info + per-doctor: now_seeing, next_up (5), waiting_count, completed_today. Gated by `queue_display_enabled`. |
+| Queue Display settings | `settings.routes.js`, `SettingsPage.jsx` | `queue_display_enabled` added to `PUT /settings`. Security tab gets new "Waiting Room Display" section with toggle + URL + Copy + Open buttons. |
+| DisplayPage | `DisplayPage.jsx` (NEW), `App.jsx` | Public `/display` TV screen. Auto-grid (1→1col, 2→2col, 3→3col, 4→2×2, 5+→3col). Dark theme. Real-time clock, 30s countdown, fullscreen API, online/offline. |
+
+### Key decisions
+
+- **Privacy-first display:** Patient first names only on the TV screen — never full name, patient code, or phone.
+- **No authentication needed** for `/display` — it's safe to leave on a TV in the waiting room permanently. The clinic admin controls it via a toggle in Settings.
+- **Self-contained InvoiceModal:** Instead of passing `prescription_id` as a prop from the parent, the modal fetches prescription data from the invoice response (via JOIN). Works correctly from AppointmentsPage and BillingPage both.
 
 ---
 

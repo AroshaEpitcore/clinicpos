@@ -219,12 +219,16 @@ router.get('/:id', async (req, res) => {
       SELECT i.*,
              p.first_name, p.last_name, p.patient_code, p.phone, p.date_of_birth, p.allergies,
              s.full_name AS generated_by_name,
-             ds.full_name AS doctor_name
+             ds.full_name AS doctor_name,
+             pr.id           AS prescription_id,
+             pr.is_dispensed AS prescription_dispensed,
+             pr.rx_number    AS prescription_rx_number
       FROM invoices i
       JOIN patients p ON p.id = i.patient_id
       JOIN staff    s ON s.id = i.generated_by
-      LEFT JOIN consultations c ON c.id = i.consultation_id
-      LEFT JOIN staff ds        ON ds.id = c.doctor_id
+      LEFT JOIN consultations c  ON c.id  = i.consultation_id
+      LEFT JOIN staff ds         ON ds.id = c.doctor_id
+      LEFT JOIN prescriptions pr ON pr.consultation_id = c.id
       WHERE i.id = $1
     `, [req.params.id]);
     if (!invRes.rows.length) {
