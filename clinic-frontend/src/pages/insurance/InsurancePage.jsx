@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Plus, RefreshCw, Search, Shield } from 'lucide-react';
+import { Plus, RefreshCw, Search, Shield, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }        from '../../store/AuthContext';
 import { insuranceApi }   from '../../api/insurance';
@@ -45,6 +45,7 @@ function ClaimsTab({ providers, isAdmin }) {
   const [dateTo,       setDateTo]       = useState('');
   const [showNew,      setShowNew]      = useState(false);
   const [editClaim,    setEditClaim]    = useState(null);
+  const [search,       setSearch]       = useState('');
 
   async function load() {
     setLoading(true);
@@ -73,6 +74,19 @@ function ClaimsTab({ providers, isAdmin }) {
     approved_amt: claims.reduce((s, c) => s + parseFloat(c.amount_approved || 0), 0),
   };
 
+  const bq = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!bq) return claims;
+    return claims.filter(c =>
+      (c.patient_name   || '').toLowerCase().includes(bq) ||
+      (c.patient_code   || '').toLowerCase().includes(bq) ||
+      (c.claim_number   || '').toLowerCase().includes(bq) ||
+      (c.invoice_number || '').toLowerCase().includes(bq) ||
+      (c.provider_name  || '').toLowerCase().includes(bq)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claims, bq]);
+
   return (
     <div>
       {/* Stats strip */}
@@ -92,7 +106,22 @@ function ClaimsTab({ providers, isAdmin }) {
       </div>
 
       {/* Filters + New button */}
-      <div className="flex flex-wrap gap-2 mb-4 items-end">
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search patient, claim, invoice…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] w-52"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
@@ -123,8 +152,10 @@ function ClaimsTab({ providers, isAdmin }) {
       {/* Table */}
       {loading ? (
         <div className="text-center py-12 text-sm text-[var(--color-text-secondary)]">Loading...</div>
-      ) : claims.length === 0 ? (
-        <div className="text-center py-12 text-sm text-[var(--color-text-secondary)]">No claims found.</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-sm text-[var(--color-text-secondary)]">
+          {bq ? `No claims match "${search}".` : 'No claims found.'}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--color-border)]">
           <table className="w-full text-sm">
@@ -136,7 +167,7 @@ function ClaimsTab({ providers, isAdmin }) {
               </tr>
             </thead>
             <tbody>
-              {claims.map(c => (
+              {filtered.map(c => (
                 <tr key={c.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)]">
                   <td className="px-4 py-3 font-mono text-xs font-medium text-[var(--color-primary)]">{c.claim_number}</td>
                   <td className="px-4 py-3">

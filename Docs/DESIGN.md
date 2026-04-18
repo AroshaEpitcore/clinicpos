@@ -832,6 +832,164 @@ export function PatientRegistrationForm({ onSuccess }) {
 
 ---
 
+## Search + Filter Pattern — Standard for All List Pages
+
+Every list page in the app uses the same pattern. Do not invent new variants.
+
+### Structure (top-to-bottom on the page)
+
+```
+1. PageHeader (title, subtitle, actions button)
+2. Date navigation — if page is date-based (arrows + DatePicker + "Back to today")
+3. Summary cards — if page has stats (Total Billed / Collected / Outstanding)
+4. Filter tabs — full-width border-b row (e.g. All / Unpaid / Partial / Paid)
+5. Doctor filter tabs — full-width border-b row, only shown when >1 doctor in data
+6. Filter pills row — role/status/dispense pills (rounded-full, primary active state)
+7. Search bar row — max-w-sm, with X clear button + count display
+8. List / Table
+```
+
+Not every page has all layers — only include what's relevant.
+
+### Filter Tabs (underline style — for main category filters)
+
+```jsx
+<div className="flex gap-1 border-b border-[var(--color-border)] mb-4">
+  {TABS.map(tab => (
+    <button key={tab.key} onClick={() => setTab(tab.key)}
+      className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+        tab === tab.key
+          ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+          : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+      }`}>
+      {tab.label}
+    </button>
+  ))}
+</div>
+```
+
+Use for: status tabs (All/Unpaid/Paid), doctor tabs, medicine store tabs.
+
+### Filter Pills (pill/capsule style — for secondary filters)
+
+```jsx
+<div className="flex items-center gap-2 mb-4 flex-wrap">
+  {FILTERS.map(f => (
+    <button key={f.key} onClick={() => setFilter(f.key)}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+        filter === f.key
+          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+          : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text)]'
+      }`}>
+      {f.label}
+    </button>
+  ))}
+</div>
+```
+
+Use for: role pills (All/Doctors/Nurses), status pills (All/Active/Inactive), dispense pills (All/Pending/Dispensed).
+
+### Search Bar (always this exact pattern)
+
+```jsx
+<div className="flex items-center gap-3 mb-4">
+  <div className="relative max-w-sm flex-1">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+    <input
+      type="text"
+      placeholder="Search…"
+      value={search}
+      onChange={e => setSearch(e.target.value)}
+      className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+    />
+    {search && (
+      <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    )}
+  </div>
+  {!loading && (
+    <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
+      {bq ? `${filtered.length} of ` : ''}{total} item{total !== 1 ? 's' : ''}
+    </span>
+  )}
+</div>
+```
+
+Rules:
+- Always `pl-9` (room for Search icon) and `pr-8` (room for X button)
+- Always `bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]`
+- Always show X button only when `search` is non-empty
+- Always show count to the right: "X of Y items" when filtered, "Y items" when not
+
+### Client-side vs Server-side Filtering
+
+| Situation | Use |
+|-----------|-----|
+| Date-based pages (Appointments, Billing, Consultations, Prescriptions, Pharmacy Queue) — all data for the day loaded at once | **Client-side useMemo** — no extra API calls on filter change |
+| Full dataset pages (Patients, Staff, Medicine Store) — potentially thousands of records | **Server-side** — send filter/search params to API |
+| Mixed (Insurance Claims) | Server-side for date/status, client-side for text search |
+
+### Two-Stage Filter Pattern (for pages with doctor tabs + search)
+
+```js
+// Stage 1 — doctor filter (determines stats base)
+const doctorFiltered = useMemo(() =>
+  doctorFilter === 'all' ? items : items.filter(i => i.doctor_name === doctorFilter),
+  [items, doctorFilter]
+);
+
+// Stage 2 — search on top of doctor filter
+const filtered = useMemo(() => {
+  if (!q) return doctorFiltered;
+  return doctorFiltered.filter(i =>
+    (i.patient_name || '').toLowerCase().includes(q)
+    // ... more fields
+  );
+}, [doctorFiltered, q]);
+```
+
+Stats always use `doctorFiltered.length` — not `filtered.length` — so counts don't change when typing in search.
+
+### Empty State — Always Context-Aware
+
+```jsx
+<EmptyState
+  icon={SomeIcon}
+  title={q || filter !== 'all' ? 'No results' : 'No data yet'}
+  description={
+    q ? `No items match "${search}".`
+    : filter !== 'all' ? `No ${filter} items found.`
+    : 'Default empty message.'
+  }
+  action={
+    (q || filter !== 'all')
+      ? <Button size="sm" variant="secondary" onClick={() => { setSearch(''); setFilter('all'); }}>Clear filters</Button>
+      : <Button size="sm" onClick={openAdd}>Add first item</Button>
+  }
+/>
+```
+
+---
+
+## TopBar Layout
+
+The TopBar is fixed at the top and adjusts its `left` value to match the sidebar width.
+
+```
+[Hamburger] [Page Title ————————————] [Date/Time] [Dark toggle] [Logout]
+```
+
+| Section | Content |
+|---------|---------|
+| Left | Hamburger button — toggles sidebar collapsed state; calls `onToggle` from `PageLayout` |
+| Center | Page title (from `title` prop) — falls back to clinic name |
+| Right | Live date/time (updates every second) · Dark/light toggle · Logout button |
+
+The sidebar collapse state is managed in `PageLayout` via `localStorage('sidebar-collapsed')`. Both `Sidebar` and `TopBar` receive `sidebarWidth` to position correctly.
+
+---
+
 ## Layout Rules
 
 ### Page layout — every screen follows this structure

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Pill, Truck, Users, SlidersHorizontal, ChevronLeft, ChevronRight,
-  Check, AlertTriangle, Plus, Trash2, Edit2, Package, Clock,
+  Check, AlertTriangle, Plus, Trash2, Edit2, Package, Clock, Search, X,
 } from 'lucide-react';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -72,6 +72,12 @@ export default function PharmacyPage() {
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB 1 — DISPENSE QUEUE
 // ══════════════════════════════════════════════════════════════════════════════
+const DISPENSE_FILTERS = [
+  { key: 'all',       label: 'All' },
+  { key: 'pending',   label: 'Pending' },
+  { key: 'dispensed', label: 'Dispensed' },
+];
+
 function DispenseTab() {
   const today = toInputDate(new Date());
   const [date, setDate] = useState(today);
@@ -79,6 +85,8 @@ function DispenseTab() {
   const [loading, setLoading] = useState(false);
   const [dispensing, setDispensing] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [dispenseFilter, setDispenseFilter] = useState('all');
 
   const load = useCallback(async (d) => {
     setLoading(true);
@@ -113,13 +121,27 @@ function DispenseTab() {
     }
   }
 
-  const pending   = queue.filter(r => !r.is_dispensed);
-  const dispensed = queue.filter(r => r.is_dispensed);
+  const bq = search.trim().toLowerCase();
+  const filteredQueue = useMemo(() => {
+    return queue.filter(rx => {
+      if (dispenseFilter === 'pending'   &&  rx.is_dispensed) return false;
+      if (dispenseFilter === 'dispensed' && !rx.is_dispensed) return false;
+      if (bq) {
+        const hay = `${rx.patient_name || ''} ${rx.rx_number || ''} ${rx.doctor_name || ''}`.toLowerCase();
+        if (!hay.includes(bq)) return false;
+      }
+      return true;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue, dispenseFilter, bq]);
+
+  const pending   = filteredQueue.filter(r => !r.is_dispensed);
+  const dispensed = filteredQueue.filter(r =>  r.is_dispensed);
 
   return (
     <div>
       {/* Date nav */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
         <button onClick={() => stepDate(-1)} className="p-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
           <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
@@ -132,19 +154,63 @@ function DispenseTab() {
             Today
           </button>
         )}
-        <span className="text-xs text-[var(--color-text-secondary)] ml-2">
-          {pending.length} pending · {dispensed.length} dispensed
+        <span className="text-xs text-[var(--color-text-secondary)]">
+          {queue.filter(r => !r.is_dispensed).length} pending · {queue.filter(r => r.is_dispensed).length} dispensed
         </span>
       </div>
 
-      {loading ? <LoadingState message="Loading prescriptions..." /> : queue.length === 0 ? (
-        <EmptyState icon={Pill} title="No prescriptions for this date" description="Prescriptions written today will appear here for dispensing." />
+      {/* Filter pills */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {DISPENSE_FILTERS.map(f => (
+          <button key={f.key} onClick={() => setDispenseFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              dispenseFilter === f.key
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text)]'
+            }`}>
+            {f.label}
+          </button>
+        ))}
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm ml-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search patient, Rx number, doctor…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-1.5 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {loading ? <LoadingState message="Loading prescriptions..." /> : filteredQueue.length === 0 ? (
+        <EmptyState icon={Pill}
+          title={bq || dispenseFilter !== 'all' ? 'No results' : 'No prescriptions for this date'}
+          description={
+            bq ? `No prescriptions match "${search}".`
+            : dispenseFilter !== 'all' ? `No ${dispenseFilter} prescriptions for this date.`
+            : 'Prescriptions written today will appear here for dispensing.'
+          }
+          action={(bq || dispenseFilter !== 'all')
+            ? <Button size="sm" variant="secondary" onClick={() => { setSearch(''); setDispenseFilter('all'); }}>Clear filters</Button>
+            : undefined
+          }
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {/* Pending */}
           {pending.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Pending Dispense</p>
+              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
+                Pending Dispense ({pending.length})
+              </p>
               {pending.map(rx => (
                 <RxCard
                   key={rx.id} rx={rx}
@@ -160,7 +226,9 @@ function DispenseTab() {
           {/* Dispensed */}
           {dispensed.length > 0 && (
             <div className="flex flex-col gap-2 mt-2">
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Dispensed</p>
+              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
+                Dispensed ({dispensed.length})
+              </p>
               {dispensed.map(rx => (
                 <RxCard
                   key={rx.id} rx={rx}
@@ -261,11 +329,21 @@ function RxCard({ rx, expanded, onToggle, onDispense, dispensing }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB 2 — PURCHASE ORDERS
 // ══════════════════════════════════════════════════════════════════════════════
+const PO_STATUS_FILTERS = [
+  { key: 'all',       label: 'All' },
+  { key: 'draft',     label: 'Draft' },
+  { key: 'ordered',   label: 'Ordered' },
+  { key: 'received',  label: 'Received' },
+  { key: 'cancelled', label: 'Cancelled' },
+];
+
 function PurchaseOrdersTab() {
   const [orders, setOrders]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [viewOrder, setViewOrder]   = useState(null); // full PO object for receive modal
+  const [viewOrder, setViewOrder]   = useState(null);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -285,14 +363,64 @@ function PurchaseOrdersTab() {
     } catch { toast.error('Could not load order details.'); }
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    return orders.filter(po => {
+      if (statusFilter !== 'all' && po.status !== statusFilter) return false;
+      if (q) {
+        const hay = `${po.po_number} ${po.supplier_name || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, statusFilter, q]);
+
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" /> New Purchase Order</Button>
+      {/* Filters */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search PO number or supplier…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1">
+          {PO_STATUS_FILTERS.map(f => (
+            <button key={f.key} onClick={() => setStatusFilter(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                statusFilter === f.key
+                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                  : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text)]'
+              }`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto">
+          <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" /> New Purchase Order</Button>
+        </div>
       </div>
 
-      {loading ? <LoadingState message="Loading orders..." /> : orders.length === 0 ? (
-        <EmptyState icon={Truck} title="No purchase orders yet" description="Create a PO when you receive new stock from a supplier." action={<Button size="sm" onClick={() => setCreateOpen(true)}>+ New Order</Button>} />
+      {loading ? <LoadingState message="Loading orders..." /> : filtered.length === 0 ? (
+        <EmptyState icon={Truck}
+          title={q || statusFilter !== 'all' ? 'No results' : 'No purchase orders yet'}
+          description={q || statusFilter !== 'all' ? 'No orders match the current filters.' : 'Create a PO when you receive new stock from a supplier.'}
+          action={q || statusFilter !== 'all'
+            ? <Button size="sm" variant="secondary" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Clear filters</Button>
+            : <Button size="sm" onClick={() => setCreateOpen(true)}>+ New Order</Button>
+          }
+        />
       ) : (
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <table className="w-full text-sm">
@@ -308,7 +436,7 @@ function PurchaseOrdersTab() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(po => (
+              {filtered.map(po => (
                 <tr key={po.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors">
                   <td className="px-4 py-3 font-medium text-[var(--color-text)]">{po.po_number}</td>
                   <td className="px-4 py-3 text-[var(--color-text-secondary)]">{po.supplier_name || '—'}</td>
@@ -524,6 +652,7 @@ function SuppliersTab() {
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting]     = useState(false);
+  const [search, setSearch]         = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -547,16 +676,50 @@ function SuppliersTab() {
     finally { setDeleting(false); }
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return suppliers;
+    return suppliers.filter(s =>
+      (s.name    || '').toLowerCase().includes(q) ||
+      (s.contact || '').toLowerCase().includes(q) ||
+      (s.phone   || '').toLowerCase().includes(q) ||
+      (s.email   || '').toLowerCase().includes(q)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suppliers, q]);
+
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search suppliers…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <Button onClick={() => { setEditTarget(null); setModalOpen(true); }}>
           <Plus className="w-4 h-4" /> Add Supplier
         </Button>
       </div>
 
-      {loading ? <LoadingState message="Loading suppliers..." /> : suppliers.length === 0 ? (
-        <EmptyState icon={Users} title="No suppliers yet" description="Add your medicine suppliers to use them in purchase orders." action={<Button size="sm" onClick={() => { setEditTarget(null); setModalOpen(true); }}>+ Add Supplier</Button>} />
+      {loading ? <LoadingState message="Loading suppliers..." /> : filtered.length === 0 ? (
+        <EmptyState icon={Users}
+          title={q ? 'No results' : 'No suppliers yet'}
+          description={q ? `No suppliers match "${search}".` : 'Add your medicine suppliers to use them in purchase orders.'}
+          action={q
+            ? <Button size="sm" variant="secondary" onClick={() => setSearch('')}>Clear search</Button>
+            : <Button size="sm" onClick={() => { setEditTarget(null); setModalOpen(true); }}>+ Add Supplier</Button>
+          }
+        />
       ) : (
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <table className="w-full text-sm">
@@ -568,7 +731,7 @@ function SuppliersTab() {
               </tr>
             </thead>
             <tbody>
-              {suppliers.map(s => (
+              {filtered.map(s => (
                 <tr key={s.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors">
                   <td className="px-4 py-3 font-medium text-[var(--color-text)]">{s.name}</td>
                   <td className="px-4 py-3 text-[var(--color-text-secondary)]">{s.contact || '—'}</td>

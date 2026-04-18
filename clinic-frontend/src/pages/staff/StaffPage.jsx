@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Users, Edit2, KeyRound, UserX, UserCheck } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Users, Edit2, KeyRound, UserX, UserCheck, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/index';
 import { PageLayout } from '../../components/layout/PageLayout';
@@ -192,13 +192,30 @@ function ResetPasswordModal({ open, onClose, staff }) {
   );
 }
 
+const ROLE_FILTERS = [
+  { key: 'all',          label: 'All' },
+  { key: 'doctor',       label: 'Doctors' },
+  { key: 'nurse',        label: 'Nurses' },
+  { key: 'receptionist', label: 'Receptionists' },
+  { key: 'admin',        label: 'Admins' },
+];
+
+const STATUS_FILTERS = [
+  { key: 'all',      label: 'All' },
+  { key: 'active',   label: 'Active' },
+  { key: 'inactive', label: 'Inactive' },
+];
+
 export default function StaffPage() {
   const [staff,        setStaff]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [showAdd,      setShowAdd]      = useState(false);
   const [editTarget,   setEditTarget]   = useState(null);
   const [resetTarget,  setResetTarget]  = useState(null);
-  const [actionLoading, setActionLoading] = useState(null); // id of staff being toggled
+  const [actionLoading, setActionLoading] = useState(null);
+  const [search,       setSearch]       = useState('');
+  const [roleFilter,   setRoleFilter]   = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -235,8 +252,23 @@ export default function StaffPage() {
     }
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    return staff.filter(s => {
+      if (roleFilter !== 'all' && s.role !== roleFilter) return false;
+      if (statusFilter === 'active'   && !s.is_active) return false;
+      if (statusFilter === 'inactive' &&  s.is_active) return false;
+      if (q) {
+        const hay = `${s.full_name} ${s.email} ${s.specialization || ''} ${s.registration_no || ''} ${s.phone || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff, roleFilter, statusFilter, q]);
+
   const grouped = ROLES.reduce((acc, role) => {
-    acc[role] = staff.filter(s => s.role === role);
+    acc[role] = filtered.filter(s => s.role === role);
     return acc;
   }, {});
 
@@ -247,7 +279,12 @@ export default function StaffPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-[var(--color-text)]">Staff Management</h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{staff.length} staff member{staff.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+            {q || roleFilter !== 'all' || statusFilter !== 'all'
+              ? `${filtered.length} of ${staff.length}`
+              : staff.length
+            } staff member{staff.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -257,12 +294,75 @@ export default function StaffPage() {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+        <input
+          type="text"
+          placeholder="Search by name, email, specialization…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Role filter pills */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {ROLE_FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setRoleFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              roleFilter === f.key
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text)]'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <span className="w-px h-4 bg-[var(--color-border)]" />
+        {STATUS_FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setStatusFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              statusFilter === f.key
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text)]'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="text-center py-16 text-gray-400 text-sm">Loading...</div>
-      ) : staff.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-gray-400">
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-[var(--color-text-secondary)]">
           <Users className="w-10 h-10 mb-3 opacity-30" />
-          <p className="text-sm">No staff members yet. Add your first staff member.</p>
+          <p className="text-sm">
+            {staff.length === 0
+              ? 'No staff members yet. Add your first staff member.'
+              : q
+                ? `No staff match "${search}".`
+                : 'No staff match the selected filters.'
+            }
+          </p>
+          {(q || roleFilter !== 'all' || statusFilter !== 'all') && staff.length > 0 && (
+            <button
+              onClick={() => { setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
+              className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

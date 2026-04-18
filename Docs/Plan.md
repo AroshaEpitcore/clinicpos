@@ -232,9 +232,11 @@ Phase 7  →  Desktop version (later)
 | File attachment upload and viewer | frontend | [ ] *(deferred to Phase 5)* |
 | Patient visit history timeline | frontend | [x] |
 | ConsultationsPage — date navigation, list all consultations | frontend | [x] |
+| ConsultationsPage — click row opens detail modal (vitals, notes, follow-up) — no page navigation | frontend | [x] *(done 2026-04-17)* |
+| ConsultationsPage — doctor filter tabs, search bar, follow-up filter pill | frontend | [x] *(done 2026-04-17)* |
 
-**Completed:** 2026-04-08
-**Test:** Open appointment → write consultation → save → appears in patient history. Allergies shown in red banner at top of form.
+**Completed:** 2026-04-08 (base) — Detail modal + search/filters added 2026-04-17
+**Test:** Open appointment → write consultation → save → appears in patient history. Allergies shown in red banner at top of form. Click any consultation row → modal opens with full vitals and notes. Doctor tabs shown when multiple doctors. Search filters by patient, complaint, diagnosis.
 
 ---
 
@@ -265,14 +267,16 @@ Phase 7  →  Desktop version (later)
 | Dosage / frequency / duration preset chips + free text per item | frontend | [x] |
 | Prescription browser print (clinic header, medicines table, signature block) | frontend | [x] |
 | PrescriptionsPage — date navigation, list Rx by date, print per row | frontend | [x] |
+| PrescriptionsPage — doctor filter tabs (border-b style, extracted from loaded data), search bar, two-stage filter, context-aware empty state | frontend | [x] *(done 2026-04-17)* |
 | Medicine store management screen (admin — add/edit/remove, low stock, near expiry tabs) | frontend | [x] |
+| MedicineStorePage — layout fixed: filter tabs moved to full-width border-b row, search + count on separate row below | frontend | [x] *(done 2026-04-17)* |
 | Medicine Store link in sidebar (admin only) | frontend | [x] |
 | Patient profile Prescriptions tab — full history with items per Rx | frontend | [x] |
 | Low stock / near-expiry alert badges on dashboard | frontend | [ ] *(deferred — use Reports medicines tab for now)* |
 | Doctor signature upload screen | frontend | [x] *(built in Phase 2.7 Settings → Doctor Fees tab)* |
 
-**Completed:** 2026-04-08  
-**Test:** Search medicine → select → add dosage → save → Rx number generated. Print opens browser print window with clinic header and medicines table. Medicine Store shows low stock and near-expiry in separate tabs.
+**Completed:** 2026-04-08 (base) — Doctor filter tabs + search + MedicineStorePage layout fix added 2026-04-17
+**Test:** Search medicine → select → add dosage → save → Rx number generated. Print opens browser print window with clinic header and medicines table. Medicine Store shows low stock and near-expiry in separate tabs. PrescriptionsPage: doctor tabs shown when multiple doctors in list; search filters patient name/Rx number; count updates. Medicine Store: filter tabs on top row, search bar below.
 
 ---
 
@@ -309,6 +313,7 @@ Phase 7  →  Desktop version (later)
 | Auto-pull prescribed medicines into invoice items | backend | [x] |
 | PDF generation — invoice and receipt (`GET /invoices/:id/pdf`) | backend | [x] |
 | BillingPage — date nav, status tabs, summary strip, table | frontend | [x] |
+| BillingPage — search bar with X clear button, client-side filtering, context-aware empty state | frontend | [x] *(done 2026-04-17)* |
 | InvoiceModal — line items, add/remove, totals, payment form | frontend | [x] |
 | Custom service picker inside InvoiceModal | frontend | [x] |
 | Split payment — multiple methods, each recorded as a split | frontend | [x] |

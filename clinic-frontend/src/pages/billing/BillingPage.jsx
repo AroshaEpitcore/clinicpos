@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Receipt, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Receipt, Clock, Calendar, Search, X } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -37,6 +37,7 @@ export default function BillingPage() {
   const [statusTab,  setStatusTab]  = useState('all');
   const [invoices,   setInvoices]   = useState([]);
   const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
   const [openInvoice, setOpenInvoice] = useState(null); // invoice id to view
   const isToday = date === today;
 
@@ -56,7 +57,18 @@ export default function BillingPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Summary totals
+  const bq = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!bq) return invoices;
+    return invoices.filter(inv =>
+      (`${inv.first_name} ${inv.last_name}`).toLowerCase().includes(bq) ||
+      (inv.patient_code    || '').toLowerCase().includes(bq) ||
+      (inv.invoice_number  || '').toLowerCase().includes(bq)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoices, bq]);
+
+  // Summary totals — based on full loaded list (not filtered)
   const totals = invoices.reduce((acc, inv) => {
     acc.total    += parseFloat(inv.total_amount  || 0);
     acc.collected += parseFloat(inv.paid_amount  || 0);
@@ -116,7 +128,7 @@ export default function BillingPage() {
       )}
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 border-b border-[var(--color-border)] mb-5">
+      <div className="flex gap-1 border-b border-[var(--color-border)] mb-4">
         {STATUS_TABS.map(tab => (
           <button key={tab.key} onClick={() => setStatusTab(tab.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -129,14 +141,39 @@ export default function BillingPage() {
         ))}
       </div>
 
+      {/* Search */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search patient or invoice number…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        {!loading && (
+          <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
+            {bq ? `${filtered.length} of ` : ''}{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
       {/* Invoice list */}
       {loading ? (
         <LoadingState message="Loading invoices..." />
-      ) : invoices.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title="No invoices"
-          description={`No ${statusTab !== 'all' ? statusTab + ' ' : ''}invoices for ${isToday ? 'today' : formatDate(date + 'T00:00:00')}.`}
+          title={bq ? 'No results' : 'No invoices'}
+          description={bq ? `No invoices match "${search}".` : `No ${statusTab !== 'all' ? statusTab + ' ' : ''}invoices for ${isToday ? 'today' : formatDate(date + 'T00:00:00')}.`}
+          action={bq ? <Button size="sm" variant="secondary" onClick={() => setSearch('')}>Clear search</Button> : undefined}
         />
       ) : (
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
@@ -153,7 +190,7 @@ export default function BillingPage() {
               </tr>
             </thead>
             <tbody>
-              {invoices.map(inv => (
+              {filtered.map(inv => (
                 <tr key={inv.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors">
                   <td className="px-4 py-3">

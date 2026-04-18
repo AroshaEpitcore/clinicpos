@@ -25,6 +25,7 @@ The clinic admin (owner) creates and manages all staff accounts from within the 
 - **Reset Password** — set a new password for any staff member
 - **Deactivate / Activate** — deactivated staff cannot log in; record is preserved
 - **Data isolation** — all staff belong to this clinic's schema only; other clinics are invisible
+- **Search & filter** — search by name/email/phone; filter by role (Doctor/Nurse/Receptionist) using pill tabs; filter by status (Active/Inactive) using pill tabs; count shows "X of Y staff members" when filtered
 
 ### How Clinic Gets Set Up (SaaS Onboarding)
 1. Super admin creates the clinic from `admin.clinicpos.com`
@@ -198,6 +199,10 @@ Every clinic visit creates a digital record. Doctors write notes, record diagnos
 - Records are **read-only** after 24 hours (audit protection)
 - **Patient data is private** — only the treating doctor and admin can view full records
 - Receptionist sees only appointment info, not clinical notes
+- **ConsultationsPage — detail modal**: click any row → modal opens with full vitals, diagnosis, clinical notes, follow-up date — no page navigation away from the list
+- **Doctor filter tabs** (border-b underline style) — only shown when multiple doctors in the day's list; click to filter by doctor
+- **Follow-up filter pill** — toggle to show only consultations that have a follow-up date set
+- **Search bar** — filters by patient name, chief complaint, or diagnosis; count shows "X of Y consultations" when filtered
 
 ### Data Privacy Rules
 - Medical records are encrypted in the database
@@ -249,6 +254,17 @@ Doctors write digital prescriptions linked to each visit. Prescriptions can be p
 - Send to patient via **SMS or WhatsApp** (medicine name, dose, instructions)
 - Prescription has a unique **Rx number** for reference
 - **Patient visit summary printout** — separate from the prescription, one page showing: diagnosis, medicines prescribed, vitals, follow-up date. Patient takes this home as a summary of their visit
+
+#### PrescriptionsPage list view
+- Date navigation bar to browse any day's prescriptions
+- **Doctor filter tabs** (border-b underline style) — only shown when multiple doctors in the loaded list; click filters the list to that doctor
+- **Search bar** — filters by patient name or Rx number; count shows "X of Y prescriptions" when filtered
+- Context-aware empty state with "Clear filters" action
+
+#### Medicine Store (admin)
+- Filter tabs on top row (All / Low Stock / Near Expiry / Inactive) — full-width border-b style
+- **Search + count** on a separate row below the tabs — search by name, generic name, brand, or category
+- X clear button to reset search instantly
 
 #### Patient view
 - Patient can see their **full medicines history** across all visits
@@ -314,6 +330,7 @@ Every service the clinic provides generates an itemized invoice. The receptionis
 #### Invoice management
 - Unique invoice number per bill
 - View all invoices — paid, unpaid, partial
+- **Search bar** with X clear button on BillingPage — filters invoices client-side by patient name, patient code, or invoice number; count shown when filtered
 - Send invoice to patient via email or WhatsApp
 - Reprint receipt at any time
 - Apply discounts with reason (audit logged)
@@ -431,8 +448,10 @@ Full in-clinic pharmacy management. Tracks supplier purchases, stock levels, and
 - Lists all prescriptions that have medicines not yet dispensed
 - Each card shows: patient name, doctor, date, list of prescribed medicines with quantity
 - "Dispense" button marks prescription medicines as dispensed and deducts stock automatically
-- Dispensed prescriptions move to a separate "Dispensed" section
-- Only undispensed prescriptions appear in the queue
+- Dispensed prescriptions move to a separate "Dispensed" section below the Pending section
+- **Filter pills** (All / Pending / Dispensed) — instantly show all, only pending, or only dispensed prescriptions
+- **Search bar** — filters by patient name or doctor name; section headers show current count ("Pending Dispense (X)", "Dispensed (X)")
+- Context-aware empty state with "Clear filters" action
 
 #### Tab 2 — Stock
 - Full inventory view of all medicines in the clinic pharmacy
@@ -443,16 +462,18 @@ Full in-clinic pharmacy management. Tracks supplier purchases, stock levels, and
 
 #### Tab 3 — Purchase Orders
 - Create purchase orders (POs) to record stock received from suppliers
-- Each PO: supplier name, order date, status (pending/received/cancelled), line items (medicine + quantity + unit cost)
+- Each PO: supplier name, order date, status (Draft/Ordered/Received/Cancelled), line items (medicine + quantity + unit cost)
 - "Mark as Received" updates stock quantities for all medicines in the PO
 - View PO history with full item breakdown
 - Each PO shows which staff member created it
+- **Status filter pills** (All / Draft / Ordered / Received / Cancelled) + **search bar** — filter and search the PO list client-side
 
 #### Tab 4 — Suppliers
 - Manage a list of medicine suppliers/distributors
 - Each supplier: name, contact person, phone, email, address, notes
 - Suppliers appear in the Purchase Order creation form as a dropdown
 - Add, edit, delete suppliers
+- **Search bar** — filters suppliers list by name, contact person, phone, or email
 
 ### Key Backend Rules
 - All pharmacy routes require `requireFeature('pharmacy')` middleware — if flag is off, API returns 403

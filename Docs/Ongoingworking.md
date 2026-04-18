@@ -18,7 +18,7 @@
 ## Current Status
 
 **Currently working on:** All core features complete — Phase 6 Beta & Launch next
-**Last updated:** 2026-04-17
+**Last updated:** 2026-04-18
 **Next up:** Phase 6 — deployment, production setup
 
 ### What is fully complete right now
@@ -46,6 +46,13 @@
 | Consult + Rx Combined Modal | ✅ Doctor writes consultation AND prescription in one step; food chips; custom medicine names; stock deduction clarified (2026-04-17) |
 | Token for All Booking Types | ✅ Every booking (walk-in, booked, emergency) gets a sequential token number (2026-04-17) |
 | Queue Badge Fixes | ✅ Online badge uses CSS variables; Rx button hidden if prescription already exists (2026-04-17) |
+| TopBar Redesign + Live Clock | ✅ Hamburger collapse toggle on left, logout on right, live date/time display, dark/light toggle (2026-04-17) |
+| Token Slip Logo | ✅ Clinic logo shown on 80mm token slip above clinic name (2026-04-17) |
+| Auto-arrive on Print | ✅ Printing token slip auto-marks patient as arrived (queue row print + AppointmentModal print) (2026-04-17) |
+| Consultations Page — Modal Detail | ✅ Clicking consultation row opens detail modal (vitals, clinical notes, follow-up, medicines) instead of navigating (2026-04-17) |
+| Consultations Page — Search + Filters | ✅ Search bar, doctor filter tabs, follow-up filter pill (2026-04-17) |
+| Prescriptions Page — Modal Detail | ✅ Clicking Rx row opens detail modal with medicines table instead of navigating (2026-04-17) |
+| UI Consistency — Search + Filters on All List Pages | ✅ Consistent search bar (X clear button, CSS variables), filter pills/tabs added to: Appointments, Consultations, Prescriptions (doctor tabs + search), Billing (search), Staff (role pills + active/inactive pills + search), Medicine Store (layout fixed — tabs full-width, search below, count), Patient List (X clear button), Pharmacy Dispense Queue (filter pills + search), Pharmacy Purchase Orders (status pills + search), Pharmacy Suppliers (search), Lab Test Catalog (search), Insurance Claims (search + existing status/date filters) (2026-04-17–2026-04-18) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -569,6 +576,86 @@ node src/db/migrate_prescription_consultation_nullable.js
 
 ---
 
+## UI Redesign — TopBar, Token Slip, Detail Modals, Search/Filter Everywhere (2026-04-17–2026-04-18)
+
+> Full UI polish session: TopBar redesigned, token slip improvements, consultations/prescriptions switched to modal-detail pattern, search bars and filter controls added to every list page in the system.
+
+---
+
+### 1 — TopBar Redesign + Live Clock
+
+| Change | File | Notes |
+|--------|------|-------|
+| Hamburger (sidebar collapse toggle) moved to TopBar left | `TopBar.jsx` | Replaces sidebar's own collapse button; cleaner layout |
+| Logout button moved to TopBar right | `TopBar.jsx` | Removed from Sidebar bottom; consistent with standard app shell pattern |
+| Live date + time display | `TopBar.jsx` | `setInterval(1000)` ticks every second; `toLocaleDateString` + `toLocaleTimeString` with `en-GB` locale |
+| Dark/light toggle remains in TopBar | `TopBar.jsx` | Same position, now between date/time and logout |
+| Sidebar bottom section simplified | `Sidebar.jsx` | Removed logout button, removed collapse toggle; shows only user avatar + name/role |
+| `onToggle` passed from PageLayout to TopBar | `PageLayout.jsx` | TopBar now receives and calls `handleToggle` |
+
+---
+
+### 2 — Token Slip Logo + Auto-Arrive
+
+| Change | File | Notes |
+|--------|------|-------|
+| Logo added to 80mm token slip | `printTokenSlip.js` | `logoUrl` param — resolved via `mediaUrl(clinic?.logo_url)` before passing; shown above clinic name as `max-height:44px` img |
+| Auto-arrive on AppointmentModal print | `AppointmentModal.jsx` | `handlePrintAndArrive()` calls `appointmentsApi.updateStatus(id, 'arrived')` after printing — updates queue status immediately |
+| Auto-arrive on QueueRow print | `AppointmentsPage.jsx` | `onPrint` handler calls `updateStatus` if status is `pending` or `confirmed`; shows toast; reloads queue |
+
+---
+
+### 3 — Consultations Page Redesign
+
+| Change | File | Notes |
+|--------|------|-------|
+| Card click opens detail modal | `ConsultationsPage.jsx` | Replaced navigation to patient profile; `consultationsApi.getById(id)` fetches full data |
+| Detail modal shows: patient info, doctor info, date, vitals grid, clinical notes grid, follow-up date | `ConsultationsPage.jsx` | `InfoRow` helper component; allergy warning badge; "View Patient" button in modal footer |
+| Doctor filter tabs | `ConsultationsPage.jsx` | Tabs built from `doctorsInList` (extracted from loaded data); hidden when only one doctor |
+| Search bar | `ConsultationsPage.jsx` | Filters by patient name, code, phone, chief complaint, diagnosis, doctor name |
+| Follow-up filter pill | `ConsultationsPage.jsx` | `followUpOnly` toggle — shows only consultations with a `follow_up_date` set |
+| Two-stage filter logic | `ConsultationsPage.jsx` | `doctorFiltered` → `filtered`; stats based on `doctorFiltered` so count doesn't change on search |
+
+---
+
+### 4 — Prescriptions Page Redesign
+
+| Change | File | Notes |
+|--------|------|-------|
+| Card click opens detail modal | `PrescriptionsPage.jsx` | Replaced navigation; `prescriptionsApi.getById(id)` fetches full Rx with items array |
+| Detail modal shows: patient (name, code, allergies), doctor (name, spec, reg no), date, medicines table, notes | `PrescriptionsPage.jsx` | Print + PDF download buttons in modal footer |
+| Doctor filter tabs | `PrescriptionsPage.jsx` | Tabs from `doctorsInList`; hidden when only one doctor |
+| Search bar | `PrescriptionsPage.jsx` | Filters by patient name, code, rx number, doctor name |
+| Count display | `PrescriptionsPage.jsx` | Shows "X of Y prescriptions" when doctor filter or search active |
+
+---
+
+### 5 — Search + Filter UI — All List Pages (Consistent Pattern)
+
+**Rule applied across all pages:**
+- Search: `relative` wrapper, `Search` icon left, `X` clear button right, CSS variables for all colors
+- Filter tabs (date-based pages): full-width `border-b` with `border-b-2 -mb-px` active indicator
+- Filter pills (status/role filters): `rounded-full` pills, `bg-[var(--color-primary)] text-white` when active
+- Count: always visible as `text-sm text-[var(--color-text-secondary)]` — "X of Y items" when filtered
+- Empty state: context-aware message + "Clear filters/search" action button
+
+| Page | What was added |
+|------|---------------|
+| `AppointmentsPage.jsx` | Status filter pills (All/Waiting/Arrived/Done/Cancelled), search (patient, code, ref, doctor, token), token-number sort, doctor filter tabs |
+| `ConsultationsPage.jsx` | Doctor filter tabs, search bar, follow-up filter pill |
+| `PrescriptionsPage.jsx` | Doctor filter tabs (border-b style), search bar, count display |
+| `BillingPage.jsx` | Search bar (patient, code, invoice number), `filtered.map` in table body, context-aware empty state |
+| `StaffPage.jsx` | Role filter pills (All/Doctors/Nurses/Receptionists/Admins), active/inactive status pills, search bar |
+| `PatientList.jsx` | X clear button added, CSS variable styling on existing search input |
+| `MedicineStorePage.jsx` | Layout fixed: filter tabs moved to full-width `border-b` row, search bar on separate row below, count display added |
+| `PharmacyPage.jsx` — DispenseTab | Filter pills (All/Pending/Dispensed), search bar (patient, rx, doctor), count in section headers |
+| `PharmacyPage.jsx` — PurchaseOrdersTab | Status filter pills (All/Draft/Ordered/Received/Cancelled), search bar (PO number, supplier) |
+| `PharmacyPage.jsx` — SuppliersTab | Search bar (name, contact, phone, email) |
+| `LabPage.jsx` — CatalogTab | Search bar (name, code, category), count display, context-aware empty state |
+| `InsurancePage.jsx` — ClaimsTab | Search bar (patient, claim, invoice, provider) stacked with existing status/date range server-side filters |
+
+---
+
 ## Phase Overview
 
 | Phase | Description | Status |
@@ -592,6 +679,11 @@ node src/db/migrate_prescription_consultation_nullable.js
 | Consult + Rx Combined Modal | One-step consultation + prescription; food chips; custom medicines; Chief Complaint moved to top | ✅ Complete (2026-04-17) |
 | Token for All Booking Types | walk-in, booked, emergency all get sequential token numbers | ✅ Complete (2026-04-17) |
 | Queue Badge Fixes | Online badge CSS variables; Rx button hidden when prescription already exists | ✅ Complete (2026-04-17) |
+| TopBar Redesign + Live Clock | Hamburger left, logout right, live date/time, dark toggle | ✅ Complete (2026-04-17) |
+| Token Slip Logo + Auto-arrive | Logo on thermal slip; printing auto-marks patient as arrived | ✅ Complete (2026-04-17) |
+| Consultations Detail Modal | Clicking row opens modal with full vitals/notes (no page navigation) | ✅ Complete (2026-04-17) |
+| Prescriptions Detail Modal | Clicking row opens modal with full Rx detail (no page navigation) | ✅ Complete (2026-04-17) |
+| UI Search + Filter — All Pages | Consistent search bars, filter pills/tabs, X clear buttons across every list page | ✅ Complete (2026-04-17–2026-04-18) |
 | Phase 6 | Beta & launch | Not started |
 | Phase 7 | Desktop version (Electron) | Not started |
 

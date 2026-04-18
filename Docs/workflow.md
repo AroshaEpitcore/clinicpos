@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-17
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes.
+## Last updated: 2026-04-18
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -81,9 +81,14 @@ End-of-Day closing — cash count vs system totals, lock the day
   - `Completed / Cancelled` → no actions
 
 #### Prescriptions
-- Views all prescriptions written on any date via the Prescriptions page
-- Date navigation to browse past days
-- Print button per row — opens browser print window with clinic header, patient info, medicines table
+- Views all prescriptions written on any date via the Prescriptions page (`/prescriptions`)
+- Date navigation (prev/next arrows + DatePicker + back-to-today)
+- **Doctor filter tabs** — appear when multiple doctors wrote prescriptions on that day; filter is client-side
+- **Search bar** — filter by patient name, patient code, Rx number, or doctor name; X clear button
+- Count display: "X of Y prescriptions" shown when doctor filter or search active
+- Click any Rx card → **detail modal opens** showing: patient info (name, code, allergy warning), doctor info (name, specialization, reg no), date/time, medicines table (medicine, dosage, frequency, duration, instructions, qty)
+- Modal footer: **View Patient** button + **PDF download** + **Print** button
+- No navigation away from the page — everything happens in-modal
 
 #### Patient Profile
 - Full profile view — personal details, contact, emergency contact, insurance
@@ -92,7 +97,13 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Prescriptions tab — read-only Rx history
 - Billing tab — full invoice history with summary totals ✅
 
-#### Billing
+#### Billing (`/billing`)
+- Date navigation (prev/next arrows + DatePicker + back-to-today)
+- Summary strip — Total Billed, Collected, Outstanding for the selected day
+- **Status filter tabs** — All / Unpaid / Partial / Paid (server-side filtering)
+- **Search bar** — client-side filter by patient name, patient code, or invoice number; X clear button
+- Count: "X of Y invoices" when search active; context-aware empty state
+
 - **Bill button** appears on completed appointment rows (receptionist + admin, when consultation exists)
 - Clicking Bill → checks if invoice already exists for that consultation
   - If yes → opens the existing invoice
@@ -124,11 +135,20 @@ End-of-Day closing — cash count vs system totals, lock the day
 - **Close Day & Lock** button → submits, locks the day, cannot re-submit
 - Past closed days show read-only summary with who closed it and when
 
-#### Pharmacy *(if pharmacy flag ON)*
-- Full access to all 4 tabs: Dispense Queue, Purchase Orders, Suppliers, Stock Adjustments
+#### Pharmacy *(if pharmacy flag ON)* (`/pharmacy`)
+- **Dispense Queue tab** — prescriptions written today (date navigation)
+  - **Filter pills**: All · Pending · Dispensed
+  - **Search bar**: filter by patient name, Rx number, or doctor
+  - Section headers show count: "Pending Dispense (X)" and "Dispensed (X)"
+  - Click card to expand medicines list; "Dispense" button deducts stock on confirm
+- **Purchase Orders tab** — full PO history
+  - **Status filter pills**: All · Draft · Ordered · Received · Cancelled
+  - **Search bar**: filter by PO number or supplier name
+- **Suppliers tab** — supplier directory
+  - **Search bar**: filter by name, contact, phone, or email
+- **Stock Adjustments tab** — log manual stock changes (add, remove, damaged, expired)
 - Can dispense prescriptions (deducts stock automatically)
-- Can create and receive purchase orders
-- Can log stock adjustments
+- Can create and receive purchase orders; can log stock adjustments
 - **Cannot** add/edit/delete suppliers (admin only on backend)
 
 #### Lab *(if lab flag ON)*
@@ -196,10 +216,14 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Dispense checks for sufficient stock — blocks if any item has insufficient quantity and shows which medicine is short
 - If clinic has no pharmacist and pharmacy module is OFF, stock is never deducted (manual stock management)
 
-#### Consultations Page
+#### Consultations Page (`/consultations`)
 - Browse all consultations by date (date navigation)
-- Shows patient name, code, chief complaint, diagnosis per row
-- Click any row → navigates to that patient's full profile
+- **Doctor filter tabs** — appear when multiple doctors have consultations that day; client-side filtering
+- **Search bar** — filter by patient name, code, phone, chief complaint, diagnosis, doctor; X clear button
+- **Follow-up filter pill** — toggle to show only consultations with a follow-up date set
+- Click any card → **detail modal opens** showing: patient info (name, code, allergies), doctor (name, spec, reg no), date/time, vitals grid (BP, pulse, temp, weight), clinical notes grid (chief complaint, symptoms, diagnosis, ICD-10, notes), follow-up date
+- Modal footer: **View Patient** button
+- No navigation away from the page — all data shown in-modal
 
 #### Patient Profile
 - Full read access to all tabs
@@ -252,15 +276,17 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 **Admin has all receptionist + doctor capabilities, plus:**
 
-#### Medicine Store
-- **All Medicines tab** — full inventory list with search bar
-  - Each row: name, generic name, strength, unit, category, stock quantity (red if low), selling price, expiry date, status badge
+#### Medicine Store (`/medicines`)
+- **Filter tabs** (full-width border-b row): All Medicines · Low Stock · Near Expiry
+- **Search bar** (below tabs, only shown on "All" tab) — filters by name, generic name, brand, or category; X clear button; server-side search with 400ms debounce
+- **Count display** — shows total medicines in current tab/filter
+- **All Medicines tab** — full inventory list
+  - Each row: name + generic name + strength, category, stock qty (red if low), selling price, expiry date, status badge
   - Status badges: In Stock · Low Stock · Expiring · Expired · Inactive
-  - Edit (pencil) → opens edit modal with all fields pre-filled
-  - Remove (trash) → soft delete — medicine deactivated, removed from prescription search, stays in historical records
-- **Low Stock tab** — medicines at or below their reorder level, highlighted in red
-- **Near Expiry tab** — medicines expiring within 60 days, highlighted in amber
-- **Add Medicine** — name (required), generic name, brand, unit (required), strength, category, selling price, stock quantity, reorder level, expiry date
+  - Edit (pencil) → modal with all fields pre-filled; Remove (trash) → soft delete
+- **Low Stock tab** — medicines at or below reorder level, highlighted red
+- **Near Expiry tab** — medicines expiring within 60 days, highlighted amber
+- **Add Medicine** — name (required), generic name, brand, unit (required), strength, category, selling price, stock qty, reorder level, expiry date
 
 #### Appointment Management (admin-only features)
 - **Working Hours** button → ManageScheduleModal
@@ -307,8 +333,12 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Can add/edit/delete tests from catalog
 - Can create requests, enter results, view history
 
-#### Staff Management (admin-only)
-- **Staff page** (`/staff`) — full list of all staff grouped by role
+#### Staff Management (`/staff`, admin-only)
+- **Search bar** — filter by name, email, specialization, registration number, phone
+- **Role filter pills** — All · Doctors · Nurses · Receptionists · Admins
+- **Status filter pills** — All · Active · Inactive
+- Count display: "X of Y staff members" when any filter is active
+- Staff list grouped by role (only groups matching current filter shown)
 - **Add Staff** — create doctor, nurse, receptionist, or another admin with email + password
 - **Edit** — update name, email, phone, specialization, registration number, role
 - **Reset Password** — set a new password for any staff member

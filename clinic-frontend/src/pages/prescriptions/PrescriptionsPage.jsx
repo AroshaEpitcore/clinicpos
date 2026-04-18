@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle, Search, Calendar } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Modal }        from '../../components/ui/Modal';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -27,6 +27,8 @@ export default function PrescriptionsPage() {
   const [date,          setDate]          = useState(today);
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading,       setLoading]       = useState(false);
+  const [search,        setSearch]        = useState('');
+  const [doctorFilter,  setDoctorFilter]  = useState('all');
   const [clinicSettings, setClinicSettings] = useState(null);
 
   // Modal state
@@ -98,6 +100,38 @@ export default function PrescriptionsPage() {
 
   const isToday = date === today;
 
+  // Doctor list from loaded data
+  const doctorsInList = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    prescriptions.forEach(rx => {
+      if (rx.doctor_name && !seen.has(rx.doctor_name)) {
+        seen.add(rx.doctor_name);
+        list.push(rx.doctor_name);
+      }
+    });
+    return list;
+  }, [prescriptions]);
+
+  const q = search.trim().toLowerCase();
+
+  // Two-stage filter: doctor first, then search
+  const doctorFiltered = useMemo(() => (
+    doctorFilter === 'all' ? prescriptions : prescriptions.filter(rx => rx.doctor_name === doctorFilter)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [prescriptions, doctorFilter]);
+
+  const filtered = useMemo(() => {
+    if (!q) return doctorFiltered;
+    return doctorFiltered.filter(rx =>
+      (rx.patient_name  || '').toLowerCase().includes(q) ||
+      (rx.patient_code  || '').toLowerCase().includes(q) ||
+      (rx.rx_number     || '').toLowerCase().includes(q) ||
+      (rx.doctor_name   || '').toLowerCase().includes(q)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doctorFiltered, q]);
+
   return (
     <PageLayout title="Prescriptions">
       <PageHeader
@@ -106,48 +140,107 @@ export default function PrescriptionsPage() {
       />
 
       {/* Date navigation */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <button onClick={() => setDate(stepDate(date, -1))}
-          className="p-2 rounded-[var(--radius)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
+          className="p-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
           <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        <DatePicker value={date} onChange={setDate} />
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span className="text-sm font-semibold text-[var(--color-text)]">
+            {isToday ? 'Today' : formatDate(date)}
+          </span>
+          {!isToday && (
+            <button onClick={() => setDate(today)}
+              className="text-xs text-[var(--color-primary)] hover:underline">
+              Back to today
+            </button>
+          )}
+        </div>
 
         <button onClick={() => setDate(stepDate(date, 1))}
-          className="p-2 rounded-[var(--radius)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
+          className="p-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
           <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
         </button>
 
-        {!isToday && (
-          <button onClick={() => setDate(today)}
-            className="px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors">
-            Today
-          </button>
-        )}
+        <DatePicker value={date} onChange={setDate} />
+      </div>
 
-        <span className="text-sm font-medium text-[var(--color-text)]">
-          {isToday ? 'Today' : formatDate(date)}
-          {!loading && (
-            <span className="ml-2 text-[var(--color-text-secondary)] font-normal">
-              — {prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''}
-            </span>
+      {/* Doctor filter tabs — only show when multiple doctors */}
+      {doctorsInList.length > 1 && (
+        <div className="flex gap-1 border-b border-[var(--color-border)] mb-4">
+          <button
+            onClick={() => setDoctorFilter('all')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              doctorFilter === 'all'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+            }`}
+          >
+            All Doctors
+          </button>
+          {doctorsInList.map(doc => (
+            <button
+              key={doc}
+              onClick={() => setDoctorFilter(doc)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                doctorFilter === doc
+                  ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                  : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              }`}
+            >
+              {doc}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Search + count */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+          <input
+            type="text"
+            placeholder="Search patient, Rx number, doctor…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
-        </span>
+        </div>
+        {!loading && (
+          <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
+            {q ? `${filtered.length} of ` : ''}{doctorFiltered.length} prescription{doctorFiltered.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
       {/* List */}
       {loading ? (
         <LoadingState message="Loading prescriptions..." />
-      ) : prescriptions.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={Pill}
-          title="No prescriptions"
-          description={`No prescriptions were written on ${isToday ? 'today' : formatDate(date)}.`}
+          title={q || doctorFilter !== 'all' ? 'No results' : 'No prescriptions'}
+          description={
+            q ? `No prescriptions match "${search}".`
+            : doctorFilter !== 'all' ? `No prescriptions for ${doctorFilter} on ${isToday ? 'today' : formatDate(date)}.`
+            : `No prescriptions were written on ${isToday ? 'today' : formatDate(date)}.`
+          }
+          action={
+            (q || doctorFilter !== 'all')
+              ? <Button size="sm" variant="secondary" onClick={() => { setSearch(''); setDoctorFilter('all'); }}>Clear filters</Button>
+              : undefined
+          }
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {prescriptions.map(rx => (
+          {filtered.map(rx => (
             <div
               key={rx.id}
               onClick={() => openRx(rx.id)}

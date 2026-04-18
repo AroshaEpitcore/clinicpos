@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   FlaskConical, ChevronLeft, ChevronRight, CheckCircle2,
-  Clock, Plus, Edit2, Trash2, Upload, FileText, Eye,
+  Clock, Plus, Edit2, Trash2, Upload, FileText, Eye, Search, X,
 } from 'lucide-react';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -392,6 +392,7 @@ function CatalogTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing]     = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [search, setSearch]       = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -418,8 +419,19 @@ function CatalogTab() {
     }
   }
 
+  const q = search.trim().toLowerCase();
+  const filteredTests = useMemo(() => {
+    if (!q) return tests;
+    return tests.filter(t =>
+      (t.name     || '').toLowerCase().includes(q) ||
+      (t.code     || '').toLowerCase().includes(q) ||
+      (t.category || '').toLowerCase().includes(q)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tests, q]);
+
   // Group by category
-  const grouped = tests.reduce((acc, t) => {
+  const grouped = filteredTests.reduce((acc, t) => {
     const cat = t.category || 'Other';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(t);
@@ -429,7 +441,9 @@ function CatalogTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[var(--color-text-secondary)]">{tests.length} tests in catalog</p>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          {q ? `${filteredTests.length} of ` : ''}{tests.length} test{tests.length !== 1 ? 's' : ''} in catalog
+        </p>
         {isAdmin && (
           <Button onClick={() => { setEditing(null); setModalOpen(true); }}>
             <Plus className="w-4 h-4" /> Add Test
@@ -437,10 +451,31 @@ function CatalogTab() {
         )}
       </div>
 
-      {loading ? <LoadingState message="Loading catalog..." /> : tests.length === 0 ? (
-        <EmptyState icon={FlaskConical} title="No tests in catalog"
-          description="Add lab tests to the catalog so doctors can request them."
-          action={isAdmin && <Button size="sm" onClick={() => setModalOpen(true)}>+ Add Test</Button>}
+      {/* Search */}
+      <div className="relative mb-4 max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+        <input
+          type="text"
+          placeholder="Search by name, code, or category…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {loading ? <LoadingState message="Loading catalog..." /> : filteredTests.length === 0 ? (
+        <EmptyState icon={FlaskConical}
+          title={q ? 'No results' : 'No tests in catalog'}
+          description={q ? `No tests match "${search}".` : 'Add lab tests to the catalog so doctors can request them.'}
+          action={q
+            ? <Button size="sm" variant="secondary" onClick={() => setSearch('')}>Clear search</Button>
+            : isAdmin && <Button size="sm" onClick={() => setModalOpen(true)}>+ Add Test</Button>
+          }
         />
       ) : (
         <div className="flex flex-col gap-6">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Package, AlertTriangle, Clock, Search, Edit2, Trash2 } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Search, Edit2, Trash2, X } from 'lucide-react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { Button }       from '../../components/ui/Button';
@@ -112,35 +112,46 @@ export default function MedicineStorePage() {
         actions={<Button onClick={openAdd}>+ Add Medicine</Button>}
       />
 
-      {/* Filter tabs + search */}
-      <div className="flex items-center justify-between mb-5 gap-4">
-        <div className="flex gap-1 border-b border-[var(--color-border)]">
-          {FILTER_TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                filterTab === tab.key
-                  ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                  : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Filter tabs */}
+      <div className="flex gap-1 border-b border-[var(--color-border)] mb-4">
+        {FILTER_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setFilterTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              filterTab === tab.key
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
+      {/* Search + count */}
+      <div className="flex items-center gap-3 mb-4">
         {filterTab === 'all' && (
-          <div className="relative w-64">
+          <div className="relative max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
             <input
               type="text"
-              placeholder="Search medicines..."
+              placeholder="Search by name, generic name, brand, category…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
+        )}
+        {!loading && (
+          <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
+            {medicines.length} medicine{medicines.length !== 1 ? 's' : ''}
+          </span>
         )}
       </div>
 
