@@ -43,11 +43,11 @@ function StaffModal({ open, onClose, existing, onSaved }) {
 
   async function handleSave() {
     const errs = {};
-    if (!form.full_name) errs.full_name = 'Required';
-    if (!form.email)     errs.email     = 'Required';
-    if (!isEdit && !form.password) errs.password = 'Required';
-    if (!isEdit && form.password && form.password.length < 6) errs.password = 'Minimum 6 characters';
-    if (!form.role)      errs.role      = 'Required';
+    if (!form.full_name) errs.full_name = 'Full name is required';
+    if (!form.email)     errs.email     = 'Email is required';
+    if (!isEdit && !form.password) errs.password = 'Password is required';
+    if (!isEdit && form.password && form.password.length < 6) errs.password = 'Password must be at least 6 characters';
+    if (!form.role)      errs.role      = 'Role is required';
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setSaving(true);
@@ -72,61 +72,69 @@ function StaffModal({ open, onClose, existing, onSaved }) {
 
   if (!open) return null;
 
+  const baseCls = 'w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2';
+  const inputCls = (field) => `${baseCls} ${
+    errors[field]
+      ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+      : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+  }`;
+  const labelCls = 'block text-xs font-medium text-[var(--color-text-secondary)] mb-1';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">{isEdit ? 'Edit Staff Member' : 'Add Staff Member'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-xl w-full max-w-md border border-[var(--color-border)]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+          <h2 className="font-semibold text-[var(--color-text)]">{isEdit ? 'Edit Staff Member' : 'Add Staff Member'}</h2>
+          <button onClick={onClose} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)] text-xl leading-none">&times;</button>
         </div>
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-              <input value={form.full_name} onChange={e => onChange('full_name', e.target.value)} placeholder="Dr. John Silva" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
+              <label className={labelCls}>Full Name <span className="text-[var(--color-danger)]">*</span></label>
+              <input value={form.full_name} onChange={e => onChange('full_name', e.target.value)} placeholder="Dr. John Silva" className={inputCls('full_name')} />
+              {errors.full_name && <p className="text-[var(--color-danger)] text-xs mt-1">{errors.full_name}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
-              <input type="email" value={form.email} onChange={e => onChange('email', e.target.value)} placeholder="john@clinic.com" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+              <label className={labelCls}>Email <span className="text-[var(--color-danger)]">*</span></label>
+              <input type="email" value={form.email} onChange={e => onChange('email', e.target.value)} placeholder="john@clinic.com" className={inputCls('email')} />
+              {errors.email && <p className="text-[var(--color-danger)] text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Role <span className="text-red-500">*</span></label>
-              <select value={form.role} onChange={e => onChange('role', e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white capitalize">
+              <label className={labelCls}>Role <span className="text-[var(--color-danger)]">*</span></label>
+              <select value={form.role} onChange={e => onChange('role', e.target.value)} className={`${inputCls('role')} capitalize`}>
                 {ROLES.map(r => <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
               </select>
             </div>
 
             {!isEdit && (
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
-                <input type="text" value={form.password} onChange={e => onChange('password', e.target.value)} placeholder="Min. 6 characters" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                <label className={labelCls}>Password <span className="text-[var(--color-danger)]">*</span></label>
+                <input type="text" value={form.password} onChange={e => onChange('password', e.target.value)} placeholder="Min. 6 characters" className={inputCls('password')} />
+                {errors.password && <p className="text-[var(--color-danger)] text-xs mt-1">{errors.password}</p>}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-              <input value={form.phone} onChange={e => onChange('phone', formatPhoneInput(e.target.value))} placeholder="077 123 4567" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className={labelCls}>Phone</label>
+              <input value={form.phone} onChange={e => onChange('phone', formatPhoneInput(e.target.value))} placeholder="077 123 4567" className={inputCls('phone')} />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Specialization</label>
-              <input value={form.specialization} onChange={e => onChange('specialization', e.target.value)} placeholder="General Medicine" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className={labelCls}>Specialization</label>
+              <input value={form.specialization} onChange={e => onChange('specialization', e.target.value)} placeholder="General Medicine" className={inputCls('specialization')} />
             </div>
 
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Registration No.</label>
-              <input value={form.registration_no} onChange={e => onChange('registration_no', e.target.value)} placeholder="SLMC/12345" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className={labelCls}>Registration No.</label>
+              <input value={form.registration_no} onChange={e => onChange('registration_no', e.target.value)} placeholder="SLMC/12345" className={inputCls('registration_no')} />
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-[var(--radius)] hover:bg-[var(--color-bg)] transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm text-white bg-[var(--color-primary)] rounded-[var(--radius)] hover:opacity-90 disabled:opacity-50 transition-opacity">
               {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Staff'}
             </button>
           </div>
@@ -162,27 +170,27 @@ function ResetPasswordModal({ open, onClose, staff }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Reset Password</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-xl w-full max-w-sm border border-[var(--color-border)]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+          <h2 className="font-semibold text-[var(--color-text)]">Reset Password</h2>
+          <button onClick={onClose} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)] text-xl leading-none">&times;</button>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm text-gray-600">Set a new password for <strong>{staff?.full_name}</strong>.</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">Set a new password for <strong className="text-[var(--color-text)]">{staff?.full_name}</strong>.</p>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">New Password</label>
+            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">New Password</label>
             <input
               type="text"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Min. 6 characters"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleReset} disabled={saving} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-[var(--radius)] hover:bg-[var(--color-bg)] transition-colors">Cancel</button>
+            <button onClick={handleReset} disabled={saving} className="px-4 py-2 text-sm text-white bg-[var(--color-primary)] rounded-[var(--radius)] hover:opacity-90 disabled:opacity-50 transition-opacity">
               {saving ? 'Resetting...' : 'Reset Password'}
             </button>
           </div>

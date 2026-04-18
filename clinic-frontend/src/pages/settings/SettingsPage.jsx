@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Upload, Trash2, Plus, Pencil, X } from 'lucide-react';
+import { Upload, Trash2, Plus, Pencil, X, Calendar } from 'lucide-react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { Button }  from '../../components/ui/Button';
 import { Select }  from '../../components/ui/Select';
 import { LoadingState } from '../../components/ui/Spinner';
+import { EmptyState }   from '../../components/ui/EmptyState';
+import { DatePicker }   from '../../components/ui/DatePicker';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useAuth }      from '../../store/AuthContext';
 import { settingsApi }  from '../../api/settings';
 import { doctorFeesApi, customServicesApi } from '../../api/invoices';
-import { formatCurrency } from '../../utils/format';
+import { doctorsApi }   from '../../api/appointments';
+import { formatCurrency, formatDate } from '../../utils/format';
 import { mediaUrl }       from '../../utils/mediaUrl';
 
 const TABS = [
@@ -251,7 +255,19 @@ function BillingTab({ settings, onSave, saving }) {
   );
 }
 
+const SCHEDULE_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SLOT_DURATION_OPTIONS = [
+  { value: '10', label: '10 min' },
+  { value: '15', label: '15 min' },
+  { value: '20', label: '20 min' },
+  { value: '30', label: '30 min' },
+];
+function defaultScheduleRow(day) {
+  return { day_of_week: day, start_time: '09:00', end_time: '17:00', slot_duration_minutes: 15, is_active: false };
+}
+
 function AppointmentsTab({ settings, onSave, saving }) {
+  // ── General settings ──────────────────────────────────────────
   const [form, setForm] = useState({});
   useEffect(() => {
     setForm({
@@ -262,8 +278,120 @@ function AppointmentsTab({ settings, onSave, saving }) {
   }, [settings]);
   const set = (k) => (v) => setForm(p => ({ ...p, [k]: v }));
 
+  // ── Working hours ─────────────────────────────────────────────
+  const [doctors,     setDoctors]     = useState([]);
+  const [doctorId,    setDoctorId]    = useState('');
+  const [schedule,    setSchedule]    = useState(SCHEDULE_DAYS.map((_, i) => defaultScheduleRow(i)));
+  const [schedLoading,setSchedLoading]= useState(false);
+  const [schedSaving, setSchedSaving] = useState(false);
+
+  useEffect(() => {
+    doctorsApi.list().then(res => setDoctors(res.data.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!doctorId) return;
+    setSchedLoading(true);
+    doctorsApi.getSchedule(doctorId).then(res => {
+      const saved = res.data.data;
+      const merged = SCHEDULE_DAYS.map((_, i) => {
+        const existing = saved.find(s => s.day_of_week === i);
+        return existing
+          ? { ...existing, start_time: existing.start_time.slice(0,5), end_time: existing.end_time.slice(0,5) }
+          : defaultScheduleRow(i);
+      });
+      setSchedule(merged);
+    }).catch(() => {}).finally(() => setSchedLoading(false));
+  }, [doctorId]);
+
+  function updateDay(dayIndex, field, value) {
+    setSchedule(prev => prev.map((row, i) => i === dayIndex ? { ...row, [field]: value } : row));
+  }
+
+  async function saveSchedule() {
+    if (!doctorId) { toast.error('Please select a doctor first'); return; }
+    setSchedSaving(true);
+    try {
+      const active   = schedule.filter(s => s.is_active);
+      const inactive = schedule.filter(s => !s.is_active && s.id);
+      await Promise.all([
+        ...active.map(s => doctorsApi.saveScheduleDay({
+          doctor_id: doctorId, day_of_week: s.day_of_week,
+          start_time: s.start_time, end_time: s.end_time,
+          slot_duration_minutes: parseInt(s.slot_duration_minutes), is_active: true,
+        })),
+        ...inactive.map(s => doctorsApi.saveScheduleDay({
+          doctor_id: doctorId, day_of_week: s.day_of_week,
+          start_time: s.start_time, end_time: s.end_time,
+          slot_duration_minutes: s.slot_duration_minutes, is_active: false,
+        })),
+      ]);
+      toast.success('Working hours saved');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setSchedSaving(false);
+    }
+  }
+
+  // ── Holidays ──────────────────────────────────────────────────
+  const [holidays,     setHolidays]     = useState([]);
+  const [holLoading,   setHolLoading]   = useState(true);
+  const [holDate,      setHolDate]      = useState('');
+  const [holLabel,     setHolLabel]     = useState('');
+  const [holAdding,    setHolAdding]    = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting,     setDeleting]     = useState(false);
+
+  async function loadHolidays() {
+    setHolLoading(true);
+    try {
+      const res = await doctorsApi.listHolidays();
+      setHolidays(res.data.data);
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setHolLoading(false);
+    }
+  }
+  useEffect(() => { loadHolidays(); }, []);
+
+  async function addHoliday() {
+    if (!holDate || !holLabel.trim()) { toast.error('Please fill in both date and name'); return; }
+    setHolAdding(true);
+    try {
+      await doctorsApi.addHoliday({ holiday_date: holDate, label: holLabel.trim() });
+      toast.success(`${holLabel} added as a holiday`);
+      setHolDate('');
+      setHolLabel('');
+      loadHolidays();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setHolAdding(false);
+    }
+  }
+
+  async function confirmDeleteHoliday() {
+    setDeleting(true);
+    try {
+      await doctorsApi.deleteHoliday(deleteTarget.id);
+      toast.success('Deleted successfully');
+      setDeleteTarget(null);
+      loadHolidays();
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const doctorOptions = doctors.map(d => ({ value: String(d.id), label: d.full_name }));
+  const timeCls = 'px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]';
+
   return (
     <div className="flex flex-col gap-5">
+      {/* ── General appointment settings ── */}
       <SectionCard title="Appointment Settings">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <Field label="Slot duration (minutes)">
@@ -288,6 +416,117 @@ function AppointmentsTab({ settings, onSave, saving }) {
       <div className="flex justify-end">
         <Button onClick={() => onSave(form)} loading={saving}>Save Changes</Button>
       </div>
+
+      {/* ── Doctor Working Hours ── */}
+      <SectionCard title="Doctor Working Hours">
+        <Select
+          label="Select Doctor"
+          required
+          options={doctorOptions}
+          value={doctorId}
+          onValueChange={setDoctorId}
+          placeholder="Choose a doctor..."
+        />
+        {doctorId && (
+          <div className="mt-5">
+            {schedLoading ? <LoadingState message="Loading schedule..." /> : (
+              <div className="flex flex-col gap-2">
+                {SCHEDULE_DAYS.map((day, i) => {
+                  const row = schedule[i];
+                  return (
+                    <div key={i} className={`flex items-center gap-3 p-3 rounded-[var(--radius)] border transition-colors ${row.is_active ? 'border-[var(--color-primary)] bg-[var(--color-primary-light)]' : 'border-[var(--color-border)]'}`}>
+                      <input
+                        type="checkbox"
+                        checked={row.is_active}
+                        onChange={e => updateDay(i, 'is_active', e.target.checked)}
+                        className="w-4 h-4 accent-[var(--color-primary)]"
+                      />
+                      <span className="text-sm font-medium w-24 text-[var(--color-text)]">{day}</span>
+                      <div className="flex items-center gap-2 flex-1 flex-wrap">
+                        <input
+                          type="time"
+                          value={row.start_time}
+                          disabled={!row.is_active}
+                          onChange={e => updateDay(i, 'start_time', e.target.value)}
+                          className={timeCls}
+                        />
+                        <span className="text-sm text-[var(--color-text-secondary)]">to</span>
+                        <input
+                          type="time"
+                          value={row.end_time}
+                          disabled={!row.is_active}
+                          onChange={e => updateDay(i, 'end_time', e.target.value)}
+                          className={timeCls}
+                        />
+                        <Select
+                          options={SLOT_DURATION_OPTIONS}
+                          value={String(row.slot_duration_minutes)}
+                          onValueChange={v => updateDay(i, 'slot_duration_minutes', v)}
+                          disabled={!row.is_active}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-end mt-3">
+                  <Button onClick={saveSchedule} loading={schedSaving}>Save Schedule</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </SectionCard>
+
+      {/* ── Clinic Holidays ── */}
+      <SectionCard title="Clinic Holidays">
+        <div className="flex gap-3 mb-5 flex-wrap">
+          <DatePicker value={holDate} onChange={setHolDate} />
+          <input
+            type="text"
+            placeholder="Holiday name (e.g. Christmas Day)"
+            value={holLabel}
+            onChange={e => setHolLabel(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addHoliday()}
+            className="flex-1 min-w-[200px] px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+          <Button onClick={addHoliday} loading={holAdding}>Add</Button>
+        </div>
+
+        {holLoading ? <LoadingState /> : holidays.length === 0 ? (
+          <EmptyState
+            icon={Calendar}
+            title="No holidays added yet"
+            description="Appointments on holiday dates will be blocked automatically."
+          />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {holidays.map(h => (
+              <div key={h.id} className="flex items-center justify-between px-4 py-3 rounded-[var(--radius)] border border-[var(--color-border)]">
+                <div>
+                  <p className="text-sm font-medium text-[var(--color-text)]">{h.label}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">{formatDate(h.holiday_date)}</p>
+                </div>
+                <button
+                  onClick={() => setDeleteTarget(h)}
+                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteHoliday}
+        loading={deleting}
+        title="Remove Holiday"
+        message={`Remove "${deleteTarget?.label}" from clinic holidays?`}
+        confirmLabel="Yes, Remove"
+      />
     </div>
   );
 }
