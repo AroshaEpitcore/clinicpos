@@ -165,7 +165,7 @@ router.get('/patient/:patientId', async (req, res) => {
 
 // ── GET /api/v1/invoices ───────────────────────────────────────────────────────
 // List invoices. Query params: date, status, patient_id, limit
-router.get('/', async (req, res) => {
+router.get('/', requireRole('admin', 'receptionist', 'doctor'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const { date, status, patient_id, limit = 100 } = req.query;
 

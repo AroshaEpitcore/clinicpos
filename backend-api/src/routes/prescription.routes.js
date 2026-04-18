@@ -199,6 +199,8 @@ router.get('/:id', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pr.id, pr.rx_number, pr.created_at, pr.notes,
+         pr.is_dispensed, pr.dispensed_at,
+         ds.full_name AS dispensed_by_name,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.date_of_birth, p.gender, p.phone, p.allergies,
          p.id AS patient_id,
@@ -207,6 +209,7 @@ router.get('/:id', async (req, res) => {
        FROM prescriptions pr
        JOIN patients p ON p.id = pr.patient_id
        JOIN staff    s ON s.id = pr.doctor_id
+       LEFT JOIN staff ds ON ds.id = pr.dispensed_by
        WHERE pr.id = $1`,
       [req.params.id]
     );

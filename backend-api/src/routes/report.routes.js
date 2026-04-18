@@ -3,10 +3,11 @@ const { queryTenant } = require('../config/db');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const { tenantMiddleware }            = require('../middleware/tenant');
 
-router.use(tenantMiddleware, authMiddleware, requireRole('admin'));
+router.use(tenantMiddleware, authMiddleware);
 
 // ── GET /api/v1/reports/daily?date=YYYY-MM-DD ─────────────────────────────────
-router.get('/daily', async (req, res) => {
+// Admin + receptionist: daily report is needed for EOD workflow
+router.get('/daily', requireRole('admin', 'receptionist'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const date = req.query.date || new Date().toISOString().split('T')[0];
 
@@ -83,7 +84,7 @@ router.get('/daily', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/monthly?year=YYYY&month=MM ────────────────────────────
-router.get('/monthly', async (req, res) => {
+router.get('/monthly', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const year  = parseInt(req.query.year)  || new Date().getFullYear();
   const month = parseInt(req.query.month) || new Date().getMonth() + 1;
@@ -156,7 +157,7 @@ router.get('/monthly', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/doctors?from=&to= ────────────────────────────────────
-router.get('/doctors', async (req, res) => {
+router.get('/doctors', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const from = req.query.from || new Date().toISOString().split('T')[0];
   const to   = req.query.to   || from;
@@ -188,7 +189,7 @@ router.get('/doctors', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/medicines ─────────────────────────────────────────────
-router.get('/medicines', async (req, res) => {
+router.get('/medicines', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
 
   try {
@@ -248,7 +249,7 @@ router.get('/medicines', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/patients?from=&to= ───────────────────────────────────
-router.get('/patients', async (req, res) => {
+router.get('/patients', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const from = req.query.from || new Date().toISOString().split('T')[0];
   const to   = req.query.to   || from;
@@ -301,7 +302,7 @@ router.get('/patients', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/appointments?from=&to= ───────────────────────────────
-router.get('/appointments', async (req, res) => {
+router.get('/appointments', requireRole('admin', 'receptionist'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const from = req.query.from || new Date().toISOString().split('T')[0];
   const to   = req.query.to   || from;
@@ -351,7 +352,7 @@ router.get('/appointments', async (req, res) => {
 });
 
 // ── GET /api/v1/reports/end-of-day/history?from=&to=&limit= ──────────────────
-router.get('/end-of-day/history', async (req, res) => {
+router.get('/end-of-day/history', requireRole('admin'), async (req, res) => {
   const tenantId = req.tenantSchema;
   const { from, to, limit = 60 } = req.query;
 

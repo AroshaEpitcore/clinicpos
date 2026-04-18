@@ -35,8 +35,8 @@ router.get('/suppliers', async (req, res) => {
   }
 });
 
-// POST /api/v1/pharmacy/suppliers   (admin)
-router.post('/suppliers', requireRole('admin'), async (req, res) => {
+// POST /api/v1/pharmacy/suppliers   (admin, receptionist)
+router.post('/suppliers', requireRole('admin', 'receptionist'), async (req, res) => {
   const { name, contact, phone, email, address } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ status: 'error', message: 'Supplier name is required' });
@@ -56,8 +56,8 @@ router.post('/suppliers', requireRole('admin'), async (req, res) => {
   }
 });
 
-// PUT /api/v1/pharmacy/suppliers/:id   (admin)
-router.put('/suppliers/:id', requireRole('admin'), async (req, res) => {
+// PUT /api/v1/pharmacy/suppliers/:id   (admin, receptionist)
+router.put('/suppliers/:id', requireRole('admin', 'receptionist'), async (req, res) => {
   const { name, contact, phone, email, address, is_active } = req.body;
   try {
     const r = await queryTenant(
@@ -83,8 +83,8 @@ router.put('/suppliers/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/v1/pharmacy/suppliers/:id   (admin — soft delete)
-router.delete('/suppliers/:id', requireRole('admin'), async (req, res) => {
+// DELETE /api/v1/pharmacy/suppliers/:id   (admin, receptionist — soft delete)
+router.delete('/suppliers/:id', requireRole('admin', 'receptionist'), async (req, res) => {
   try {
     await queryTenant(
       req.tenantSchema,
@@ -319,7 +319,7 @@ router.get('/dispense', async (req, res) => {
 
 // POST /api/v1/pharmacy/dispense/:prescriptionId
 // Marks prescription as dispensed and deducts stock
-router.post('/dispense/:prescriptionId', async (req, res) => {
+router.post('/dispense/:prescriptionId', requireRole('admin', 'receptionist'), async (req, res) => {
   const client = await require('../config/db').pool.connect();
   try {
     await client.query(`SET search_path TO ${req.tenantSchema}, public`);
@@ -385,7 +385,7 @@ router.post('/dispense/:prescriptionId', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // GET /api/v1/pharmacy/stock-adjustments?medicine_id=&limit=50
-router.get('/stock-adjustments', async (req, res) => {
+router.get('/stock-adjustments', requireRole('admin', 'receptionist'), async (req, res) => {
   const { medicine_id, limit = 50 } = req.query;
   try {
     const params = [parseInt(limit, 10)];

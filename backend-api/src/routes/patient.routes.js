@@ -199,6 +199,10 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
 
 // ─── GET /api/v1/patients/:id ─────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(req.params.id)) {
+    return res.status(404).json({ status: 'error', message: 'Patient not found' });
+  }
   try {
     const result = await queryTenant(
       req.tenantSchema,

@@ -7,8 +7,8 @@ const router = express.Router();
 router.use(tenantMiddleware, authMiddleware);
 
 // ── POST /api/v1/consultations ────────────────────────────────────────────────
-// Create a consultation record (doctor/nurse/admin)
-router.post('/', requireRole('doctor', 'nurse', 'admin'), async (req, res) => {
+// Create a consultation record (doctor/admin only — nurses can view but not write)
+router.post('/', requireRole('doctor', 'admin'), async (req, res) => {
   const {
     appointment_id, patient_id, doctor_id,
     chief_complaint, symptoms, diagnosis, icd_code, notes,

@@ -53,7 +53,7 @@ router.get('/lookup-invoice', requireRole('admin', 'receptionist'), async (req, 
 // ══════════════════════════════════════════════════════════════════════════════
 
 // GET /insurance/providers
-router.get('/providers', async (req, res) => {
+router.get('/providers', requireRole('admin', 'receptionist'), async (req, res) => {
   try {
     const r = await queryTenant(req.tenantSchema,
       `SELECT id, name, contact_person, phone, email, notes, is_active, created_at
@@ -128,7 +128,7 @@ router.delete('/providers/:id', requireRole('admin', 'receptionist'), async (req
 // ══════════════════════════════════════════════════════════════════════════════
 
 // GET /insurance/claims?status=&date_from=&date_to=&provider_id=
-router.get('/claims', async (req, res) => {
+router.get('/claims', requireRole('admin', 'receptionist', 'doctor'), async (req, res) => {
   const { status, date_from, date_to, provider_id } = req.query;
   try {
     const params     = [];
@@ -261,7 +261,7 @@ router.put('/claims/:id/status', requireRole('admin', 'receptionist'), async (re
 // ══════════════════════════════════════════════════════════════════════════════
 
 // GET /insurance/corporate-accounts
-router.get('/corporate-accounts', async (req, res) => {
+router.get('/corporate-accounts', requireRole('admin', 'receptionist'), async (req, res) => {
   try {
     const r = await queryTenant(req.tenantSchema,
       `SELECT ca.*,
@@ -349,7 +349,7 @@ router.delete('/corporate-accounts/:id', requireRole('admin', 'receptionist'), a
 });
 
 // GET /insurance/corporate-accounts/:id/summary?month=2026-04
-router.get('/corporate-accounts/:id/summary', async (req, res) => {
+router.get('/corporate-accounts/:id/summary', requireRole('admin', 'receptionist'), async (req, res) => {
   const { month } = req.query;
   try {
     const targetMonth  = month || new Date().toISOString().slice(0, 7);

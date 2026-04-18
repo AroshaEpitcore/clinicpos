@@ -24,6 +24,8 @@ async function nextToken(schema, doctorId, date) {
 router.get('/', async (req, res) => {
   const { date, doctor_id, status } = req.query;
   if (!date) return res.status(400).json({ status: 'error', message: 'date is required' });
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  if (!DATE_RE.test(date)) return res.status(400).json({ status: 'error', message: 'date must be in YYYY-MM-DD format' });
 
   // Doctors can only see their own appointments — ignore any doctor_id param they send
   const effectiveDoctorId = req.user.role === 'doctor' ? req.user.id : (doctor_id || null);
@@ -71,7 +73,7 @@ router.get('/', async (req, res) => {
 });
 
 // ── POST /api/v1/appointments ─────────────────────────────────────────────────
-router.post('/', requireRole('receptionist', 'admin', 'doctor'), async (req, res) => {
+router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
   const { patient_id, doctor_id, appointment_date, appointment_time, type = 'walkin', reason, notes } = req.body;
 
   if (!patient_id || !doctor_id || !appointment_date) {
