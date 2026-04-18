@@ -1,20 +1,20 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Shield, LogOut, Menu, X, ChevronRight,
+  LayoutDashboard, Building2, Shield, LogOut, Menu, X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAdminAuth } from '../../store/AdminAuthContext';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
-  { to: '/',        label: 'Dashboard',  icon: LayoutDashboard, end: true },
-  { to: '/clinics', label: 'Clinics',    icon: Building2 },
+  { to: '/',        label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/clinics', label: 'Clinics',   icon: Building2 },
 ];
 
 export default function AdminLayout({ children }) {
-  const { logout } = useAdminAuth();
-  const navigate   = useNavigate();
-  const [open, setOpen] = useState(false);
+  const { admin, logout } = useAdminAuth();
+  const navigate          = useNavigate();
+  const [open, setOpen]   = useState(false);
 
   function handleLogout() {
     logout();
@@ -63,8 +63,14 @@ export default function AdminLayout({ children }) {
           ))}
         </nav>
 
+        {/* Logged in as */}
+        <div className="px-4 py-3 border-t border-gray-700/60">
+          <p className="text-xs text-gray-500 mb-0.5">Logged in as</p>
+          <p className="text-xs text-gray-300 font-medium truncate">{admin?.email || 'Super Admin'}</p>
+        </div>
+
         {/* Logout */}
-        <div className="px-3 py-4 border-t border-gray-700/60">
+        <div className="px-3 pb-4">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
@@ -91,9 +97,14 @@ export default function AdminLayout({ children }) {
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex-1" />
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span className="hidden sm:inline">Super Admin</span>
+          {/* Admin badge */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
+              <span className="text-xs font-medium text-blue-700 hidden sm:inline">
+                {admin?.email || 'Super Admin'}
+              </span>
+            </div>
           </div>
         </header>
 

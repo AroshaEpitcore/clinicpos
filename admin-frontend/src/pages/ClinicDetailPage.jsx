@@ -2,33 +2,54 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Users, UserCheck, Edit2, Ban, CheckCircle,
-  ExternalLink, AlertTriangle, Save, RefreshCw,
+  ExternalLink, AlertTriangle, Save, Copy, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminTenantsApi, adminFlagsApi } from '../api/admin';
 import { Card, StatCard } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { LoadingState } from '../components/ui/Spinner';
+
+const CLINIC_URL = import.meta.env.VITE_CLINIC_URL || 'http://localhost:5173';
 
 const ALL_MODULES = [
-  { key: 'pharmacy',      label: 'Pharmacy',       description: 'Medicine dispensing & inventory management' },
-  { key: 'lab',           label: 'Lab',             description: 'Lab test requests and results' },
-  { key: 'insurance',     label: 'Insurance',       description: 'Insurance claims and corporate billing' },
-  { key: 'online_booking',label: 'Online Booking',  description: 'Patient self-booking portal' },
-  { key: 'multi_branch',  label: 'Multi Branch',    description: 'Multiple branch management' },
-  { key: 'custom_domain', label: 'Custom Domain',   description: 'Use clinic\'s own domain name' },
+  { key: 'pharmacy',      label: 'Pharmacy',      description: 'Medicine dispensing & inventory' },
+  { key: 'lab',           label: 'Lab',            description: 'Lab test requests and results' },
+  { key: 'insurance',     label: 'Insurance',      description: 'Insurance claims & corporate billing' },
+  { key: 'online_booking',label: 'Online Booking', description: 'Patient self-booking portal' },
+  { key: 'multi_branch',  label: 'Multi Branch',   description: 'Multiple branch management' },
+  { key: 'custom_domain', label: 'Custom Domain',  description: "Use clinic's own domain name" },
 ];
 
+// ── Copy pill ──────────────────────────────────────────────────────────────────
+function CopyPill({ value }) {
+  const [copied, setCopied] = useState(false);
+  function copy(e) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button onClick={copy} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors ml-1">
+      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+    </button>
+  );
+}
+
+// ── Edit clinic modal ──────────────────────────────────────────────────────────
 function EditClinicModal({ open, onClose, clinic, onSaved }) {
-  const [form, setForm] = useState({ clinic_name: '', owner_email: '', owner_phone: '' });
+  const [form,   setForm]   = useState({ clinic_name: '', owner_email: '', owner_phone: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (clinic) setForm({
-      clinic_name: clinic.clinic_name || '',
-      owner_email: clinic.owner_email || '',
-      owner_phone: clinic.owner_phone || '',
+      clinic_name: clinic.clinic_name  || '',
+      owner_email: clinic.owner_email  || '',
+      owner_phone: clinic.owner_phone  || '',
     });
   }, [clinic]);
 
@@ -49,37 +70,29 @@ function EditClinicModal({ open, onClose, clinic, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title="Edit Clinic" size="sm">
       <div className="space-y-4">
-        {[
-          { field: 'clinic_name', label: 'Clinic Name', type: 'text' },
-          { field: 'owner_email', label: 'Owner Email', type: 'email' },
-          { field: 'owner_phone', label: 'Owner Phone', type: 'text' },
-        ].map(({ field, label, type }) => (
-          <div key={field}>
-            <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-            <input
-              type={type}
-              value={form[field]}
-              onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        ))}
+        <Input label="Clinic Name"  value={form.clinic_name}  onChange={e => setForm(f => ({ ...f, clinic_name:  e.target.value }))} />
+        <Input label="Owner Email"  type="email" value={form.owner_email}  onChange={e => setForm(f => ({ ...f, owner_email:  e.target.value }))} />
+        <Input label="Owner Phone"  value={form.owner_phone}  onChange={e => setForm(f => ({ ...f, owner_phone:  e.target.value }))} placeholder="077 123 4567" />
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving}><Save className="w-3.5 h-3.5" /> Save</Button>
+          <Button onClick={handleSave} loading={saving}>
+            <Save className="w-3.5 h-3.5" />
+            Save
+          </Button>
         </div>
       </div>
     </Modal>
   );
 }
 
+// ── Confirm modal ──────────────────────────────────────────────────────────────
 function ConfirmModal({ open, onClose, onConfirm, title, message, variant = 'danger', loading }) {
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
       <div className="space-y-4">
         <p className="text-sm text-gray-600">{message}</p>
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button variant={variant} onClick={onConfirm} loading={loading}>Confirm</Button>
         </div>
       </div>
@@ -87,18 +100,19 @@ function ConfirmModal({ open, onClose, onConfirm, title, message, variant = 'dan
   );
 }
 
+// ── Main page ──────────────────────────────────────────────────────────────────
 export default function ClinicDetailPage() {
   const { id }   = useParams();
   const navigate = useNavigate();
 
-  const [clinic,    setClinic]    = useState(null);
-  const [flags,     setFlags]     = useState({});
-  const [loading,   setLoading]   = useState(true);
-  const [showEdit,  setShowEdit]  = useState(false);
-  const [showSuspend, setShowSuspend] = useState(false);
-  const [showActivate, setShowActivate] = useState(false);
+  const [clinic,        setClinic]        = useState(null);
+  const [flags,         setFlags]         = useState({});
+  const [loading,       setLoading]       = useState(true);
+  const [showEdit,      setShowEdit]      = useState(false);
+  const [showSuspend,   setShowSuspend]   = useState(false);
+  const [showActivate,  setShowActivate]  = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [flagSaving, setFlagSaving] = useState(false);
+  const [flagSaving,    setFlagSaving]    = useState(false);
   const [impersonating, setImpersonating] = useState(false);
 
   useEffect(() => { load(); }, [id]);
@@ -106,10 +120,9 @@ export default function ClinicDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await adminTenantsApi.get(id);
+      const res  = await adminTenantsApi.get(id);
       const data = res.data.data;
       setClinic(data);
-      // Convert flags array to object map
       const flagMap = {};
       (data.feature_flags || []).forEach(f => { flagMap[f.module] = f.enabled; });
       setFlags(flagMap);
@@ -154,15 +167,15 @@ export default function ClinicDetailPage() {
     try {
       const res = await adminTenantsApi.impersonate(id);
       const d   = res.data.data;
-      // Store the impersonation token in clinic-frontend storage keys
-      localStorage.setItem('clinic_token',    d.token);
-      localStorage.setItem('clinic_user',     JSON.stringify({ ...d.staff, impersonated: true, impersonatedBy: 'superadmin' }));
-      localStorage.setItem('clinic_info',     JSON.stringify({ name: d.clinic_name, logo_url: d.logo_url || null, currency: d.currency || 'LKR' }));
-      localStorage.setItem('clinic_flags',    JSON.stringify(d.feature_flags));
+
+      localStorage.setItem('clinic_token',     d.token);
+      localStorage.setItem('clinic_user',      JSON.stringify({ ...d.staff, impersonated: true, impersonatedBy: 'superadmin' }));
+      localStorage.setItem('clinic_info',      JSON.stringify({ name: d.clinic_name, logo_url: d.logo_url || null, currency: d.currency || 'LKR' }));
+      localStorage.setItem('clinic_flags',     JSON.stringify(d.feature_flags));
       localStorage.setItem('clinic_subdomain', d.subdomain);
 
-      toast.success(`Impersonating ${d.clinic_name} — opening clinic panel`);
-      // Pass token + session data via URL to clinic-frontend /impersonate route
+      toast.success(`Opening ${d.clinic_name} as admin…`);
+
       const params = new URLSearchParams({
         token:       d.token,
         clinic_name: d.clinic_name,
@@ -171,7 +184,7 @@ export default function ClinicDetailPage() {
         flags:       JSON.stringify(d.feature_flags),
         currency:    d.currency    || 'LKR',
       });
-      window.open(`http://localhost:5173/impersonate?${params.toString()}`, '_blank');
+      window.open(`${CLINIC_URL}/impersonate?${params.toString()}`, '_blank');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Impersonation failed');
     } finally {
@@ -187,7 +200,6 @@ export default function ClinicDetailPage() {
       await adminFlagsApi.update(id, { [module]: newVal });
       toast.success(`${module} ${newVal ? 'enabled' : 'disabled'}`);
     } catch {
-      // Revert
       setFlags(f => ({ ...f, [module]: !newVal }));
       toast.error('Failed to update flag');
     } finally {
@@ -196,11 +208,17 @@ export default function ClinicDetailPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingState message="Loading clinic…" />
+      </div>
+    );
   }
   if (!clinic) return null;
 
-  const isSuspended = clinic.status === 'suspended';
+  const isSuspended  = clinic.status === 'suspended';
+  const clinicUrl    = `${clinic.subdomain}.clinicpos.com`;
+  const activeFlags  = Object.values(flags).filter(Boolean).length;
 
   return (
     <div className="space-y-6">
@@ -212,11 +230,11 @@ export default function ClinicDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back to Clinics
       </button>
 
-      {/* Impersonation banner */}
+      {/* Suspended banner */}
       {isSuspended && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          This clinic is suspended. Login is blocked for clinic staff.
+          This clinic is suspended. All staff logins are blocked.
         </div>
       )}
 
@@ -227,8 +245,14 @@ export default function ClinicDetailPage() {
             <h1 className="text-xl font-bold text-gray-900">{clinic.clinic_name}</h1>
             <Badge label={clinic.status} variant={clinic.status} />
           </div>
-          <p className="text-sm text-gray-500 mt-1">{clinic.subdomain}.clinicpos.com</p>
-          <p className="text-xs text-gray-400 mt-0.5">{clinic.owner_email} · {clinic.owner_phone || 'no phone'}</p>
+          <div className="flex items-center gap-1 mt-1">
+            <p className="text-sm text-gray-500">{clinicUrl}</p>
+            <CopyPill value={`https://${clinicUrl}`} />
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {clinic.owner_email}
+            {clinic.owner_phone ? ` · ${clinic.owner_phone}` : ''}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -241,6 +265,7 @@ export default function ClinicDetailPage() {
             loading={impersonating}
             onClick={handleImpersonate}
             className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            disabled={isSuspended}
           >
             <ExternalLink className="w-3.5 h-3.5" /> Login as Clinic
           </Button>
@@ -257,30 +282,37 @@ export default function ClinicDetailPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Staff Members"  value={clinic.stats?.staff_count   ?? '—'} icon={UserCheck} color="blue" />
-        <StatCard label="Total Patients" value={clinic.stats?.patient_count ?? '—'} icon={Users}     color="green" />
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Staff Members"  value={clinic.stats?.staff_count   ?? '—'} icon={UserCheck}  color="blue"   />
+        <StatCard label="Total Patients" value={clinic.stats?.patient_count ?? '—'} icon={Users}      color="green"  />
+        <StatCard label="Modules On"     value={activeFlags}                         icon={Building2}  color={activeFlags > 0 ? 'purple' : 'gray'} />
       </div>
 
-      {/* Details */}
+      {/* Details + Feature Flags */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Clinic Details */}
         <Card title="Clinic Details">
           <dl className="space-y-2.5">
             {[
-              ['Clinic ID',    clinic.id],
-              ['Created',      new Date(clinic.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
-              ['Status',       clinic.status],
+              ['Clinic ID',   clinic.id],
+              ['Subdomain',   clinic.subdomain],
+              ['Status',      clinic.status],
+              ['Created',     new Date(clinic.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
+              ['Last Updated',new Date(clinic.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
             ].map(([label, value]) => (
-              <div key={label} className="flex justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                <dt className="text-gray-500">{label}</dt>
-                <dd className="font-medium text-gray-800">{value}</dd>
+              <div key={label} className="flex justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0 gap-3">
+                <dt className="text-gray-500 shrink-0">{label}</dt>
+                <dd className="font-medium text-gray-800 text-right break-all">{value}</dd>
               </div>
             ))}
           </dl>
         </Card>
 
         {/* Feature Flags */}
-        <Card title="Feature Flags" subtitle={flagSaving ? 'Saving...' : 'Toggle modules for this clinic'}>
+        <Card
+          title="Feature Flags"
+          subtitle={flagSaving ? 'Saving…' : `${activeFlags} of ${ALL_MODULES.length} modules enabled`}
+        >
           <div className="space-y-3">
             {ALL_MODULES.map(m => (
               <div key={m.key} className="flex items-center justify-between gap-3">
@@ -295,11 +327,9 @@ export default function ClinicDetailPage() {
                     flags[m.key] ? 'bg-blue-600' : 'bg-gray-200'
                   } ${flagSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                      flags[m.key] ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    flags[m.key] ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
                 </button>
               </div>
             ))}
@@ -320,7 +350,7 @@ export default function ClinicDetailPage() {
         onConfirm={handleSuspend}
         loading={actionLoading}
         title="Suspend Clinic"
-        message={`Are you sure you want to suspend "${clinic.clinic_name}"? All staff will be locked out immediately.`}
+        message={`Suspend "${clinic.clinic_name}"? All staff will be locked out immediately.`}
         variant="danger"
       />
       <ConfirmModal

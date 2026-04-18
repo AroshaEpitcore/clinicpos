@@ -15,26 +15,36 @@ export function Card({ title, subtitle, children, className = '', action }) {
   );
 }
 
-export function StatCard({ label, value, icon: Icon, color = 'blue', sub }) {
+export function StatCard({ label, value, icon: Icon, color = 'blue', sub, onClick, alert }) {
   const colors = {
     blue:   'bg-blue-50 text-blue-600',
     green:  'bg-green-50 text-green-600',
     amber:  'bg-amber-50 text-amber-600',
     red:    'bg-red-50 text-red-600',
     purple: 'bg-purple-50 text-purple-600',
+    gray:   'bg-gray-100 text-gray-400',
   };
+
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+    <Wrapper
+      onClick={onClick}
+      className={`bg-white rounded-xl border shadow-sm p-5 flex items-center gap-4 text-left w-full transition-colors ${
+        alert ? 'border-red-300' : 'border-gray-200'
+      } ${onClick ? 'hover:bg-gray-50 cursor-pointer' : ''}`}
+    >
       {Icon && (
-        <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${colors[color]}`}>
+        <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${colors[color] || colors.blue}`}>
           <Icon className="w-5 h-5" />
         </div>
       )}
       <div>
         <p className="text-xs text-gray-500 font-medium">{label}</p>
         <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        {sub && (
+          <p className={`text-xs mt-0.5 ${alert ? 'text-red-500 font-medium' : 'text-gray-400'}`}>{sub}</p>
+        )}
       </div>
-    </div>
+    </Wrapper>
   );
 }
