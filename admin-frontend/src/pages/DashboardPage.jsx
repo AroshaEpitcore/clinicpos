@@ -7,6 +7,7 @@ import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { LoadingState } from '../components/ui/Spinner';
+import { EmptyState } from '../components/ui/EmptyState';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function DashboardPage() {
       setStats(dashRes.data.data);
       setClinics(clinicRes.data.data.slice(0, 8));
     } catch {
-      toast.error('Failed to load dashboard');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -41,8 +42,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold text-[var(--color-text)]">Dashboard</h1>
+          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
             {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -88,32 +89,37 @@ export default function DashboardPage() {
             View all →
           </Button>
         }
+        noPadding
       >
         {loading ? (
-          <LoadingState message="Loading clinics..." />
-        ) : clinics.length === 0 ? (
-          <div className="flex flex-col items-center py-10 text-gray-400">
-            <Building2 className="w-10 h-10 mb-3 opacity-30" />
-            <p className="text-sm">No clinics yet</p>
-            <p className="text-xs mt-1">Create your first clinic to get started.</p>
+          <div className="p-5">
+            <LoadingState message="Loading clinics..." />
           </div>
+        ) : clinics.length === 0 ? (
+          <EmptyState
+            icon={Building2}
+            title="No clinics yet"
+            description="Create your first clinic to get started."
+          />
         ) : (
-          <div className="divide-y divide-gray-100 -mx-5">
+          <div className="divide-y divide-[var(--color-border)]">
             {clinics.map(c => (
               <div
                 key={c.id}
-                className="flex items-center justify-between py-2.5 px-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between py-3 px-5 cursor-pointer hover:bg-[var(--color-bg)] transition-colors"
                 onClick={() => navigate(`/clinics/${c.id}`)}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{c.clinic_name}</p>
-                  <p className="text-xs text-gray-400">{c.subdomain}.clinicpos.com · {c.active_flags} module{c.active_flags !== '1' ? 's' : ''} on</p>
+                  <p className="text-sm font-medium text-[var(--color-text)] truncate">{c.clinic_name}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    {c.subdomain}.clinicpos.com · {c.active_flags} module{c.active_flags !== '1' ? 's' : ''} on
+                  </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-3">
-                  <span className="text-xs text-gray-400 hidden sm:inline">
+                  <span className="text-xs text-[var(--color-text-secondary)] hidden sm:inline">
                     {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
-                  <Badge label={c.status} variant={c.status} />
+                  <Badge status={c.status} label={c.status} />
                 </div>
               </div>
             ))}

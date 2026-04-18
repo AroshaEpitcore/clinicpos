@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Shield, LogOut, Menu, X,
+  LayoutDashboard, Building2, Shield, LogOut, Menu, Sun, Moon,
 } from 'lucide-react';
-import { useState } from 'react';
+import clsx from 'clsx';
 import { useAdminAuth } from '../../store/AdminAuthContext';
+import { useTheme } from '../../store/ThemeContext';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
@@ -11,10 +13,88 @@ const NAV_ITEMS = [
   { to: '/clinics', label: 'Clinics',   icon: Building2 },
 ];
 
-export default function AdminLayout({ children }) {
-  const { admin, logout } = useAdminAuth();
-  const navigate          = useNavigate();
-  const [open, setOpen]   = useState(false);
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+function Sidebar({ collapsed }) {
+  const { admin } = useAdminAuth();
+  const initial   = (admin?.email?.charAt(0) || 'A').toUpperCase();
+
+  return (
+    <aside
+      className="fixed top-0 left-0 h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col z-30 transition-[width] duration-300 ease-in-out overflow-hidden"
+      style={{ width: collapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width)' }}
+    >
+      {/* Branding */}
+      <div
+        className="flex items-center gap-3 px-4 border-b border-[var(--color-border)] shrink-0"
+        style={{ height: 'var(--topbar-height)' }}
+      >
+        <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--color-primary)] flex items-center justify-center shrink-0">
+          <Shield className="w-4 h-4 text-white" />
+        </div>
+        {!collapsed && (
+          <div className="overflow-hidden">
+            <p className="text-sm font-semibold text-[var(--color-text)] truncate leading-tight">ClinicPOS</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">Super Admin</p>
+          </div>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
+        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            title={collapsed ? label : undefined}
+            className={({ isActive }) =>
+              clsx(
+                'flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius)] text-sm font-medium transition-colors mb-0.5',
+                collapsed && 'justify-center',
+                isActive
+                  ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
+                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
+              )
+            }
+          >
+            <Icon className="w-5 h-5 shrink-0" />
+            {!collapsed && <span className="truncate">{label}</span>}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Admin info */}
+      <div className="border-t border-[var(--color-border)] p-3">
+        <div className={clsx('flex items-center gap-3 px-2 py-2', collapsed && 'justify-center')}>
+          <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-[var(--color-primary)] text-sm font-semibold shrink-0">
+            {initial}
+          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <p className="text-xs font-medium text-[var(--color-text)] truncate">{admin?.email || 'Super Admin'}</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Super Admin</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ── TopBar ─────────────────────────────────────────────────────────────────────
+function TopBar({ sidebarWidth, onToggle }) {
+  const { logout } = useAdminAuth();
+  const { dark, toggle } = useTheme();
+  const navigate = useNavigate();
+
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   function handleLogout() {
     logout();
@@ -23,96 +103,80 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 w-60 bg-gray-900 flex flex-col transition-transform
-        ${open ? 'translate-x-0' : '-translate-x-full'}
-        md:static md:translate-x-0
-      `}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-700/60">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <p className="text-white text-sm font-bold leading-tight">ClinicPOS</p>
-            <p className="text-gray-400 text-xs">Super Admin</p>
-          </div>
-        </div>
+    <header
+      className="fixed top-0 right-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] flex items-center z-20 transition-[left] duration-300 ease-in-out"
+      style={{ left: sidebarWidth, height: 'var(--topbar-height)' }}
+    >
+      {/* Hamburger */}
+      <button
+        onClick={onToggle}
+        title="Toggle sidebar"
+        className="flex items-center justify-center shrink-0 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors border-r border-[var(--color-border)]"
+        style={{ width: 'var(--topbar-height)', height: 'var(--topbar-height)' }}
+      >
+        <Menu className="w-5 h-5" />
+      </button>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`
-              }
-              onClick={() => setOpen(false)}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+      {/* Title */}
+      <h2 className="flex-1 px-4 text-sm font-semibold text-[var(--color-text)] truncate">
+        ClinicPOS Admin
+      </h2>
 
-        {/* Logged in as */}
-        <div className="px-4 py-3 border-t border-gray-700/60">
-          <p className="text-xs text-gray-500 mb-0.5">Logged in as</p>
-          <p className="text-xs text-gray-300 font-medium truncate">{admin?.email || 'Super Admin'}</p>
-        </div>
-
-        {/* Logout */}
-        <div className="px-3 pb-4">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile overlay */}
-      {open && (
-        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
-      )}
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-3.5 flex items-center gap-3 shrink-0">
-          <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-1.5 rounded-lg hover:bg-gray-100"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <div className="flex-1" />
-          {/* Admin badge */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
-              <span className="text-xs font-medium text-blue-700 hidden sm:inline">
-                {admin?.email || 'Super Admin'}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
-        </main>
+      {/* Date & time */}
+      <div className="hidden sm:flex flex-col items-end pr-4 leading-tight shrink-0">
+        <span className="text-xs font-semibold text-[var(--color-text)] tabular-nums">{timeStr}</span>
+        <span className="text-[11px] text-[var(--color-text-secondary)]">{dateStr}</span>
       </div>
+
+      {/* Dark / light toggle */}
+      <button
+        onClick={toggle}
+        title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors border-l border-[var(--color-border)]"
+        style={{ width: 'var(--topbar-height)', height: 'var(--topbar-height)' }}
+      >
+        {dark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+      </button>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        title="Logout"
+        className="flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-danger)] transition-colors border-l border-[var(--color-border)]"
+        style={{ width: 'var(--topbar-height)', height: 'var(--topbar-height)' }}
+      >
+        <LogOut className="w-[18px] h-[18px]" />
+      </button>
+    </header>
+  );
+}
+
+// ── Layout ─────────────────────────────────────────────────────────────────────
+export default function AdminLayout({ children }) {
+  const [collapsed, setCollapsed] = useState(() =>
+    localStorage.getItem('admin-sidebar-collapsed') === 'true'
+  );
+
+  function handleToggle() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem('admin-sidebar-collapsed', String(next));
+  }
+
+  const sidebarWidth = collapsed ? 64 : 240;
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <Sidebar collapsed={collapsed} />
+      <TopBar sidebarWidth={sidebarWidth} onToggle={handleToggle} />
+      <main
+        className="pt-[var(--topbar-height)] transition-[margin-left] duration-300 ease-in-out"
+        style={{ marginLeft: sidebarWidth }}
+      >
+        <div className="p-6">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

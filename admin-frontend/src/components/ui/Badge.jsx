@@ -1,16 +1,42 @@
-export function Badge({ label, variant = 'gray' }) {
-  const variants = {
-    active:    'bg-green-100 text-green-700',
-    suspended: 'bg-red-100 text-red-700',
-    cancelled: 'bg-gray-100 text-gray-500',
-    gray:      'bg-gray-100 text-gray-600',
-    blue:      'bg-blue-100 text-blue-700',
-    amber:     'bg-amber-100 text-amber-700',
-    purple:    'bg-purple-100 text-purple-700',
-  };
+import clsx from 'clsx';
+
+const styles = {
+  success: 'bg-[var(--color-success-light)] text-[var(--color-success)]',
+  warning: 'bg-[var(--color-warning-light)] text-[var(--color-warning)]',
+  danger:  'bg-[var(--color-danger-light)] text-[var(--color-danger)]',
+  info:    'bg-[var(--color-info-light)] text-[var(--color-info)]',
+  neutral: 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]',
+  primary: 'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
+};
+
+const statusMap = {
+  active:    'success',
+  suspended: 'danger',
+  trial:     'info',
+  pending:   'warning',
+  confirmed: 'primary',
+  arrived:   'info',
+  completed: 'success',
+  cancelled: 'neutral',
+  emergency: 'danger',
+  paid:      'success',
+  unpaid:    'danger',
+  partial:   'warning',
+};
+
+export function Badge({ label, variant, status, className }) {
+  // variant can be a style key directly, or a status value that maps to a style
+  const styleKey = variant
+    ? (styles[variant] ? variant : statusMap[variant] || 'neutral')
+    : (statusMap[status] || 'neutral');
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${variants[variant] || variants.gray}`}>
-      {label}
+    <span className={clsx(
+      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize',
+      styles[styleKey],
+      className
+    )}>
+      {label ?? status}
     </span>
   );
 }

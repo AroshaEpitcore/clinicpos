@@ -1,27 +1,27 @@
 import { forwardRef } from 'react';
+import clsx from 'clsx';
 
-export const Input = forwardRef(function Input(
-  { label, error, required, className = '', ...props },
-  ref
-) {
+export const Input = forwardRef(function Input({ label, error, required, className, ...props }, ref) {
   return (
-    <div>
+    <div className="flex flex-col gap-1">
       {label && (
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          {label}
-          {required && <span className="text-red-500 ml-0.5">*</span>}
+        <label className="text-sm font-medium text-[var(--color-text)]">
+          {label} {required && <span className="text-[var(--color-danger)]">*</span>}
         </label>
       )}
       <input
         ref={ref}
-        className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-          error
-            ? 'border-red-400 bg-red-50 focus:ring-red-400'
-            : 'border-gray-300 bg-white focus:border-blue-400'
-        } ${className}`}
         {...props}
+        className={clsx(
+          'w-full px-3 py-2 rounded-[var(--radius)] border text-sm',
+          'bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)]',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent',
+          'disabled:bg-[var(--color-bg)] disabled:cursor-not-allowed',
+          error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]',
+          className
+        )}
       />
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && <span className="text-xs text-[var(--color-danger)]">{error}</span>}
     </div>
   );
 });

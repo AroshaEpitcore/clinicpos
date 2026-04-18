@@ -17,7 +17,7 @@
 
 ## Current Status
 
-**Currently working on:** All core + add-on features complete through Phase 5.5 — Phase 6 Beta & Launch next
+**Currently working on:** All core + add-on features complete through Phase 5.5 + admin-frontend UI rebuild — Phase 6 Beta & Launch next
 **Last updated:** 2026-04-18
 **Next up:** Phase 6 — deployment, production setup
 
@@ -29,6 +29,7 @@
 | Phase 2 — Core modules | ✅ Patients, Appointments, Consultations, Prescriptions, Billing, Reports, Settings (2.0–2.7) |
 | Phase 3 — Branding + PDF | ✅ Clinic logo, doctor signatures, invoice PDF, prescription PDF |
 | Phase 4 — Super admin | ✅ Admin panel, clinic creation with credentials, impersonation, feature flag toggles, suspend/activate |
+| Phase 4 — Admin UI Rebuild | ✅ DESIGN.md-compliant: CSS variables, dark mode, Radix Dialog, matching sidebar/TopBar, Inter font (2026-04-18) |
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
@@ -53,9 +54,12 @@
 | Consultations Page — Search + Filters | ✅ Search bar, doctor filter tabs, follow-up filter pill (2026-04-17) |
 | Prescriptions Page — Modal Detail | ✅ Clicking Rx row opens detail modal with medicines table instead of navigating (2026-04-17) |
 | UI Consistency — Search + Filters on All List Pages | ✅ Consistent search bar (X clear button, CSS variables), filter pills/tabs added to: Appointments, Consultations, Prescriptions (doctor tabs + search), Billing (search), Staff (role pills + active/inactive pills + search), Medicine Store (layout fixed — tabs full-width, search below, count), Patient List (X clear button), Pharmacy Dispense Queue (filter pills + search), Pharmacy Purchase Orders (status pills + search), Pharmacy Suppliers (search), Lab Test Catalog (search), Insurance Claims (search + existing status/date filters) (2026-04-17–2026-04-18) |
-| Dispense Confirmation Modal | ✅ Reusable `DispenseModal` component — shows allergy warning (red banner), medicines table with stock levels (red + LOW label when ≤5), confirm button. Used in PharmacyPage (Dispense button on Rx cards), PrescriptionsPage (Dispense Rx button in modal footer), InvoiceModal (Dispense Rx quick action when Rx linked to invoice). (2026-04-18) |
+| Dispense Confirmation Modal | ✅ Reusable `DispenseModal` component — shows allergy warning (red banner), medicines table with stock levels (red + LOW label when at or below reorder_level), confirm button. Used in PharmacyPage, PrescriptionsPage, InvoiceModal. (2026-04-18) |
 | Queue Display / Waiting Room TV Screen | ✅ Public `/display` page (no login). Dark-themed auto-adjusting grid. Now Seeing (large token + first name), Next Up chips, emergency badges (red+Zap), real-time clock, 30s auto-refresh, fullscreen API, online/offline detection. Settings toggle + URL in Security tab. `migrate_queue_display.js` run. (2026-04-18) |
 | Add to Queue Drawer Width | ✅ Changed from 540px to 50vw (half screen) for easier use on large monitors. (2026-04-18) |
+| Low Stock Tracking | ✅ Dashboard alert badge (Admin + Receptionist dashboards show Low Stock stat card with red border when count > 0, click navigates to /medicines), post-dispense toast warning (all 3 dispense locations), DispenseModal uses actual per-medicine reorder_level instead of hardcoded ≤5. (2026-04-18) |
+| Queue Display Bug Fix | ✅ `portalApi.get('/portal/queue-display')` was TypeError — `portalApi` is a named-method object, not an axios instance. Fixed by adding `getQueueDisplay` named method to `portal.js`; `DisplayPage.jsx` calls `portalApi.getQueueDisplay()`. (2026-04-18) |
+| Admin-frontend DESIGN.md UI Rebuild | ✅ Full rebuild matching clinic-frontend patterns: CSS variables (variables.css), ThemeContext dark/light mode, Radix Dialog modals (proper overlay), Button/Input/Badge/Card/Spinner/ConfirmDialog/EmptyState all rebuilt with CSS vars + clsx, Inter font (@fontsource/inter), AdminLayout sidebar redesigned to match clinic-frontend (white bg, collapsible, active=primary-light, user avatar, live clock TopBar with border-l toggle/logout). (2026-04-18) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -71,6 +75,99 @@
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
 | System health display in admin panel | Phase 6 |
 | Audit log viewer | Phase 6 |
+
+---
+
+## Admin-frontend DESIGN.md UI Rebuild + Low Stock Tracking + Bug Fixes (2026-04-18)
+
+> Session covering the full DESIGN.md-compliant rebuild of admin-frontend, three low-stock tracking features, and the queue display loading bug fix.
+
+### 1 — Admin-frontend DESIGN.md UI Rebuild
+
+**Problem:** admin-frontend used hardcoded Tailwind colors throughout (`bg-blue-600`, `text-gray-900`, etc.), had no dark mode, and modals used a custom implementation without Radix Dialog. Sidebar was dark (`bg-gray-900`) — completely different from the clinic-frontend design pattern.
+
+**Solution:** Full rebuild of all UI components + layout to match DESIGN.md and clinic-frontend exactly.
+
+#### Packages installed
+```bash
+npm install @radix-ui/react-dialog clsx @fontsource/inter
+```
+
+#### New files created
+
+| File | Purpose |
+|------|---------|
+| `src/styles/variables.css` | All CSS variables (brand, status, neutrals, spacing, layout) + `.dark {}` overrides |
+| `src/store/ThemeContext.jsx` | `ThemeProvider` + `useTheme()` — toggles `.dark` on `<html>`, persisted to `localStorage('admin-theme')` |
+| `src/components/ui/ConfirmDialog.jsx` | Reusable destructive action dialog (wraps Modal + Button) |
+| `src/components/ui/EmptyState.jsx` | Consistent empty list state with icon, title, description, action button |
+
+#### Rebuilt components
+
+| File | Key changes |
+|------|-------------|
+| `tailwind.config.js` | Added `darkMode: 'class'` |
+| `src/main.jsx` | Imports `@fontsource/inter`, `variables.css`, wraps app in `ThemeProvider` |
+| `src/index.css` | Body uses Inter font + `var(--color-bg/text)` |
+| `Button.jsx` | `clsx` + CSS variable variants (primary, secondary, danger, success, ghost) |
+| `Input.jsx` | `clsx` + CSS variables, forwardRef |
+| `Badge.jsx` | `clsx` + CSS variables + `statusMap` (`active→success`, `suspended→danger`, etc.) |
+| `Card.jsx` + StatCard | `clsx` + CSS variables, `noPadding` prop, `alert` red border support |
+| `Modal.jsx` | **Radix Dialog** (`@radix-ui/react-dialog`) — `Dialog.Overlay` creates proper backdrop; `size` prop for sm/md/lg/xl; `footer` prop for sticky button row |
+| `Spinner.jsx` + LoadingState | `border-t-[var(--color-primary)]` — adapts to dark mode |
+
+#### Layout rebuild
+
+**Sidebar** now matches clinic-frontend exactly:
+- `bg-[var(--color-surface)]` with `border-r border-[var(--color-border)]`
+- Active: `bg-[var(--color-primary-light)] text-[var(--color-primary)]`
+- Inactive: `text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]`
+- Collapsible 240px ↔ 64px with icon-only mode, state in `localStorage('admin-sidebar-collapsed')`
+- Admin avatar circle + email in footer, same pattern as clinic staff info
+
+**TopBar** matches clinic-frontend exactly:
+- Fixed at top, `left` adjusts as sidebar collapses (`transition-[left] 300ms`)
+- Hamburger with `border-r`; title; live date+time (updates every second); dark/light `<Sun>/<Moon>` with `border-l`; logout with `border-l` + `hover:text-[var(--color-danger)]`
+- All icon buttons are `w/h = var(--topbar-height)` squares
+
+#### Pages updated (CSS variables throughout)
+- `LoginPage.jsx` — uses `Input` component, CSS variables, dark sidebar background stays on login page (by design)
+- `DashboardPage.jsx` — `EmptyState`, CSS variables, `StatCard` with `alert` prop
+- `ClinicsPage.jsx` — `EmptyState`, CSS variables, `Modal` with `footer` prop, status tabs use CSS vars
+- `ClinicDetailPage.jsx` — `ConfirmDialog` replaces inline ConfirmModal, Edit modal uses `footer` prop, feature flag toggles use CSS variables
+
+---
+
+### 2 — Low Stock Tracking (3 Missing Features)
+
+**Feature 1 — Dashboard alert badge**
+- `AdminDashboard.jsx` + `ReceptionistDashboard.jsx`: added `medicinesApi.lowStock()` in `Promise.all`, `lowStockCount` state
+- Grid changed to `grid-cols-5` (added Low Stock stat card)
+- `StatCard` updated to support `onClick` (wraps as `<button>`) and `alert` prop (red border + red sub text)
+- Low Stock card: `alert={lowStockCount > 0}`, `onClick={() => navigate('/medicines')}`
+
+**Feature 2 — Post-dispense low stock warning toast**
+- `pharmacy/dispense/:id` backend route: after COMMIT, queries `medicines WHERE stock_quantity <= reorder_level` for that prescription's items, returns `low_stock_warnings` array in response
+- `PharmacyPage.jsx`, `PrescriptionsPage.jsx`, `InvoiceModal.jsx`: after dispense success, checks `res.data?.data?.low_stock_warnings` — if any, shows `toast.warning('Low stock after dispense: ${names}', { duration: 6000 })`
+
+**Feature 3 — DispenseModal uses actual reorder_level**
+- `GET /pharmacy/dispense?date=` backend: added `'reorder_level', m.reorder_level` to the `json_build_object` for each medicine item
+- `DispenseModal.jsx`: changed hardcoded `<= 5` to `const threshold = item.reorder_level != null ? item.reorder_level : 5`; bottom notice also uses per-medicine threshold
+
+---
+
+### 3 — Queue Display Bug Fix
+
+**Problem:** `http://localhost:5173/display` showed "Could not load queue data. Retrying..." even with the feature enabled and backend running correctly.
+
+**Root cause:** `portalApi` in `clinic-frontend/src/api/portal.js` is a plain object with named methods (e.g. `portalApi.getClinicInfo()`), not an axios instance. `DisplayPage.jsx` called `portalApi.get('/portal/queue-display')` — `undefined` is not a function → TypeError thrown → caught as load failure.
+
+**Fix:**
+
+| File | Change |
+|------|--------|
+| `clinic-frontend/src/api/portal.js` | Added `getQueueDisplay: () => publicApi.get('/portal/queue-display')` as a named method |
+| `clinic-frontend/src/pages/display/DisplayPage.jsx` | Changed `portalApi.get('/portal/queue-display')` → `portalApi.getQueueDisplay()` |
 
 ---
 

@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-18
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -434,6 +434,7 @@ Patient (PT-XXXXX)
 | 2.7 Clinic settings | ✅ Complete | Logo/signature upload; 8-tab settings page; doctor fees; custom services; syncs public.tenants on name change |
 | 3 PDF generation | ✅ Complete | Invoice PDF + Prescription PDF via pdfkit; Download buttons in UI |
 | 4 Super Admin Panel | ✅ Complete (core) | Login, clinic list/create/edit/suspend/activate, feature flag toggles, impersonation; health/audit deferred to Phase 5 |
+| 4 Super Admin UI Rebuild | ✅ Complete | Full DESIGN.md-compliant UI — CSS variables, dark mode, Radix Dialog modals, matching sidebar/TopBar layout, Inter font, ConfirmDialog, EmptyState (2026-04-18) |
 | UI Polish | ✅ Complete | Dark mode, DatePicker, Inter font, improved Select, bg-white audit |
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
@@ -634,6 +635,15 @@ Public route (no JWT). Returns:
 
 **App:** `admin-frontend` (runs on port 5174) + `backend-api`
 
+### UI Design System (matches clinic-frontend exactly)
+- All components use **CSS variables** (`var(--color-primary)` etc.) — never raw Tailwind colors
+- **Dark / light mode** — `ThemeContext` toggles `.dark` on `<html>`, CSS vars overridden under `.dark {}` in `variables.css`, persisted to `localStorage('admin-theme')`
+- **Sidebar** — `bg-[var(--color-surface)]` (white/dark), `border-r`, collapsible (240px ↔ 64px), active nav: `bg-[var(--color-primary-light)] text-[var(--color-primary)]`, state persisted in `localStorage('admin-sidebar-collapsed')`
+- **TopBar** — fixed, live clock (seconds), dark/light `<Sun>/<Moon>` toggle, logout — all with `border-l` separators, identical to clinic-frontend TopBar
+- **Modals** — use **Radix Dialog** (`@radix-ui/react-dialog`) with `Dialog.Overlay` — correct dark backdrop overlay, same as clinic-frontend
+- **Typography** — Inter font via `@fontsource/inter`, same as clinic-frontend
+- `clsx` used for all conditional class merging
+
 ### Super Admin Login
 - Separate login page at `http://localhost:5174/login`
 - Credentials stored in `backend-api/.env`: `ADMIN_EMAIL` + `ADMIN_PASSWORD`
@@ -641,14 +651,16 @@ Public route (no JWT). Returns:
 - Separate `ADMIN_JWT_SECRET` (falls back to `JWT_SECRET` if not set)
 
 ### Dashboard
-- Stat cards: Total Clinics, Active, Suspended
+- Stat cards: Total Clinics, Active, Suspended (clickable → filtered clinic list)
 - Recent clinics list (last 8) → click to open clinic detail
 - **No trial/plan system** — access managed entirely via feature flags
+- Refresh button with loading state
 
 ### Clinic List (`/clinics`)
-- Search by name, subdomain, or email
+- Search by name, subdomain, or email (debounced 300ms, X clear button)
 - Filter tabs: All / Active / Suspended
 - Columns: clinic name, subdomain, owner email, status badge, created date, active flags count
+- `EmptyState` component shown when no results, with context-aware actions
 - Click row → Clinic Detail
 
 ### Create New Clinic
@@ -658,16 +670,19 @@ Public route (no JWT). Returns:
 - Warning shown: "password is not stored in plain text — save or send now"
 
 ### Clinic Detail (`/clinics/:id`)
-- Stats: staff count, patient count (queried live from tenant schema)
-- Edit modal: name, email, phone (no plan/trial fields)
-- **Suspend** button — locks all staff out immediately (tenant middleware blocks `status = 'suspended'`)
-- **Activate** button — restores access
-- **Login as Clinic** — generates a 2h clinic-scoped JWT, opens `clinic-frontend/impersonate?token=...` in new tab; "Impersonating" amber badge shown in TopBar
+- Stats: staff count, patient count (queried live from tenant schema), modules enabled count
+- Edit modal: name, email, phone (no plan/trial fields); uses `footer` prop on Modal for button placement
+- Suspended banner shown when clinic is suspended
+- **Suspend** button → `ConfirmDialog` → locks all staff out immediately (tenant middleware blocks `status = 'suspended'`)
+- **Activate** button → `ConfirmDialog` → restores access
+- **Login as Clinic** — generates a 2h clinic-scoped JWT, opens `VITE_CLINIC_URL/impersonate?token=...` in new tab; disabled when clinic is suspended; URL controlled by `VITE_CLINIC_URL` env var
 
 ### Feature Flags
 - Live toggle switches per module: pharmacy, lab, insurance, online_booking, multi_branch, custom_domain
+- Toggle uses CSS variable `bg-[var(--color-primary)]` (active) / `bg-[var(--color-border)]` (off) — works in dark mode
 - Toggle saves instantly via `PUT /api/v1/admin/feature-flags/:tenantId`
 - Changes take effect on next clinic staff request (no restart needed)
+- Count shows "X of 6 modules enabled" in card subtitle
 
 ---
 
@@ -680,7 +695,7 @@ Public route (no JWT). Returns:
 | Doctor signature upload | ✅ Done (Phase 2.7) |
 | Clinic logo on print / PDF | ✅ Done (Phase 3) |
 | Super admin feature flag toggles | ✅ Done (Phase 4) |
-| Low stock / near-expiry alert badges on dashboard | Deferred — use Reports medicines tab |
+| Low stock / near-expiry alert badges on dashboard | ✅ Done — Low Stock stat card on Admin + Receptionist dashboards; alert border when count > 0; click navigates to /medicines (2026-04-18) |
 | Stock auto-deduct on dispensing | ✅ Done — pharmacy dispense endpoint deducts stock |
 | Expiry alert notifications | Phase 6 (remaining) |
 | Online patient booking | ✅ Done (Phase 5.4) |

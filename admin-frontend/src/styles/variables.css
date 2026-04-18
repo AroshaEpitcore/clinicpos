@@ -1,0 +1,61 @@
+/* src/styles/variables.css — import this in main.jsx */
+
+:root {
+  /* Brand */
+  --color-primary:        #2563eb;
+  --color-primary-hover:  #1d4ed8;
+  --color-primary-light:  #eff6ff;
+
+  /* Status */
+  --color-success:        #16a34a;
+  --color-success-light:  #f0fdf4;
+  --color-warning:        #d97706;
+  --color-warning-light:  #fffbeb;
+  --color-danger:         #dc2626;
+  --color-danger-light:   #fef2f2;
+  --color-info:           #0891b2;
+  --color-info-light:     #ecfeff;
+
+  /* Neutrals */
+  --color-text:           #111827;
+  --color-text-secondary: #6b7280;
+  --color-border:         #e5e7eb;
+  --color-bg:             #f9fafb;
+  --color-surface:        #ffffff;
+
+  /* Appointment status colors */
+  --status-pending:       #d97706;
+  --status-confirmed:     #2563eb;
+  --status-arrived:       #7c3aed;
+  --status-completed:     #16a34a;
+  --status-cancelled:     #6b7280;
+  --status-emergency:     #dc2626;
+
+  /* Invoice status colors */
+  --status-paid:          #16a34a;
+  --status-unpaid:        #dc2626;
+  --status-partial:       #d97706;
+
+  /* Spacing */
+  --radius:               8px;
+  --radius-sm:            4px;
+  --radius-lg:            12px;
+
+  /* Layout */
+  --topbar-height:        56px;
+  --sidebar-width:        240px;
+  --sidebar-width-collapsed: 64px;
+}
+
+.dark {
+  --color-bg:             #0f172a;
+  --color-surface:        #1e293b;
+  --color-text:           #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-border:         #334155;
+  --color-primary-light:  #1e3a5f;
+  --color-success-light:  #052e16;
+  --color-warning-light:  #1c1007;
+  --color-danger-light:   #2d0a0a;
+  --color-info-light:     #062830;
+}

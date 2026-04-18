@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { LoadingState } from '../components/ui/Spinner';
 
 const CLINIC_URL = import.meta.env.VITE_CLINIC_URL || 'http://localhost:5173';
@@ -34,8 +35,11 @@ function CopyPill({ value }) {
     setTimeout(() => setCopied(false), 2000);
   }
   return (
-    <button onClick={copy} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors ml-1">
-      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+    <button
+      onClick={copy}
+      className="inline-flex items-center gap-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors ml-1"
+    >
+      {copied ? <Check className="w-3 h-3 text-[var(--color-success)]" /> : <Copy className="w-3 h-3" />}
     </button>
   );
 }
@@ -57,44 +61,35 @@ function EditClinicModal({ open, onClose, clinic, onSaved }) {
     setSaving(true);
     try {
       const res = await adminTenantsApi.update(clinic.id, form);
-      toast.success('Clinic updated');
+      toast.success('Changes saved successfully');
       onSaved(res.data.data);
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Edit Clinic" size="sm">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Edit Clinic"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} loading={saving}>
+            <Save className="w-3.5 h-3.5" />
+            Save Changes
+          </Button>
+        </>
+      }
+    >
       <div className="space-y-4">
         <Input label="Clinic Name"  value={form.clinic_name}  onChange={e => setForm(f => ({ ...f, clinic_name:  e.target.value }))} />
         <Input label="Owner Email"  type="email" value={form.owner_email}  onChange={e => setForm(f => ({ ...f, owner_email:  e.target.value }))} />
         <Input label="Owner Phone"  value={form.owner_phone}  onChange={e => setForm(f => ({ ...f, owner_phone:  e.target.value }))} placeholder="077 123 4567" />
-        <div className="flex justify-end gap-3 pt-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving}>
-            <Save className="w-3.5 h-3.5" />
-            Save
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ── Confirm modal ──────────────────────────────────────────────────────────────
-function ConfirmModal({ open, onClose, onConfirm, title, message, variant = 'danger', loading }) {
-  return (
-    <Modal open={open} onClose={onClose} title={title} size="sm">
-      <div className="space-y-4">
-        <p className="text-sm text-gray-600">{message}</p>
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
-          <Button variant={variant} onClick={onConfirm} loading={loading}>Confirm</Button>
-        </div>
       </div>
     </Modal>
   );
@@ -127,7 +122,7 @@ export default function ClinicDetailPage() {
       (data.feature_flags || []).forEach(f => { flagMap[f.module] = f.enabled; });
       setFlags(flagMap);
     } catch {
-      toast.error('Failed to load clinic');
+      toast.error('Something went wrong. Please try again.');
       navigate('/clinics');
     } finally {
       setLoading(false);
@@ -142,7 +137,7 @@ export default function ClinicDetailPage() {
       toast.success('Clinic suspended');
       setShowSuspend(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -156,7 +151,7 @@ export default function ClinicDetailPage() {
       toast.success('Clinic activated');
       setShowActivate(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -201,7 +196,7 @@ export default function ClinicDetailPage() {
       toast.success(`${module} ${newVal ? 'enabled' : 'disabled'}`);
     } catch {
       setFlags(f => ({ ...f, [module]: !newVal }));
-      toast.error('Failed to update flag');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setFlagSaving(false);
     }
@@ -225,14 +220,14 @@ export default function ClinicDetailPage() {
       {/* Back */}
       <button
         onClick={() => navigate('/clinics')}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Clinics
       </button>
 
       {/* Suspended banner */}
       {isSuspended && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius)] bg-[var(--color-danger-light)] border border-[var(--color-danger)] text-[var(--color-danger)] text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           This clinic is suspended. All staff logins are blocked.
         </div>
@@ -242,14 +237,14 @@ export default function ClinicDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-gray-900">{clinic.clinic_name}</h1>
-            <Badge label={clinic.status} variant={clinic.status} />
+            <h1 className="text-xl font-bold text-[var(--color-text)]">{clinic.clinic_name}</h1>
+            <Badge status={clinic.status} label={clinic.status} />
           </div>
           <div className="flex items-center gap-1 mt-1">
-            <p className="text-sm text-gray-500">{clinicUrl}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{clinicUrl}</p>
             <CopyPill value={`https://${clinicUrl}`} />
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 opacity-70">
             {clinic.owner_email}
             {clinic.owner_phone ? ` · ${clinic.owner_phone}` : ''}
           </p>
@@ -264,8 +259,8 @@ export default function ClinicDetailPage() {
             variant="secondary"
             loading={impersonating}
             onClick={handleImpersonate}
-            className="border-purple-300 text-purple-700 hover:bg-purple-50"
             disabled={isSuspended}
+            className="border-purple-300 text-purple-700 hover:bg-purple-50"
           >
             <ExternalLink className="w-3.5 h-3.5" /> Login as Clinic
           </Button>
@@ -300,9 +295,9 @@ export default function ClinicDetailPage() {
               ['Created',     new Date(clinic.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
               ['Last Updated',new Date(clinic.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
             ].map(([label, value]) => (
-              <div key={label} className="flex justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0 gap-3">
-                <dt className="text-gray-500 shrink-0">{label}</dt>
-                <dd className="font-medium text-gray-800 text-right break-all">{value}</dd>
+              <div key={label} className="flex justify-between text-sm border-b border-[var(--color-border)] pb-2 last:border-0 last:pb-0 gap-3">
+                <dt className="text-[var(--color-text-secondary)] shrink-0">{label}</dt>
+                <dd className="font-medium text-[var(--color-text)] text-right break-all">{value}</dd>
               </div>
             ))}
           </dl>
@@ -317,14 +312,14 @@ export default function ClinicDetailPage() {
             {ALL_MODULES.map(m => (
               <div key={m.key} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800">{m.label}</p>
-                  <p className="text-xs text-gray-400 truncate">{m.description}</p>
+                  <p className="text-sm font-medium text-[var(--color-text)]">{m.label}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)] truncate">{m.description}</p>
                 </div>
                 <button
                   onClick={() => handleFlagToggle(m.key)}
                   disabled={flagSaving}
-                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-                    flags[m.key] ? 'bg-blue-600' : 'bg-gray-200'
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-1 ${
+                    flags[m.key] ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
                   } ${flagSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
@@ -344,22 +339,24 @@ export default function ClinicDetailPage() {
         clinic={clinic}
         onSaved={updated => setClinic(c => ({ ...c, ...updated }))}
       />
-      <ConfirmModal
+      <ConfirmDialog
         open={showSuspend}
         onClose={() => setShowSuspend(false)}
         onConfirm={handleSuspend}
         loading={actionLoading}
         title="Suspend Clinic"
         message={`Suspend "${clinic.clinic_name}"? All staff will be locked out immediately.`}
+        confirmLabel="Yes, Suspend"
         variant="danger"
       />
-      <ConfirmModal
+      <ConfirmDialog
         open={showActivate}
         onClose={() => setShowActivate(false)}
         onConfirm={handleActivate}
         loading={actionLoading}
         title="Activate Clinic"
         message={`Restore access for "${clinic.clinic_name}"?`}
+        confirmLabel="Yes, Activate"
         variant="success"
       />
     </div>

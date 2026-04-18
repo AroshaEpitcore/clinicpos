@@ -434,6 +434,15 @@ Phase 7  →  Desktop version (later)
 | Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred)* |
 | System health display — server, DB, uptime | admin-frontend | [ ] *(deferred)* |
 | Audit log viewer | admin-frontend | [ ] *(deferred)* |
+| **UI Design Rebuild (DESIGN.md compliance)** | | |
+| CSS variables system (`variables.css`) + `.dark {}` overrides | admin-frontend | [x] *(done 2026-04-18)* |
+| `ThemeContext` dark/light toggle — persisted to localStorage | admin-frontend | [x] *(done 2026-04-18)* |
+| `tailwind.config.js` `darkMode: 'class'` + Inter font | admin-frontend | [x] *(done 2026-04-18)* |
+| All UI components rebuilt with CSS variables + `clsx` | admin-frontend | [x] *(done 2026-04-18)* |
+| `Modal.jsx` rebuilt with Radix Dialog — proper overlay | admin-frontend | [x] *(done 2026-04-18)* |
+| `ConfirmDialog.jsx` + `EmptyState.jsx` new components | admin-frontend | [x] *(done 2026-04-18)* |
+| Sidebar redesigned to match clinic-frontend (white bg, collapsible, active=primary-light) | admin-frontend | [x] *(done 2026-04-18)* |
+| TopBar redesigned to match clinic-frontend (live clock, dark toggle, logout w/ border-l) | admin-frontend | [x] *(done 2026-04-18)* |
 
 ### Staff Management (Clinic Admin)
 
@@ -677,7 +686,8 @@ Phase 7  →  Desktop version (later)
 | Phase 5.2 — Lab | — | ✅ Done |
 | Phase 5.3 — Insurance | — | ✅ Done |
 | Phase 5.4 — Patient Portal | — | ✅ Done |
-| Phase 5.5+ — Multi-branch | 2–4 weeks | |
+| Phase 5.5 — Queue Display | — | ✅ Done |
+| Phase 5.6+ — Multi-branch | 2–4 weeks | |
 | Phase 6 — Beta & launch | 2–3 weeks | |
 | Phase 7 — Desktop | 3–4 weeks | |
 | **Total to launch (SaaS)** | **~5–6 months** | |
