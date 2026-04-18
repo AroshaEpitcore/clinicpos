@@ -85,8 +85,9 @@ export function DispenseModal({ open, onClose, rx, onConfirm, confirming }) {
               </thead>
               <tbody>
                 {(rx.items || []).map((item, i) => {
-                  const stockNum = item.stock ?? null;
-                  const lowStock = stockNum !== null && stockNum <= 5;
+                  const stockNum  = item.stock ?? null;
+                  const threshold = item.reorder_level != null ? item.reorder_level : 5;
+                  const lowStock  = stockNum !== null && stockNum <= threshold;
                   return (
                     <tr
                       key={item.id ?? i}
@@ -129,7 +130,7 @@ export function DispenseModal({ open, onClose, rx, onConfirm, confirming }) {
           </div>
 
           {/* Low stock notice */}
-          {(rx.items || []).some(it => it.stock !== undefined && it.stock !== null && it.stock <= 5) && (
+          {(rx.items || []).some(it => it.stock !== undefined && it.stock !== null && it.stock <= (it.reorder_level ?? 5)) && (
             <p className="mt-2 text-xs text-[var(--color-danger)] flex items-center gap-1">
               <AlertTriangle className="w-3.5 h-3.5" />
               One or more medicines are low in stock. Verify before dispensing.

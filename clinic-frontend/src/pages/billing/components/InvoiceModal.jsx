@@ -501,8 +501,13 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
     if (!dispenseRx) return;
     setDispensing(true);
     try {
-      await pharmacyApi.dispense(dispenseRx.id);
+      const res = await pharmacyApi.dispense(dispenseRx.id);
       toast.success(`${dispenseRx.rx_number} dispensed successfully`);
+      const warnings = res.data?.data?.low_stock_warnings || [];
+      if (warnings.length > 0) {
+        const names = warnings.map(w => `${w.name} (${w.stock_quantity} left)`).join(', ');
+        toast.warning(`Low stock after dispense: ${names}`, { duration: 6000 });
+      }
       setDispenseOpen(false);
       // Refresh prescription state so button reflects dispensed
       const r = await prescriptionsApi.getById(dispenseRx.id);

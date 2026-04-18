@@ -287,16 +287,17 @@ router.get('/dispense', async (req, res) => {
               dp.full_name AS dispensed_by_name,
               (
                 SELECT json_agg(json_build_object(
-                  'id',           pi.id,
-                  'medicine_id',  pi.medicine_id,
-                  'medicine_name',m.name,
-                  'strength',     m.strength,
-                  'unit',         m.unit,
-                  'stock',        m.stock_quantity,
-                  'dosage',       pi.dosage,
-                  'frequency',    pi.frequency,
-                  'duration',     pi.duration,
-                  'quantity_given', pi.quantity_given
+                  'id',            pi.id,
+                  'medicine_id',   pi.medicine_id,
+                  'medicine_name', m.name,
+                  'strength',      m.strength,
+                  'unit',          m.unit,
+                  'stock',         m.stock_quantity,
+                  'reorder_level', m.reorder_level,
+                  'dosage',        pi.dosage,
+                  'frequency',     pi.frequency,
+                  'duration',      pi.duration,
+                  'quantity_given',pi.quantity_given
                 ))
                 FROM prescription_items pi
                 JOIN medicines m ON pi.medicine_id = m.id
@@ -364,7 +365,22 @@ router.post('/dispense/:prescriptionId', requireRole('admin', 'receptionist'), a
     );
 
     await client.query('COMMIT');
-    res.json({ status: 'success', message: 'Prescription dispensed — stock updated' });
+
+    // After commit, check which medicines in this Rx are now at or below reorder level
+    const warningsRes = await client.query(
+      `SELECT m.name, m.stock_quantity, m.reorder_level
+       FROM medicines m
+       JOIN prescription_items pi ON pi.medicine_id = m.id
+       WHERE pi.prescription_id = $1
+         AND m.stock_quantity <= m.reorder_level`,
+      [req.params.prescriptionId]
+    );
+
+    res.json({
+      status: 'success',
+      message: 'Prescription dispensed — stock updated',
+      data: { low_stock_warnings: warningsRes.rows },
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.message === 'RX_NOT_FOUND') return res.status(404).json({ status: 'error', message: 'Prescription not found' });

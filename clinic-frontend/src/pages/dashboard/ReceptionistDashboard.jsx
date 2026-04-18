@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Clock, DollarSign, AlertCircle } from 'lucide-react';
+import { Users, Clock, DollarSign, AlertCircle, AlertTriangle } from 'lucide-react';
 import { PageLayout }       from '../../components/layout/PageLayout';
 import { PageHeader }       from '../../components/ui/PageHeader';
 import { Button }           from '../../components/ui/Button';
@@ -8,6 +8,7 @@ import { Card }             from '../../components/ui/Card';
 import { LoadingState }     from '../../components/ui/Spinner';
 import { appointmentsApi }  from '../../api/appointments';
 import { endOfDayApi }      from '../../api/invoices';
+import { medicinesApi }     from '../../api/medicines';
 import { formatCurrency, toInputDate } from '../../utils/format';
 
 const STATUS_STYLES = {
@@ -21,19 +22,22 @@ export default function ReceptionistDashboard() {
   const navigate = useNavigate();
   const today    = toInputDate(new Date());
 
-  const [appointments, setAppointments] = useState([]);
-  const [summary,      setSummary]      = useState(null);
-  const [loading,      setLoading]      = useState(true);
+  const [appointments,  setAppointments]  = useState([]);
+  const [summary,       setSummary]       = useState(null);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [loading,       setLoading]       = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [apptRes, sumRes] = await Promise.all([
+      const [apptRes, sumRes, lsRes] = await Promise.all([
         appointmentsApi.list({ date: today }),
         endOfDayApi.getSummary(today).catch(() => ({ data: null })),
+        medicinesApi.lowStock().catch(() => ({ data: { data: [] } })),
       ]);
       setAppointments(apptRes.data.data || []);
       setSummary(sumRes.data?.data || null);
+      setLowStockCount((lsRes.data.data || []).length);
     } catch {
       setAppointments([]);
     } finally {
@@ -63,11 +67,21 @@ export default function ReceptionistDashboard() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-5 gap-4 mb-6">
         <StatCard icon={Users}       iconColor="text-blue-600"   iconBg="bg-blue-50"   label="Total Appointments" value={total} sub={`${arrived} arrived`} />
         <StatCard icon={Clock}       iconColor="text-amber-600"  iconBg="bg-amber-50"  label="Waiting"           value={waiting} />
         <StatCard icon={DollarSign}  iconColor="text-green-600"  iconBg="bg-green-50"  label="Collected Today"   value={formatCurrency(collected)} />
         <StatCard icon={AlertCircle} iconColor="text-red-500"    iconBg="bg-red-50"    label="Outstanding"       value={formatCurrency(outstanding)} />
+        <StatCard
+          icon={AlertTriangle}
+          iconColor={lowStockCount > 0 ? 'text-red-600' : 'text-gray-400'}
+          iconBg={lowStockCount > 0 ? 'bg-red-50' : 'bg-gray-50'}
+          label="Low Stock"
+          value={lowStockCount}
+          sub={lowStockCount > 0 ? 'medicines need reorder' : 'stock levels OK'}
+          onClick={() => navigate('/medicines')}
+          alert={lowStockCount > 0}
+        />
       </div>
 
       <Card title="Live Queue — All Doctors">
@@ -123,9 +137,15 @@ export default function ReceptionistDashboard() {
   );
 }
 
-function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
+function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, onClick, alert }) {
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
+    <Wrapper
+      onClick={onClick}
+      className={`bg-[var(--color-surface)] rounded-[var(--radius-lg)] border p-4 text-left w-full transition-colors ${
+        alert ? 'border-red-300' : 'border-[var(--color-border)]'
+      } ${onClick ? 'hover:bg-[var(--color-bg)] cursor-pointer' : ''}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs text-[var(--color-text-secondary)] font-medium">{label}</p>
         <div className={`w-8 h-8 rounded-[var(--radius)] ${iconBg} flex items-center justify-center`}>
@@ -133,7 +153,7 @@ function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
         </div>
       </div>
       <p className="text-xl font-bold text-[var(--color-text)]">{value}</p>
-      {sub && <p className="text-xs text-[var(--color-text-secondary)] mt-1">{sub}</p>}
-    </div>
+      {sub && <p className={`text-xs mt-1 ${alert ? 'text-red-500 font-medium' : 'text-[var(--color-text-secondary)]'}`}>{sub}</p>}
+    </Wrapper>
   );
 }

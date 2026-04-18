@@ -106,12 +106,17 @@ export default function PrescriptionsPage() {
     if (!selectedRx) return;
     setDispensing(true);
     try {
-      await pharmacyApi.dispense(selectedRx.id);
+      const res = await pharmacyApi.dispense(selectedRx.id);
       toast.success(`${selectedRx.rx_number} dispensed successfully`);
+      const warnings = res.data?.data?.low_stock_warnings || [];
+      if (warnings.length > 0) {
+        const names = warnings.map(w => `${w.name} (${w.stock_quantity} left)`).join(', ');
+        toast.warning(`Low stock after dispense: ${names}`, { duration: 6000 });
+      }
       setDispenseOpen(false);
       // Refresh the prescription detail so is_dispensed reflects the change
-      const res = await prescriptionsApi.getById(selectedRx.id);
-      setSelectedRx(res.data.data);
+      const rxRes = await prescriptionsApi.getById(selectedRx.id);
+      setSelectedRx(rxRes.data.data);
       load(date);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong.');

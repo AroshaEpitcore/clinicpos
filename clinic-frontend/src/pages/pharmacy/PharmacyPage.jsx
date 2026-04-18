@@ -113,8 +113,13 @@ function DispenseTab() {
   async function handleDispense(rx) {
     setDispensing(rx.id);
     try {
-      await pharmacyApi.dispense(rx.id);
+      const res = await pharmacyApi.dispense(rx.id);
       toast.success(`${rx.rx_number} dispensed successfully`);
+      const warnings = res.data?.data?.low_stock_warnings || [];
+      if (warnings.length > 0) {
+        const names = warnings.map(w => `${w.name} (${w.stock_quantity} left)`).join(', ');
+        toast.warning(`Low stock after dispense: ${names}`, { duration: 6000 });
+      }
       setDispenseTarget(null);
       load(date);
     } catch (err) {

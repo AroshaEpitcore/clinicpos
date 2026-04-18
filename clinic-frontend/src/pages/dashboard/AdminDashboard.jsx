@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, FileText, CheckCircle } from 'lucide-react';
+import { TrendingUp, Users, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { Card }         from '../../components/ui/Card';
 import { LoadingState } from '../../components/ui/Spinner';
 import { reportsApi }   from '../../api/reports';
+import { medicinesApi } from '../../api/medicines';
 import { formatCurrency, toInputDate } from '../../utils/format';
 
 export default function AdminDashboard() {
@@ -14,10 +15,11 @@ export default function AdminDashboard() {
   const today     = toInputDate(new Date());
   const now       = new Date();
 
-  const [daily,   setDaily]   = useState(null);
-  const [monthly, setMonthly] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [daily,         setDaily]         = useState(null);
+  const [monthly,       setMonthly]       = useState([]);
+  const [doctors,       setDoctors]       = useState([]);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [loading,       setLoading]       = useState(true);
 
   useEffect(() => {
     const year  = now.getFullYear();
@@ -27,10 +29,12 @@ export default function AdminDashboard() {
       reportsApi.daily(today),
       reportsApi.monthly(year, month),
       reportsApi.doctors(today, today),
-    ]).then(([d, m, doc]) => {
+      medicinesApi.lowStock().catch(() => ({ data: { data: [] } })),
+    ]).then(([d, m, doc, ls]) => {
       setDaily(d.data.data);
       setMonthly(m.data.data?.daily || []);
       setDoctors(doc.data.data || []);
+      setLowStockCount((ls.data.data || []).length);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -62,7 +66,7 @@ export default function AdminDashboard() {
       {loading ? <LoadingState message="Loading dashboard..." /> : (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-5 gap-4 mb-6">
             <StatCard
               icon={TrendingUp} iconColor="text-blue-600" iconBg="bg-blue-50"
               label="Total Billed" value={formatCurrency(rev.total_billed)} sub="Today"
@@ -79,6 +83,16 @@ export default function AdminDashboard() {
               icon={FileText} iconColor="text-amber-600" iconBg="bg-amber-50"
               label="EOD Status" value={eodLabel}
               sub={parseFloat(rev.outstanding || 0) > 0 ? `${formatCurrency(rev.outstanding)} outstanding` : 'All settled'}
+            />
+            <StatCard
+              icon={AlertTriangle}
+              iconColor={lowStockCount > 0 ? 'text-red-600' : 'text-gray-400'}
+              iconBg={lowStockCount > 0 ? 'bg-red-50' : 'bg-gray-50'}
+              label="Low Stock"
+              value={lowStockCount}
+              sub={lowStockCount > 0 ? 'medicines need reorder' : 'stock levels OK'}
+              onClick={() => navigate('/medicines')}
+              alert={lowStockCount > 0}
             />
           </div>
 
@@ -152,9 +166,15 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
+function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, onClick, alert }) {
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
+    <Wrapper
+      onClick={onClick}
+      className={`bg-[var(--color-surface)] rounded-[var(--radius-lg)] border p-4 text-left w-full transition-colors ${
+        alert ? 'border-red-300' : 'border-[var(--color-border)]'
+      } ${onClick ? 'hover:bg-[var(--color-bg)] cursor-pointer' : ''}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs text-[var(--color-text-secondary)] font-medium">{label}</p>
         <div className={`w-8 h-8 rounded-[var(--radius)] ${iconBg} flex items-center justify-center`}>
@@ -162,7 +182,7 @@ function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
         </div>
       </div>
       <p className="text-2xl font-bold text-[var(--color-text)]">{value}</p>
-      {sub && <p className="text-xs text-[var(--color-text-secondary)] mt-1">{sub}</p>}
-    </div>
+      {sub && <p className={`text-xs mt-1 ${alert ? 'text-red-500 font-medium' : 'text-[var(--color-text-secondary)]'}`}>{sub}</p>}
+    </Wrapper>
   );
 }
