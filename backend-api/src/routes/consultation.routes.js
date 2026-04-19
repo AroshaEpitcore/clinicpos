@@ -115,11 +115,13 @@ router.get('/', async (req, res) => {
          c.id, c.visit_date, c.chief_complaint, c.diagnosis, c.icd_code,
          c.follow_up_date, c.created_at,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
-         p.patient_code, p.id AS patient_id, p.allergies,
-         s.full_name AS doctor_name, s.id AS doctor_id
+         p.patient_code, p.id AS patient_id, p.allergies, p.phone,
+         s.full_name AS doctor_name, s.id AS doctor_id,
+         a.token_number
        FROM consultations c
-       JOIN patients p ON p.id = c.patient_id
-       JOIN staff    s ON s.id = c.doctor_id
+       JOIN patients p  ON p.id = c.patient_id
+       JOIN staff    s  ON s.id = c.doctor_id
+       LEFT JOIN appointments a ON a.id = c.appointment_id
        ${where}
        ORDER BY c.visit_date DESC
        LIMIT $${params.length}`,
@@ -177,7 +179,23 @@ router.get('/:id', async (req, res) => {
     if (!result.rows.length) {
       return res.status(404).json({ status: 'error', message: 'Consultation not found' });
     }
-    res.json({ status: 'success', data: result.rows[0] });
+
+    const labResult = await queryTenant(
+      req.tenantSchema,
+      `SELECT lr.id, lr.status, lr.notes,
+              t.name AS test_name, t.code AS test_code, t.category, t.normal_range, t.unit,
+              res.result_value, res.result_file_url, res.notes AS result_notes, res.resulted_at,
+              resby.full_name AS resulted_by_name
+       FROM lab_requests lr
+       JOIN lab_tests t ON t.id = lr.test_id
+       LEFT JOIN lab_results res  ON res.request_id = lr.id
+       LEFT JOIN staff resby      ON resby.id = res.resulted_by
+       WHERE lr.consultation_id = $1
+       ORDER BY lr.created_at ASC`,
+      [req.params.id]
+    );
+
+    res.json({ status: 'success', data: { ...result.rows[0], lab_requests: labResult.rows } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });

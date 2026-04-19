@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle, Search, Calendar, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, Pill, Download, X, AlertTriangle, Search, Calendar, Check, FlaskConical, CheckCircle2, Clock } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Modal }        from '../../components/ui/Modal';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -13,7 +13,7 @@ import { pharmacyApi }        from '../../api/pharmacy';
 import { settingsApi }        from '../../api/settings';
 import { printPrescription }  from '../../utils/printPrescription';
 import { DispenseModal }      from '../../components/ui/DispenseModal';
-import { formatDate, toInputDate } from '../../utils/format';
+import { formatDate, formatPhone, toInputDate } from '../../utils/format';
 import { toast } from 'sonner';
 
 function stepDate(dateStr, days) {
@@ -271,32 +271,54 @@ export default function PrescriptionsPage() {
             <div
               key={rx.id}
               onClick={() => openRx(rx.id)}
-              className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors"
+              className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden cursor-pointer hover:border-[var(--color-primary)] transition-colors"
             >
-              {/* Rx number badge */}
-              <div className="w-20 text-center shrink-0">
-                <p className="text-xs font-bold text-[var(--color-primary)]">{rx.rx_number}</p>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                  {rx.item_count} med{rx.item_count !== 1 ? 's' : ''}
-                </p>
+              <div className="flex items-stretch">
+
+                {/* ── Token column ── */}
+                <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${
+                  rx.token_number
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'
+                }`}>
+                  {rx.token_number ? (
+                    <>
+                      <span className="text-[10px] font-semibold tracking-widest uppercase opacity-80 mb-0.5">Token</span>
+                      <span className="text-5xl font-black leading-none tabular-nums">
+                        {String(rx.token_number).padStart(2, '0')}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-bold opacity-30 uppercase tracking-widest">Rx</span>
+                      <span className="text-[10px] tracking-wide opacity-40 mt-0.5">No token</span>
+                    </>
+                  )}
+                </div>
+
+                {/* ── Main info ── */}
+                <div className="flex-1 min-w-0 px-4 py-3 bg-[var(--color-surface)]">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-base font-bold text-[var(--color-text)]">{rx.patient_name}</span>
+                    <span className="text-xs text-[var(--color-text-secondary)]">{rx.patient_code}</span>
+                    {rx.phone && <span className="text-xs text-[var(--color-text-secondary)]">{formatPhone(rx.phone)}</span>}
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--color-text-secondary)]">
+                    <span>{rx.doctor_name}</span>
+                    <span className="font-medium text-[var(--color-primary)]">{rx.rx_number}</span>
+                    <span>{rx.item_count} med{rx.item_count !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                {/* ── Time + arrow ── */}
+                <div className="flex items-center gap-2 px-4 py-3 bg-[var(--color-surface)] shrink-0 border-l border-[var(--color-border)]">
+                  <span className="text-xs text-[var(--color-text-secondary)]">
+                    {new Date(rx.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                </div>
+
               </div>
-
-              {/* Patient + Doctor */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--color-text)]">
-                  {rx.patient_name}
-                  <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{rx.patient_code}</span>
-                </p>
-                <p className="text-xs text-[var(--color-text-secondary)]">{rx.doctor_name}</p>
-              </div>
-
-              {/* Time */}
-              <p className="text-xs text-[var(--color-text-secondary)] shrink-0">
-                {new Date(rx.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-
-              {/* Arrow hint */}
-              <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)] shrink-0" />
             </div>
           ))}
         </div>
@@ -444,6 +466,54 @@ export default function PrescriptionsPage() {
                 <p className="text-sm text-[var(--color-text)] bg-[var(--color-bg)] rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-2">
                   {selectedRx.notes}
                 </p>
+              </div>
+            )}
+
+            {/* Lab Requests */}
+            {selectedRx.lab_requests?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)] mb-2">
+                  Lab Tests ({selectedRx.lab_requests.length})
+                </p>
+                <div className="flex flex-col gap-2">
+                  {selectedRx.lab_requests.map(lr => (
+                    <div key={lr.id} className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
+                      <div className="flex items-center gap-3 px-3 py-2.5 bg-[var(--color-bg)]">
+                        <FlaskConical className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[var(--color-text)]">
+                            {lr.test_name}
+                            {lr.test_code && <span className="ml-1.5 text-xs font-normal text-[var(--color-text-secondary)]">{lr.test_code}</span>}
+                          </p>
+                          {lr.category && <p className="text-xs text-[var(--color-text-secondary)]">{lr.category}</p>}
+                        </div>
+                        {lr.status === 'completed' ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-success)]">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Done
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-warning)]">
+                            <Clock className="w-3.5 h-3.5" /> Pending
+                          </span>
+                        )}
+                      </div>
+                      {lr.status === 'completed' && (lr.result_value || lr.result_notes) && (
+                        <div className="px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+                          {lr.result_value && (
+                            <p className="text-sm font-bold text-[var(--color-text)]">
+                              {lr.result_value}
+                              {lr.unit && <span className="ml-1 text-xs font-normal text-[var(--color-text-secondary)]">{lr.unit}</span>}
+                              {lr.normal_range && (
+                                <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">Ref: {lr.normal_range}</span>
+                              )}
+                            </p>
+                          )}
+                          {lr.result_notes && <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{lr.result_notes}</p>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Receipt, Clock, Calendar, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Receipt, Calendar, Search, X } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -10,7 +10,7 @@ import { Badge }        from '../../components/ui/Badge';
 import { EmptyState }   from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/Spinner';
 import { invoicesApi }  from '../../api/invoices';
-import { formatDate, formatCurrency, toInputDate } from '../../utils/format';
+import { formatDate, formatCurrency, formatPhone, toInputDate } from '../../utils/format';
 import { useAuth }      from '../../store/AuthContext';
 import { InvoiceModal } from './components/InvoiceModal';
 
@@ -180,6 +180,7 @@ export default function BillingPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+                <th className="text-center px-3 py-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Token</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Invoice</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Patient</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Total</th>
@@ -193,20 +194,33 @@ export default function BillingPage() {
               {filtered.map(inv => (
                 <tr key={inv.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg)] transition-colors">
+                  {/* Token */}
+                  <td className="px-3 py-3 text-center">
+                    {inv.token_number ? (
+                      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--color-primary)] text-white text-sm font-bold">
+                        {inv.token_number}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[var(--color-text-secondary)]">—</span>
+                    )}
+                  </td>
+                  {/* Invoice */}
                   <td className="px-4 py-3">
                     <p className="text-sm font-semibold text-[var(--color-primary)]">{inv.invoice_number}</p>
                     <p className="text-xs text-[var(--color-text-secondary)]">
                       {new Date(inv.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </td>
+                  {/* Patient */}
                   <td className="px-4 py-3">
                     <p
-                      className="text-sm font-medium text-[var(--color-text)] hover:text-[var(--color-primary)] cursor-pointer transition-colors"
+                      className="text-sm font-semibold text-[var(--color-text)] hover:text-[var(--color-primary)] cursor-pointer transition-colors"
                       onClick={() => navigate(`/patients/${inv.patient_id}`)}
                     >
                       {inv.first_name} {inv.last_name}
                     </p>
                     <p className="text-xs text-[var(--color-text-secondary)]">{inv.patient_code}</p>
+                    {inv.phone && <p className="text-xs text-[var(--color-text-secondary)]">{formatPhone(inv.phone)}</p>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-sm font-semibold text-[var(--color-text)]">

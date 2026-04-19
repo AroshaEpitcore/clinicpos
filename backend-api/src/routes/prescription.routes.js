@@ -171,15 +171,18 @@ router.get('/', async (req, res) => {
       `SELECT
          pr.id, pr.rx_number, pr.created_at,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
-         p.patient_code, p.id AS patient_id,
+         p.patient_code, p.id AS patient_id, p.phone,
          s.full_name AS doctor_name,
-         COUNT(pi.id) AS item_count
+         COUNT(pi.id) AS item_count,
+         a.token_number
        FROM prescriptions pr
        JOIN patients p  ON p.id  = pr.patient_id
        JOIN staff    s  ON s.id  = pr.doctor_id
-       LEFT JOIN prescription_items pi ON pi.prescription_id = pr.id
+       LEFT JOIN prescription_items pi   ON pi.prescription_id = pr.id
+       LEFT JOIN consultations       con ON con.id = pr.consultation_id
+       LEFT JOIN appointments        a   ON a.id   = con.appointment_id
        ${where}
-       GROUP BY pr.id, p.first_name, p.last_name, p.patient_code, p.id, s.full_name
+       GROUP BY pr.id, p.first_name, p.last_name, p.patient_code, p.id, p.phone, s.full_name, a.token_number
        ORDER BY pr.created_at DESC
        LIMIT $${params.length}`,
       params
@@ -199,7 +202,7 @@ router.get('/:id', async (req, res) => {
       req.tenantSchema,
       `SELECT
          pr.id, pr.rx_number, pr.created_at, pr.notes,
-         pr.is_dispensed, pr.dispensed_at,
+         pr.is_dispensed, pr.dispensed_at, pr.consultation_id,
          ds.full_name AS dispensed_by_name,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.patient_code, p.date_of_birth, p.gender, p.phone, p.allergies,
@@ -231,9 +234,29 @@ router.get('/:id', async (req, res) => {
       [req.params.id]
     );
 
+    // Fetch lab requests linked to the same consultation (if any)
+    let labRequests = [];
+    if (prescRes.rows[0].consultation_id) {
+      const labRes = await queryTenant(
+        req.tenantSchema,
+        `SELECT lr.id, lr.status, lr.notes,
+                t.name AS test_name, t.code AS test_code, t.category, t.normal_range, t.unit,
+                res.result_value, res.result_file_url, res.notes AS result_notes, res.resulted_at,
+                resby.full_name AS resulted_by_name
+         FROM lab_requests lr
+         JOIN lab_tests t ON t.id = lr.test_id
+         LEFT JOIN lab_results res  ON res.request_id = lr.id
+         LEFT JOIN staff resby      ON resby.id = res.resulted_by
+         WHERE lr.consultation_id = $1
+         ORDER BY lr.created_at ASC`,
+        [prescRes.rows[0].consultation_id]
+      );
+      labRequests = labRes.rows;
+    }
+
     res.json({
       status: 'success',
-      data: { ...prescRes.rows[0], items: itemsRes.rows },
+      data: { ...prescRes.rows[0], items: itemsRes.rows, lab_requests: labRequests },
     });
   } catch (err) {
     console.error(err);

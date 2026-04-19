@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, AlertTriangle, Stethoscope, Activity, Thermometer, Weight, Search, X, CalendarClock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Stethoscope, Activity, Thermometer, Weight, Search, X, CalendarClock, FlaskConical, CheckCircle2, Clock } from 'lucide-react';
 import { DatePicker }  from '../../components/ui/DatePicker';
 import { Modal }       from '../../components/ui/Modal';
 import { PageLayout }  from '../../components/layout/PageLayout';
@@ -10,7 +10,7 @@ import { Button }      from '../../components/ui/Button';
 import { EmptyState }  from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/Spinner';
 import { consultationsApi } from '../../api/consultations';
-import { formatDate, toInputDate } from '../../utils/format';
+import { formatDate, formatPhone, toInputDate } from '../../utils/format';
 import { toast } from 'sonner';
 
 function stepDate(dateStr, days) {
@@ -262,41 +262,65 @@ export default function ConsultationsPage() {
             <div
               key={c.id}
               onClick={() => openConsultation(c.id)}
-              className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-start justify-between hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors cursor-pointer"
+              className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden cursor-pointer hover:border-[var(--color-primary)] transition-colors"
             >
-              <div className="flex items-start gap-4 flex-1 min-w-0">
-                {/* Avatar */}
-                <div className="w-9 h-9 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-[var(--color-primary)] text-sm font-semibold shrink-0">
-                  {c.patient_name?.charAt(0) || '?'}
+              <div className="flex items-stretch">
+
+                {/* ── Token column ── */}
+                <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${
+                  c.token_number
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'
+                }`}>
+                  {c.token_number ? (
+                    <>
+                      <span className="text-[10px] font-semibold tracking-widest uppercase opacity-80 mb-0.5">Token</span>
+                      <span className="text-5xl font-black leading-none tabular-nums">
+                        {String(c.token_number).padStart(2, '0')}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl font-bold opacity-30">{c.patient_name?.charAt(0) || '?'}</span>
+                      <span className="text-[10px] tracking-wide opacity-40 mt-0.5">No token</span>
+                    </>
+                  )}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-[var(--color-text)]">{c.patient_name}</span>
+                {/* ── Main info ── */}
+                <div className="flex-1 min-w-0 px-4 py-3 bg-[var(--color-surface)]">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-base font-bold text-[var(--color-text)]">{c.patient_name}</span>
                     <span className="text-xs text-[var(--color-text-secondary)]">{c.patient_code}</span>
+                    {c.phone && <span className="text-xs text-[var(--color-text-secondary)]">{formatPhone(c.phone)}</span>}
                     {c.allergies && (
                       <span className="flex items-center gap-1 text-xs text-[var(--color-warning)] font-medium">
                         <AlertTriangle className="w-3 h-3" /> Allergies
                       </span>
                     )}
                   </div>
-                  {c.chief_complaint && (
-                    <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 truncate">{c.chief_complaint}</p>
-                  )}
-                  {c.diagnosis && (
-                    <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                      <span className="font-medium text-[var(--color-text)]">Dx:</span> {c.diagnosis}
-                      {c.icd_code && <span className="ml-1 text-[var(--color-text-secondary)]">({c.icd_code})</span>}
-                    </p>
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--color-text-secondary)]">
+                    <span>{c.doctor_name}</span>
+                    {c.chief_complaint && <span className="truncate max-w-[200px] italic">{c.chief_complaint}</span>}
+                    {c.diagnosis && (
+                      <span>
+                        <span className="font-medium text-[var(--color-text)]">Dx:</span> {c.diagnosis}
+                        {c.icd_code && <span className="ml-1">({c.icd_code})</span>}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Right side ── */}
+                <div className="flex flex-col items-end justify-center gap-1.5 px-4 py-3 bg-[var(--color-surface)] shrink-0 border-l border-[var(--color-border)]">
+                  <span className="text-xs text-[var(--color-text-secondary)]">
+                    {new Date(c.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {c.follow_up_date && (
+                    <Badge variant="info" label={`Follow-up: ${formatDate(c.follow_up_date)}`} />
                   )}
                 </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-2 ml-4 shrink-0">
-                <span className="text-xs text-[var(--color-text-secondary)]">{c.doctor_name}</span>
-                {c.follow_up_date && (
-                  <Badge variant="info" label={`Follow-up: ${formatDate(c.follow_up_date)}`} />
-                )}
               </div>
             </div>
           ))}
@@ -404,6 +428,54 @@ export default function ConsultationsPage() {
                 <span className="text-sm font-semibold text-[var(--color-primary)]">
                   {formatDate(selectedC.follow_up_date)}
                 </span>
+              </div>
+            )}
+
+            {/* Lab Requests */}
+            {selectedC.lab_requests?.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] mb-2">
+                  Lab Tests ({selectedC.lab_requests.length})
+                </p>
+                <div className="flex flex-col gap-2">
+                  {selectedC.lab_requests.map(lr => (
+                    <div key={lr.id} className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
+                      <div className="flex items-center gap-3 px-3 py-2.5 bg-[var(--color-bg)]">
+                        <FlaskConical className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[var(--color-text)]">
+                            {lr.test_name}
+                            {lr.test_code && <span className="ml-1.5 text-xs font-normal text-[var(--color-text-secondary)]">{lr.test_code}</span>}
+                          </p>
+                          {lr.category && <p className="text-xs text-[var(--color-text-secondary)]">{lr.category}</p>}
+                        </div>
+                        {lr.status === 'completed' ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-success)]">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Done
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-warning)]">
+                            <Clock className="w-3.5 h-3.5" /> Pending
+                          </span>
+                        )}
+                      </div>
+                      {lr.status === 'completed' && (lr.result_value || lr.result_notes) && (
+                        <div className="px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+                          {lr.result_value && (
+                            <p className="text-sm font-bold text-[var(--color-text)]">
+                              {lr.result_value}
+                              {lr.unit && <span className="ml-1 text-xs font-normal text-[var(--color-text-secondary)]">{lr.unit}</span>}
+                              {lr.normal_range && (
+                                <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">Ref: {lr.normal_range}</span>
+                              )}
+                            </p>
+                          )}
+                          {lr.result_notes && <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{lr.result_notes}</p>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

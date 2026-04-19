@@ -19,7 +19,7 @@ import { appointmentsApi, doctorsApi } from '../../api/appointments';
 import { invoicesApi }         from '../../api/invoices';
 import { settingsApi }         from '../../api/settings';
 import { useAuth }       from '../../store/AuthContext';
-import { formatDate }    from '../../utils/format';
+import { formatDate, formatPhone } from '../../utils/format';
 import { printTokenSlip } from '../../utils/printTokenSlip';
 import { mediaUrl } from '../../utils/mediaUrl';
 
@@ -559,6 +559,9 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
               {appt.patient_name}
             </span>
             <span className="text-xs text-[var(--color-text-secondary)]">{appt.patient_code}</span>
+            {appt.patient_phone && (
+              <span className="text-xs text-[var(--color-text-secondary)]">{formatPhone(appt.patient_phone)}</span>
+            )}
             {appt.patient_allergies && (
               <span title={`Allergies: ${appt.patient_allergies}`}>
                 <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-warning)]" />

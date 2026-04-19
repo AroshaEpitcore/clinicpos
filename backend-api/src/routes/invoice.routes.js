@@ -7,13 +7,70 @@ const { generateInvoicePDF }          = require('../utils/pdfGenerator');
 router.use(tenantMiddleware, authMiddleware);
 
 // ── POST /api/v1/invoices ──────────────────────────────────────────────────────
-// Create invoice from a consultation. Auto-pulls doctor fee + prescribed medicines.
+// Path A: consultation_id — auto-pulls doctor fee + medicines + lab tests
+// Path B: patient_id + lab_request_ids — standalone lab-only invoice (no consultation)
 router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
-  const { consultation_id, notes } = req.body;
+  const { consultation_id, patient_id, lab_request_ids, notes } = req.body;
   const tenantId = req.tenantSchema;
 
+  if (!consultation_id && !(patient_id && Array.isArray(lab_request_ids) && lab_request_ids.length)) {
+    return res.status(400).json({ status: 'error', message: 'consultation_id or patient_id + lab_request_ids required' });
+  }
+
+  // ── Path B: standalone lab invoice ──────────────────────────────────────────
   if (!consultation_id) {
-    return res.status(400).json({ status: 'error', message: 'consultation_id is required' });
+    try {
+      const pRes = await queryTenant(tenantId,
+        `SELECT id, first_name, last_name FROM patients WHERE id = $1`, [patient_id]);
+      if (!pRes.rows.length) return res.status(404).json({ status: 'error', message: 'Patient not found' });
+
+      const items = [];
+      for (const reqId of lab_request_ids) {
+        const lrRes = await queryTenant(tenantId, `
+          SELECT lt.name, lt.code, lt.price
+          FROM lab_requests lr
+          JOIN lab_tests lt ON lt.id = lr.test_id
+          WHERE lr.id = $1 AND lr.patient_id = $2
+        `, [reqId, patient_id]);
+        if (lrRes.rows.length) {
+          const row = lrRes.rows[0];
+          const unit_price = parseFloat(row.price) || 0;
+          items.push({
+            description: row.name + (row.code ? ` (${row.code})` : ''),
+            item_type:   'lab',
+            quantity:    1,
+            unit_price,
+            total_price: unit_price,
+          });
+        }
+      }
+
+      if (!items.length) return res.status(400).json({ status: 'error', message: 'No valid lab requests found' });
+
+      const subtotal = items.reduce((s, i) => s + i.total_price, 0);
+      const countRes = await queryTenant(tenantId, `SELECT COUNT(*) FROM invoices`);
+      const seq = parseInt(countRes.rows[0].count) + 1;
+      const invoice_number = `INV-${String(seq).padStart(5, '0')}`;
+
+      const invRes = await queryTenant(tenantId, `
+        INSERT INTO invoices (invoice_number, consultation_id, patient_id, generated_by,
+          subtotal, total_amount, balance_due, payment_status, notes)
+        VALUES ($1, NULL, $2, $3, $4, $5, $6, 'unpaid', $7) RETURNING *
+      `, [invoice_number, patient_id, req.user.id, subtotal, subtotal, subtotal, notes || null]);
+      const invoice = invRes.rows[0];
+
+      for (const item of items) {
+        await queryTenant(tenantId, `
+          INSERT INTO invoice_items (invoice_id, description, item_type, quantity, unit_price, total_price)
+          VALUES ($1,$2,$3,$4,$5,$6)
+        `, [invoice.id, item.description, item.item_type, item.quantity, item.unit_price, item.total_price]);
+      }
+
+      return res.status(201).json({ status: 'success', message: 'Invoice created', data: { id: invoice.id, invoice_number } });
+    } catch (err) {
+      console.error('POST /invoices (lab-only)', err);
+      return res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+    }
   }
 
   try {
@@ -80,6 +137,25 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
         quantity:    qty,
         unit_price,
         total_price: qty * unit_price,
+      });
+    }
+
+    // 3. Lab tests (requests linked to this consultation)
+    const labRes = await queryTenant(tenantId, `
+      SELECT lt.name, lt.code, lt.price
+      FROM lab_requests lr
+      JOIN lab_tests lt ON lt.id = lr.test_id
+      WHERE lr.consultation_id = $1
+      ORDER BY lt.name ASC
+    `, [consultation_id]);
+    for (const row of labRes.rows) {
+      const unit_price = parseFloat(row.price) || 0;
+      items.push({
+        description: row.name + (row.code ? ` (${row.code})` : ''),
+        item_type:   'lab',
+        quantity:    1,
+        unit_price,
+        total_price: unit_price,
       });
     }
 
@@ -193,13 +269,15 @@ router.get('/', requireRole('admin', 'receptionist', 'doctor'), async (req, res)
       SELECT i.id, i.invoice_number, i.payment_status,
              i.total_amount, i.paid_amount, i.balance_due,
              i.created_at, i.patient_id,
-             p.first_name, p.last_name, p.patient_code,
+             p.first_name, p.last_name, p.patient_code, p.phone,
              s.full_name AS doctor_name,
-             c.id AS consultation_id
+             c.id AS consultation_id,
+             a.token_number
       FROM invoices i
       JOIN patients p      ON p.id = i.patient_id
       JOIN staff    s      ON s.id = i.generated_by
-      LEFT JOIN consultations c ON c.id = i.consultation_id
+      LEFT JOIN consultations  c ON c.id  = i.consultation_id
+      LEFT JOIN appointments   a ON a.id  = c.appointment_id
       ${where}
       ORDER BY i.created_at DESC
       LIMIT $${params.length}

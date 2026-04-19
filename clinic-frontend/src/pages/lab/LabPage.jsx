@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   FlaskConical, ChevronLeft, ChevronRight, CheckCircle2,
-  Clock, Plus, Edit2, Trash2, Upload, FileText, Eye, Search, X,
+  Clock, Plus, Edit2, Trash2, Upload, FileText, Eye, Search, X, Receipt,
 } from 'lucide-react';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -16,8 +16,10 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DatePicker }    from '../../components/ui/DatePicker';
 import { useAuth }       from '../../store/AuthContext';
 import { labApi }        from '../../api/lab';
+import { invoicesApi }   from '../../api/invoices';
+import { patientsApi }   from '../../api/patients';
 import { mediaUrl }      from '../../utils/mediaUrl';
-import { formatDate, formatDateTime, toInputDate } from '../../utils/format';
+import { formatDate, formatDateTime, toInputDate, formatCurrency, formatPhoneInput, formatPhone } from '../../utils/format';
 
 const TABS = [
   { key: 'queue',   label: 'Lab Queue',     icon: FlaskConical },
@@ -60,12 +62,16 @@ export default function LabPage() {
 // TAB 1 — LAB QUEUE
 // ══════════════════════════════════════════════════════════════════════════════
 function QueueTab() {
+  const { user } = useAuth();
+  const canRequest = ['admin', 'receptionist', 'doctor'].includes(user?.role);
+
   const today = toInputDate(new Date());
   const [date, setDate]           = useState(today);
   const [requests, setRequests]   = useState([]);
   const [loading, setLoading]     = useState(false);
-  const [resultTarget, setResultTarget] = useState(null); // request to enter result for
-  const [viewTarget, setViewTarget]     = useState(null); // request to view result for
+  const [resultTarget, setResultTarget]   = useState(null);
+  const [viewTarget, setViewTarget]       = useState(null);
+  const [newRequestOpen, setNewRequestOpen] = useState(false);
 
   const load = useCallback(async (d) => {
     setLoading(true);
@@ -109,6 +115,12 @@ function QueueTab() {
         <span className="text-xs text-[var(--color-text-secondary)] ml-2">
           {pending.length} pending · {completed.length} completed
         </span>
+        <div className="flex-1" />
+        {canRequest && (
+          <Button size="sm" onClick={() => setNewRequestOpen(true)}>
+            <Plus className="w-4 h-4" /> New Request
+          </Button>
+        )}
       </div>
 
       {loading ? <LoadingState message="Loading requests..." /> : requests.length === 0 ? (
@@ -164,6 +176,13 @@ function QueueTab() {
         <ViewResultModal
           request={viewTarget}
           onClose={() => setViewTarget(null)}
+        />
+      )}
+
+      {newRequestOpen && (
+        <NewRequestModal
+          onClose={() => setNewRequestOpen(false)}
+          onSuccess={() => { setNewRequestOpen(false); load(date); }}
         />
       )}
     </div>
@@ -375,6 +394,337 @@ function ViewResultModal({ request, onClose }) {
         <div className="text-xs text-[var(--color-text-secondary)] pt-1 border-t border-[var(--color-border)]">
           Resulted by {request.resulted_by_name} on {formatDateTime(request.resulted_at)}
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NEW REQUEST MODAL — standalone lab request (no consultation required)
+// ══════════════════════════════════════════════════════════════════════════════
+function NewRequestModal({ onClose, onSuccess }) {
+  // Patient search
+  const [patInput, setPatInput]         = useState('');
+  const [patResults, setPatResults]     = useState([]);
+  const [patSearching, setPatSearching] = useState(false);
+  const [hasSearched, setHasSearched]   = useState(false);
+  const [selectedPat, setSelectedPat]   = useState(null);
+  const patTimer = useRef(null);
+
+  // Tests
+  const [allTests, setAllTests]           = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [testSearch, setTestSearch]       = useState('');
+
+  // Notes + submission
+  const [notes, setNotes]   = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Invoice prompt after creation
+  const [createdRequestIds, setCreatedRequestIds] = useState(null);
+  const [invoicing, setInvoicing]   = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState(null);
+
+  useEffect(() => {
+    labApi.getTests({ active_only: 'true' })
+      .then(r => setAllTests(r.data.data || []))
+      .catch(() => {});
+  }, []);
+
+  // ── Patient search — debounced via useEffect, static list (no dropdown/blur issues) ──
+  useEffect(() => {
+    if (selectedPat) return;
+    // strip spaces so "077 123 4567" → "0771234567"
+    const digits = patInput.replace(/\s/g, '').trim();
+    if (digits.length < 2 && patInput.trim().length < 2) {
+      setPatResults([]);
+      setHasSearched(false);
+      return;
+    }
+    clearTimeout(patTimer.current);
+    const searchTerm = digits.length >= 2 ? digits : patInput.trim();
+    patTimer.current = setTimeout(async () => {
+      setPatSearching(true);
+      setHasSearched(false);
+      try {
+        const r = await patientsApi.list({ search: searchTerm });
+        setPatResults(r.data.data?.patients || []);
+        setHasSearched(true);
+      } catch {
+        setHasSearched(true);
+      } finally {
+        setPatSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(patTimer.current);
+  }, [patInput, selectedPat]);
+
+  function handlePatInput(raw) {
+    // Apply phone formatting when input looks like digits
+    const looksLikePhone = /^[\d\s]+$/.test(raw) && raw.replace(/\s/g, '').length > 0;
+    setPatInput(looksLikePhone ? formatPhoneInput(raw) : raw);
+    setSelectedPat(null);
+    setHasSearched(false);
+  }
+
+  function selectPatient(p) {
+    setSelectedPat(p);
+    setPatInput('');
+    setPatResults([]);
+    setHasSearched(false);
+  }
+
+  function clearPatient() {
+    setSelectedPat(null);
+    setPatInput('');
+    setPatResults([]);
+    setHasSearched(false);
+  }
+
+  // ── Test helpers ──────────────────────────────────────────────────────────
+  function toggleTest(t) {
+    setSelectedTests(prev =>
+      prev.find(s => s.id === t.id) ? prev.filter(s => s.id !== t.id) : [...prev, t]
+    );
+  }
+
+  const filteredTests = useMemo(() => {
+    const q = testSearch.trim().toLowerCase();
+    if (!q) return allTests;
+    return allTests.filter(t =>
+      (t.name || '').toLowerCase().includes(q) ||
+      (t.category || '').toLowerCase().includes(q) ||
+      (t.code || '').toLowerCase().includes(q)
+    );
+  }, [allTests, testSearch]);
+
+  const totalPrice = selectedTests.reduce((s, t) => s + parseFloat(t.price || 0), 0);
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  async function handleSave() {
+    if (!selectedPat) { toast.error('Select a patient'); return; }
+    if (!selectedTests.length) { toast.error('Select at least one test'); return; }
+    setSaving(true);
+    try {
+      const res = await labApi.createRequest({
+        patient_id: selectedPat.id,
+        test_ids:   selectedTests.map(t => t.id),
+        notes:      notes.trim() || null,
+      });
+      setCreatedRequestIds(res.data.data?.ids || []);
+      toast.success(`${selectedTests.length} lab test${selectedTests.length !== 1 ? 's' : ''} requested`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleGenerateInvoice() {
+    setInvoicing(true);
+    try {
+      const res = await invoicesApi.create({
+        patient_id:      selectedPat.id,
+        lab_request_ids: createdRequestIds,
+      });
+      setInvoiceNumber(res.data.data?.invoice_number);
+      toast.success(`Invoice ${res.data.data?.invoice_number} created`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not create invoice. Please try again.');
+    } finally {
+      setInvoicing(false);
+    }
+  }
+
+  // ── After requests created — invoice prompt ───────────────────────────────
+  if (createdRequestIds) {
+    return (
+      <Modal open onClose={onSuccess} title="Lab Requests Created" size="sm"
+        footer={<Button variant="secondary" onClick={onSuccess}>Close</Button>}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="px-3 py-2.5 rounded-[var(--radius)] bg-[var(--color-success-light)] border border-[var(--color-success)]">
+            <p className="text-sm font-semibold text-[var(--color-success)]">
+              {selectedTests.length} test{selectedTests.length !== 1 ? 's' : ''} requested for {selectedPat?.first_name} {selectedPat?.last_name}
+            </p>
+            <p className="text-xs text-[var(--color-success)] mt-0.5">
+              {selectedTests.map(t => t.name).join(', ')}
+            </p>
+          </div>
+
+          {invoiceNumber ? (
+            <div className="px-3 py-2.5 rounded-[var(--radius)] bg-[var(--color-primary-light)] border border-[var(--color-primary)]">
+              <p className="text-sm font-semibold text-[var(--color-primary)]">Invoice {invoiceNumber} created</p>
+              <p className="text-xs text-[var(--color-primary)] mt-0.5">Find it in Billing to record payment.</p>
+            </div>
+          ) : totalPrice > 0 ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-[var(--color-text)]">
+                Total charges: <strong>{formatCurrency(totalPrice)}</strong>
+              </p>
+              <Button onClick={handleGenerateInvoice} loading={invoicing}>
+                <Receipt className="w-4 h-4" /> Generate Invoice
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-text-secondary)]">All selected tests are free — no invoice needed.</p>
+          )}
+        </div>
+      </Modal>
+    );
+  }
+
+  // ── Request form ──────────────────────────────────────────────────────────
+  return (
+    <Modal open onClose={onClose} title="New Lab Request" size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} loading={saving} disabled={!selectedPat || !selectedTests.length}>
+            Request {selectedTests.length > 0 ? `${selectedTests.length} Test${selectedTests.length !== 1 ? 's' : ''}` : 'Tests'}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+
+        {/* ── Patient ─────────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-[var(--color-text)]">
+            Patient <span className="text-[var(--color-danger)]">*</span>
+          </label>
+
+          {/* Selected patient card */}
+          {selectedPat ? (
+            <div className="flex items-center justify-between p-3 rounded-[var(--radius)] border border-[var(--color-primary)] bg-[var(--color-primary-light)]">
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-text)]">
+                  {selectedPat.first_name} {selectedPat.last_name}
+                  <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">{selectedPat.patient_code}</span>
+                </p>
+                <p className="text-xs text-[var(--color-text-secondary)]">{formatPhone(selectedPat.phone)}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearPatient}>Change</Button>
+            </div>
+          ) : (
+            <>
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Search by phone (077 123 4567) or name…"
+                  value={patInput}
+                  onChange={e => handlePatInput(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+                {patInput && (
+                  <button type="button" onClick={() => { setPatInput(''); setPatResults([]); setHasSearched(false); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Searching indicator */}
+              {patSearching && (
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1">Searching...</p>
+              )}
+
+              {/* Results — static list, no dropdown/blur issues */}
+              {!patSearching && patResults.length > 0 && (
+                <div className="mt-1 border border-[var(--color-border)] rounded-[var(--radius)] overflow-hidden">
+                  {patResults.map(p => (
+                    <button key={p.id} type="button" onClick={() => selectPatient(p)}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-[var(--color-primary-light)] border-b border-[var(--color-border)] last:border-0 transition-colors">
+                      <span className="font-medium text-[var(--color-text)]">{p.first_name} {p.last_name}</span>
+                      <span className="ml-2 text-xs text-[var(--color-text-secondary)]">{p.patient_code} · {formatPhone(p.phone)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No results */}
+              {!patSearching && hasSearched && patResults.length === 0 && (
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1">No patients found.</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Tests ───────────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-[var(--color-text)]">
+            Tests <span className="text-[var(--color-danger)]">*</span>
+          </label>
+
+          {selectedTests.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedTests.map(t => (
+                <span key={t.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--color-primary-light)] text-[var(--color-primary)] border border-[var(--color-primary)]">
+                  <FlaskConical className="w-3 h-3" />
+                  {t.name}
+                  {parseFloat(t.price) > 0 && <span className="opacity-70">· {formatCurrency(t.price)}</span>}
+                  <button type="button" onClick={() => toggleTest(t)}
+                    className="ml-0.5 hover:text-[var(--color-danger)] transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+            <input type="text" placeholder="Search tests by name, code, or category…"
+              value={testSearch} onChange={e => setTestSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+          </div>
+
+          {allTests.length === 0 ? (
+            <p className="text-xs text-[var(--color-text-secondary)] py-2">
+              No tests in catalog. Add tests via the Test Catalog tab first.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pb-1">
+              {filteredTests.map(t => {
+                const isSelected = selectedTests.some(s => s.id === t.id);
+                return (
+                  <button key={t.id} type="button" onClick={() => toggleTest(t)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] text-xs font-medium border transition-colors ${
+                      isSelected
+                        ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                        : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                    }`}
+                  >
+                    <FlaskConical className="w-3 h-3" />
+                    {t.name}
+                    {t.code && <span className="opacity-70">· {t.code}</span>}
+                    {parseFloat(t.price) > 0 && <span className="opacity-70">· {formatCurrency(t.price)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedTests.length > 0 && totalPrice > 0 && (
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Total: <strong className="text-[var(--color-text)]">{formatCurrency(totalPrice)}</strong>
+            </p>
+          )}
+        </div>
+
+        {/* ── Notes ───────────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-[var(--color-text)]">
+            Notes <span className="text-[var(--color-text-secondary)] font-normal">(optional)</span>
+          </label>
+          <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="Instructions for lab staff…"
+            className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+        </div>
+
       </div>
     </Modal>
   );
