@@ -29,4 +29,5 @@ export const endOfDayApi = {
   getSummary: (date)   => api.get(`/end-of-day/summary/${date}`),
   getByDate:  (date)   => api.get(`/end-of-day/${date}`),
   close:      (data)   => api.post('/end-of-day', data),
+  autoClose:  ()       => api.post('/end-of-day/auto-close'),
 };

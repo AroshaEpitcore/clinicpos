@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Receipt, Calendar, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Receipt, Calendar, Search, X, Lock, AlertCircle } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -9,7 +9,7 @@ import { Button }       from '../../components/ui/Button';
 import { Badge }        from '../../components/ui/Badge';
 import { EmptyState }   from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/Spinner';
-import { invoicesApi }  from '../../api/invoices';
+import { invoicesApi, endOfDayApi } from '../../api/invoices';
 import { formatDate, formatCurrency, formatPhone, toInputDate } from '../../utils/format';
 import { useAuth }      from '../../store/AuthContext';
 import { InvoiceModal } from './components/InvoiceModal';
@@ -33,13 +33,24 @@ export default function BillingPage() {
   const today       = toInputDate(new Date());
   const isAdmin     = user?.role === 'admin' || user?.role === 'receptionist';
 
-  const [date,       setDate]       = useState(today);
-  const [statusTab,  setStatusTab]  = useState('all');
-  const [invoices,   setInvoices]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [search,     setSearch]     = useState('');
+  const [date,        setDate]       = useState(today);
+  const [statusTab,   setStatusTab]  = useState('all');
+  const [invoices,    setInvoices]   = useState([]);
+  const [loading,     setLoading]    = useState(true);
+  const [search,      setSearch]     = useState('');
   const [openInvoice, setOpenInvoice] = useState(null); // invoice id to view
+  const [eodStatus,   setEodStatus]  = useState(null);  // null | 'open' | 'closed' | 'auto_closed'
   const isToday = date === today;
+
+  // Auto-close past unclosed days (runs once on mount)
+  useEffect(() => {
+    if (!isAdmin) return;
+    endOfDayApi.autoClose().then(res => {
+      const count = res.data?.data?.auto_closed ?? 0;
+      if (count > 0) toast.info(`${count} previous day${count > 1 ? 's' : ''} auto-closed`);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +67,20 @@ export default function BillingPage() {
   }, [date, statusTab]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Load EOD status for the selected date (admin/receptionist only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    setEodStatus(null);
+    endOfDayApi.getSummary(date).then(res => {
+      if (res.data?.status === 'already_closed') {
+        const isAuto = res.data?.data?.notes === 'Auto-closed by system';
+        setEodStatus(isAuto ? 'auto_closed' : 'closed');
+      } else {
+        setEodStatus('open');
+      }
+    }).catch(() => {});
+  }, [date, isAdmin]);
 
   const bq = search.trim().toLowerCase();
   const filtered = useMemo(() => {
@@ -83,9 +108,26 @@ export default function BillingPage() {
         subtitle="Invoices and payments"
         actions={
           isAdmin && (
-            <Button variant="secondary" size="sm" onClick={() => navigate('/billing/end-of-day')}>
-              End of Day
-            </Button>
+            <div className="flex items-center gap-2">
+              {eodStatus === 'closed' && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success,#16a34a)] bg-[var(--color-success-light,#f0fdf4)] border border-[var(--color-success,#22c55e)] px-2.5 py-1 rounded-full">
+                  <Lock className="w-3 h-3" /> Day Closed
+                </span>
+              )}
+              {eodStatus === 'auto_closed' && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-bg)] border border-[var(--color-border)] px-2.5 py-1 rounded-full">
+                  <Lock className="w-3 h-3" /> Auto-Closed
+                </span>
+              )}
+              {eodStatus === 'open' && isToday && (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-warning,#d97706)] bg-[#fffbeb] border border-[var(--color-warning,#f59e0b)] px-2.5 py-1 rounded-full">
+                  <AlertCircle className="w-3 h-3" /> Day Open
+                </span>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => navigate('/billing/end-of-day')}>
+                End of Day
+              </Button>
+            </div>
           )
         }
       />

@@ -101,6 +101,91 @@ router.get('/:date', requireRole('receptionist', 'admin'), async (req, res) => {
   }
 });
 
+// ── POST /api/v1/end-of-day/auto-close ───────────────────────────────────────
+// Auto-close any days before today that had invoice activity but no EOD record.
+// Called silently from the frontend on BillingPage / EndOfDayPage load.
+router.post('/auto-close', requireRole('receptionist', 'admin'), async (req, res) => {
+  const tenantId = req.tenantSchema;
+  try {
+    // Find all distinct invoice dates before today that have no EOD record
+    const pending = await queryTenant(tenantId, `
+      SELECT DISTINCT DATE(created_at) AS invoice_date
+      FROM invoices
+      WHERE DATE(created_at) < CURRENT_DATE
+        AND DATE(created_at) NOT IN (
+          SELECT closing_date FROM end_of_day
+        )
+      ORDER BY invoice_date ASC
+    `, []);
+
+    if (!pending.rows.length) {
+      return res.json({ status: 'success', data: { auto_closed: 0, dates: [] } });
+    }
+
+    const closedDates = [];
+    for (const row of pending.rows) {
+      const d = row.invoice_date instanceof Date
+        ? row.invoice_date.toISOString().split('T')[0]
+        : String(row.invoice_date).split('T')[0];
+
+      // Aggregate totals for this date
+      const totals = await queryTenant(tenantId, `
+        SELECT
+          COUNT(DISTINCT id)             AS total_invoices,
+          COUNT(DISTINCT patient_id)     AS total_patients,
+          COALESCE(SUM(total_amount), 0) AS total_billed,
+          COALESCE(SUM(paid_amount), 0)  AS total_collected,
+          COALESCE(SUM(balance_due), 0)  AS outstanding_balance
+        FROM invoices
+        WHERE DATE(created_at) = $1
+      `, [d]);
+
+      const splits = await queryTenant(tenantId, `
+        SELECT ps.payment_method, COALESCE(SUM(ps.amount), 0) AS total
+        FROM payment_splits ps
+        JOIN invoices i ON i.id = ps.invoice_id
+        WHERE DATE(i.created_at) = $1
+        GROUP BY ps.payment_method
+      `, [d]);
+
+      const methodMap = {};
+      for (const r of splits.rows) {
+        methodMap[r.payment_method.toLowerCase()] = parseFloat(r.total);
+      }
+
+      const t          = totals.rows[0];
+      const cashSystem = methodMap['cash'] || 0;
+
+      await queryTenant(tenantId, `
+        INSERT INTO end_of_day (
+          closing_date, total_billed, total_collected,
+          cash_system, cash_counted, cash_difference,
+          card_total, online_total, insurance_total,
+          total_patients, total_invoices, outstanding_balance,
+          notes, closed_by
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        ON CONFLICT (closing_date) DO NOTHING
+      `, [
+        d,
+        t.total_billed, t.total_collected,
+        cashSystem, cashSystem, 0,
+        methodMap['card']      || 0,
+        methodMap['online']    || 0,
+        methodMap['insurance'] || 0,
+        t.total_patients, t.total_invoices, t.outstanding_balance,
+        'Auto-closed by system', req.user.id,
+      ]);
+
+      closedDates.push(d);
+    }
+
+    res.json({ status: 'success', data: { auto_closed: closedDates.length, dates: closedDates } });
+  } catch (err) {
+    console.error('POST /end-of-day/auto-close', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 // ── POST /api/v1/end-of-day ───────────────────────────────────────────────────
 // Submit and lock end-of-day closing
 router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {

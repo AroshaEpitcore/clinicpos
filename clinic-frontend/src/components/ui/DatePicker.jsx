@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { DayPicker } from 'react-day-picker';
 import { format, parse, isValid } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 
 function parseStr(str) {
@@ -20,6 +20,32 @@ const DAY_CLASSES = clsx(
   'text-[var(--color-text)] hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)]',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]'
 );
+
+// Custom dropdown for month/year — wraps native <select> with a styled chevron
+function CapDropdown({ value, onChange, children }) {
+  return (
+    <div className="relative inline-flex items-center">
+      <select
+        value={value}
+        onChange={onChange}
+        className={clsx(
+          'appearance-none pl-2 pr-7 py-1 rounded-[var(--radius-sm)] border border-[var(--color-border)]',
+          'text-sm font-medium text-[var(--color-text)] bg-[var(--color-surface)]',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer',
+          'hover:border-[var(--color-primary)] transition-colors'
+        )}
+      >
+        {children}
+      </select>
+      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--color-text-secondary)] pointer-events-none" />
+    </div>
+  );
+}
+
+// Year range for the dropdown — 100 years back, 10 years forward
+const CURRENT_YEAR = new Date().getFullYear();
+const FROM_YEAR    = CURRENT_YEAR - 100;
+const TO_YEAR      = CURRENT_YEAR + 10;
 
 export function DatePicker({
   label, error, required,
@@ -101,12 +127,21 @@ export function DatePicker({
               onSelect={handleSelect}
               disabled={disabledDays}
               showOutsideDays
+              captionLayout="dropdown-buttons"
+              fromYear={FROM_YEAR}
+              toYear={TO_YEAR}
+              defaultMonth={selected || new Date()}
               classNames={{
-                months:         'p-3',
-                month:          '',
-                caption:        'flex items-center justify-between mb-2 px-1',
-                caption_label:  'text-sm font-semibold text-[var(--color-text)] select-none',
-                nav:            'flex items-center gap-1',
+                months:             'p-3',
+                month:              '',
+                caption:            'flex items-center justify-between mb-2 px-1 gap-2',
+                caption_label:      'hidden',
+                caption_dropdowns:  'flex items-center gap-1.5 flex-1',
+                dropdown_month:     '',
+                dropdown_year:      '',
+                dropdown:           '',
+                vhidden:            'sr-only',
+                nav:                'flex items-center gap-1',
                 nav_button: clsx(
                   'h-7 w-7 inline-flex items-center justify-center rounded-[var(--radius)]',
                   'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]',
@@ -114,22 +149,23 @@ export function DatePicker({
                 ),
                 nav_button_previous: '',
                 nav_button_next:     '',
-                table:          'w-full border-collapse',
-                head_row:       '',
-                head_cell:      'text-xs font-medium text-[var(--color-text-secondary)] text-center pb-1 w-9 select-none',
-                row:            '',
-                cell:           'text-center p-0.5',
-                day:            DAY_CLASSES,
-                day_selected:   '!bg-[var(--color-primary)] !text-white hover:!bg-[var(--color-primary-hover)] hover:!text-white',
-                day_today:      'font-bold ring-2 ring-inset ring-[var(--color-primary)] text-[var(--color-primary)]',
-                day_outside:    'opacity-30',
-                day_disabled:   'opacity-25 pointer-events-none hover:bg-transparent',
-                day_range_middle: 'bg-[var(--color-primary-light)]',
-                day_hidden:     'invisible',
+                table:              'w-full border-collapse',
+                head_row:           '',
+                head_cell:          'text-xs font-medium text-[var(--color-text-secondary)] text-center pb-1 w-9 select-none',
+                row:                '',
+                cell:               'text-center p-0.5',
+                day:                DAY_CLASSES,
+                day_selected:       '!bg-[var(--color-primary)] !text-white hover:!bg-[var(--color-primary-hover)] hover:!text-white',
+                day_today:          'font-bold ring-2 ring-inset ring-[var(--color-primary)] text-[var(--color-primary)]',
+                day_outside:        'opacity-30',
+                day_disabled:       'opacity-25 pointer-events-none hover:bg-transparent',
+                day_range_middle:   'bg-[var(--color-primary-light)]',
+                day_hidden:         'invisible',
               }}
               components={{
                 IconLeft:  () => <ChevronLeft  className="w-4 h-4" />,
                 IconRight: () => <ChevronRight className="w-4 h-4" />,
+                Dropdown:  CapDropdown,
               }}
             />
           </Popover.Content>

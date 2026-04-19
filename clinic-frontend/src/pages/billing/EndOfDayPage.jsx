@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, Lock } from 'lucide-react';
+
 import { DatePicker } from '../../components/ui/DatePicker';
 import { toast } from 'sonner';
 import { PageLayout }   from '../../components/layout/PageLayout';
@@ -22,6 +23,18 @@ export default function EndOfDayPage() {
   const [cashCounted,  setCashCounted]  = useState('');
   const [notes,        setNotes]        = useState('');
   const [submitting,   setSubmitting]   = useState(false);
+
+  // Auto-close past unclosed days on first load
+  useEffect(() => {
+    endOfDayApi.autoClose().then(res => {
+      const count = res.data?.data?.auto_closed ?? 0;
+      if (count > 0) {
+        toast.info(`${count} previous day${count > 1 ? 's' : ''} auto-closed`);
+        loadSummary();
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { loadSummary(); }, [date]);
 
@@ -83,12 +96,21 @@ export default function EndOfDayPage() {
       ) : !s ? null : alreadyClosed ? (
         // ── Already closed view ────────────────────────────────────────────────
         <div className="flex flex-col gap-5">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius)] bg-[var(--color-success-light,#f0fdf4)] border border-[var(--color-success,#22c55e)]">
-            <CheckCircle className="w-5 h-5 text-[var(--color-success,#22c55e)] shrink-0" />
-            <span className="text-sm font-medium text-[var(--color-success,#16a34a)]">
-              This day has already been closed by {s.closed_by_name} at {new Date(s.closed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
+          {s.notes === 'Auto-closed by system' ? (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <Lock className="w-5 h-5 text-[var(--color-text-secondary)] shrink-0" />
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                This day was automatically closed by the system (no manual EOD was submitted)
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius)] bg-[var(--color-success-light,#f0fdf4)] border border-[var(--color-success,#22c55e)]">
+              <CheckCircle className="w-5 h-5 text-[var(--color-success,#22c55e)] shrink-0" />
+              <span className="text-sm font-medium text-[var(--color-success,#16a34a)]">
+                This day was closed by {s.closed_by_name} at {new Date(s.closed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
           <ClosedSummary s={s} />
         </div>
       ) : (

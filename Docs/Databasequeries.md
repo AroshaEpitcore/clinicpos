@@ -1389,5 +1389,90 @@ ORDER BY
 
 ---
 
+## Queries Added 2026-04-19 — Token Numbers + Lab Requests + EOD Auto-close
+
+### Token number via JOIN chain (prescriptions list)
+
+Prescriptions don't have `appointment_id` directly. Chain: `prescriptions → consultations → appointments`.
+
+```sql
+-- GET /api/v1/prescriptions (list)
+SELECT
+  pr.id, pr.rx_number, pr.created_at,
+  p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
+  p.patient_code, p.id AS patient_id, p.phone,
+  s.full_name AS doctor_name,
+  COUNT(pi.id) AS item_count,
+  a.token_number
+FROM prescriptions pr
+JOIN patients p  ON p.id  = pr.patient_id
+JOIN staff    s  ON s.id  = pr.doctor_id
+LEFT JOIN prescription_items pi   ON pi.prescription_id = pr.id
+LEFT JOIN consultations       con ON con.id = pr.consultation_id
+LEFT JOIN appointments        a   ON a.id   = con.appointment_id
+${where}
+GROUP BY pr.id, p.first_name, p.last_name, p.patient_code, p.id, p.phone, s.full_name, a.token_number
+ORDER BY pr.created_at DESC
+LIMIT $${params.length}
+```
+
+**Note:** `a.token_number` must be included in GROUP BY.
+
+---
+
+### Token number via JOIN chain (invoices list)
+
+Invoices already JOIN consultations. Add one more JOIN to appointments.
+
+```sql
+-- GET /api/v1/invoices (list) — relevant JOIN additions
+LEFT JOIN consultations c ON c.id = i.consultation_id
+LEFT JOIN appointments  a ON a.id = c.appointment_id
+-- SELECT adds: a.token_number, p.phone
+```
+
+---
+
+### Lab requests for a consultation or prescription detail
+
+```sql
+SELECT lr.id, lr.status, lr.notes,
+       t.name AS test_name, t.code AS test_code, t.category, t.normal_range, t.unit,
+       res.result_value, res.result_file_url, res.notes AS result_notes, res.resulted_at,
+       resby.full_name AS resulted_by_name
+FROM lab_requests lr
+JOIN lab_tests t ON t.id = lr.test_id
+LEFT JOIN lab_results res  ON res.request_id = lr.id
+LEFT JOIN staff resby      ON resby.id = res.resulted_by
+WHERE lr.consultation_id = $1
+ORDER BY lr.created_at ASC
+```
+
+Used in both `GET /consultations/:id` and `GET /prescriptions/:id`. For prescriptions, `consultation_id` must first be fetched from the `prescriptions` row.
+
+---
+
+### EOD auto-close — find unclosed days
+
+```sql
+-- Find all invoice dates before today with no EOD record
+SELECT DISTINCT DATE(created_at) AS invoice_date
+FROM invoices
+WHERE DATE(created_at) < CURRENT_DATE
+  AND DATE(created_at) NOT IN (
+    SELECT closing_date FROM end_of_day
+  )
+ORDER BY invoice_date ASC
+```
+
+Then for each unclosed date, aggregate totals (same query as POST /end-of-day) and INSERT into `end_of_day` with:
+- `cash_counted = cash_system` (no discrepancy)
+- `cash_difference = 0`
+- `notes = 'Auto-closed by system'`
+- `closed_by = req.user.id` (the user who triggered the auto-close)
+- `ON CONFLICT (closing_date) DO NOTHING` — safe to call multiple times
+
+---
+
 *databasequeries.md — Doctor POS*  
 *Update this file before and after every database change*

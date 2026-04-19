@@ -69,7 +69,7 @@ export default function MedicineStorePage() {
       } else if (filterTab === 'expiring') {
         res = await medicinesApi.nearExpiry();
       } else {
-        res = await medicinesApi.list({ search: search || undefined, include_inactive: 'true' });
+        res = await medicinesApi.list({ search: search || undefined });
       }
       setMedicines(res.data.data);
     } catch {

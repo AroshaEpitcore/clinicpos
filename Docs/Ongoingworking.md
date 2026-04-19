@@ -18,7 +18,7 @@
 ## Current Status
 
 **Currently working on:** All core + add-on features complete through Phase 5.5 + admin-frontend UI rebuild — Phase 6 Beta & Launch next
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-19
 **Next up:** Phase 6 — deployment, production setup
 
 ### What is fully complete right now
@@ -61,6 +61,10 @@
 | Queue Display Bug Fix | ✅ `portalApi.get('/portal/queue-display')` was TypeError — `portalApi` is a named-method object, not an axios instance. Fixed by adding `getQueueDisplay` named method to `portal.js`; `DisplayPage.jsx` calls `portalApi.getQueueDisplay()`. (2026-04-18) |
 | Admin-frontend DESIGN.md UI Rebuild | ✅ Full rebuild matching clinic-frontend patterns: CSS variables (variables.css), ThemeContext dark/light mode, Radix Dialog modals (proper overlay), Button/Input/Badge/Card/Spinner/ConfirmDialog/EmptyState all rebuilt with CSS vars + clsx, Inter font (@fontsource/inter), AdminLayout sidebar redesigned to match clinic-frontend (white bg, collapsible, active=primary-light, user avatar, live clock TopBar with border-l toggle/logout). (2026-04-18) |
 | Medicine Store Test Automation | ✅ Section 6 of `backend-api/tests/automation.js` fully expanded from ~10 to ~55 assertions. Covers: all roles list/low-stock/near-expiry, create + data verification, role enforcement, required field validation (no name/unit/blank name), search filter, category filter, stock/price/reorder edit with persistence check, soft delete, include_inactive visibility, restore via is_active:true, low-stock logic (stock ≤ reorder_level), near-expiry logic (within 60 days), well-stocked and no-expiry exclusion. All test medicines cleaned up after each sub-section. (2026-04-19) |
+| Lab Request — Patient Search Fix | ✅ `LabPage.jsx` NewRequestModal: root cause was `r.data.data` being a paginated object (not array); fixed to `r.data.data?.patients \|\| []`. Replaced floating dropdown with static list in document flow (no blur/click race). `useEffect` debounce 300ms watching `patInput`. Modal size upgraded to `lg`. (2026-04-19) |
+| Token Numbers on List Pages | ✅ Token numbers now clearly displayed on `/billing` table (blue circle badge), `/prescriptions` cards (left-panel column), `/consultations` cards (left-panel column). Phone number added to patient cell on all three pages. Backend queries updated to JOIN through consultations→appointments for token_number on prescriptions and invoices. (2026-04-19) |
+| Left-Panel Token Card Design — Consultations + Prescriptions | ✅ Both pages now use the same left-panel design as AppointmentsPage: `w-20 shrink-0 py-4` column, blue `bg-[var(--color-primary)]` background when token exists, `text-5xl font-black` token number, "Token" label. Fallback shows first letter of patient name (consultations) or "Rx" label (prescriptions) in muted style when no token. Appointment card height and layout was NOT changed — only the other two pages received this design. (2026-04-19) |
+| Lab Requests in Consultations + Prescriptions Modals | ✅ Consultation detail modal and Prescription detail modal now show lab tests ordered during the same consultation. Backend: `GET /consultations/:id` and `GET /prescriptions/:id` both run a second query fetching `lab_requests + lab_tests + lab_results` WHERE `consultation_id = ?`. Frontend modals show test name, code, category, Done/Pending status badge, result value + unit + reference range + result notes when available. (2026-04-19) |
 
 ### What is NOT yet started
 - Phase 6 — Beta & launch (deployment, onboarding)
@@ -76,6 +80,77 @@
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
 | System health display in admin panel | Phase 6 |
 | Audit log viewer | Phase 6 |
+
+---
+
+## Token Numbers, Lab Requests in Modals, Patient Search Fix (2026-04-19)
+
+> Session covering: Lab page patient search fix, token numbers + phone on Billing/Consultations/Prescriptions, left-panel token card design replicated to Consultations and Prescriptions pages, lab test data shown in Consultations and Prescriptions detail modals.
+
+### 1 — Lab Page Patient Search Fix
+
+**Problem:** New Lab Request modal showed no patient results when typing a name.
+
+**Root cause:** `patientsApi.list()` returns a paginated response `{ data: { patients: [], total, page, totalPages } }`. The code read `r.data.data || []` — since `r.data.data` is a truthy object, `|| []` never fired. `patResults` was set to an object, so `patResults.length` was `undefined` and the `> 0` condition was always false.
+
+**Fixes:**
+- `r.data.data?.patients || []` — correct key into paginated response
+- Replaced floating dropdown (click blocked by blur event) with a static list rendered in document flow — no race conditions
+- `useEffect` debouncing watching `patInput` state (300ms), clears on re-run
+- Modal size changed from `"md"` to `"lg"` for more working space
+
+| File | Change |
+|------|--------|
+| `clinic-frontend/src/pages/lab/LabPage.jsx` | Patient search rewrite: correct API response path, static list, useEffect debounce, modal lg |
+
+---
+
+### 2 — Token Numbers on Billing, Consultations, Prescriptions
+
+**Changes:**
+
+| Page | Change |
+|------|--------|
+| `/billing` (`BillingPage.jsx`) | Added "Token" first column — filled blue circle `w-9 h-9 rounded-full bg-[var(--color-primary)]` with token number, or `—` if null. Phone number added to patient cell. |
+| `/prescriptions` (`PrescriptionsPage.jsx`) | Card redesigned with left-panel token column (matches AppointmentsPage QueueRow). Phone shown in card. |
+| `/consultations` (`ConsultationsPage.jsx`) | Same left-panel token column. Phone shown in card. |
+
+**Backend queries updated:**
+
+| File | Change |
+|------|--------|
+| `invoice.routes.js` | List query: added `p.phone`, `LEFT JOIN consultations c → LEFT JOIN appointments a`, `a.token_number` in SELECT |
+| `prescription.routes.js` | List query: added `p.phone`, double LEFT JOIN (`consultations → appointments`) for `a.token_number`; added `a.token_number` to GROUP BY |
+| `consultation.routes.js` | List query: added `p.phone`, `LEFT JOIN appointments a ON a.id = c.appointment_id`, `a.token_number` |
+
+---
+
+### 3 — Left-Panel Token Card Design — Consultations + Prescriptions
+
+**Pattern replicated from AppointmentsPage QueueRow:**
+- Outer: `rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden`
+- Inner flex: `w-20 shrink-0 py-4` left column, `flex-1 px-4 py-3` main area
+- Token column: `bg-[var(--color-primary)] text-white` when token exists — `text-[10px] uppercase tracking-widest` label, `text-5xl font-black leading-none tabular-nums` number
+- Fallback: first letter of patient name (consultations) or "Rx" label (prescriptions) in muted style
+- **Appointments card was NOT changed** — only Consultations and Prescriptions received this design
+
+---
+
+### 4 — Lab Requests in Consultations + Prescriptions Modals
+
+**Backend changes:**
+
+| File | Change |
+|------|--------|
+| `consultation.routes.js` `GET /:id` | Added second query: fetches `lab_requests JOIN lab_tests LEFT JOIN lab_results LEFT JOIN staff` WHERE `consultation_id = ?`. Returns `{ ...consultation, lab_requests: [] }` |
+| `prescription.routes.js` `GET /:id` | Added `pr.consultation_id` to SELECT. If non-null, runs same lab_requests query. Returns `{ ...prescription, items: [], lab_requests: [] }` |
+
+**Frontend changes:**
+
+| File | Change |
+|------|--------|
+| `ConsultationsPage.jsx` modal | Added "Lab Tests" section after follow-up block. Shows test name, code, category badge, Done/Pending status, result value + unit + reference range + result notes. |
+| `PrescriptionsPage.jsx` modal | Added "Lab Tests" section after Notes. Same display pattern. Imports `FlaskConical`, `CheckCircle2`, `Clock` from lucide-react. |
 
 ---
 

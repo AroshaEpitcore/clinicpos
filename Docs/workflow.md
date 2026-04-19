@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-18
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild.
+## Last updated: 2026-04-19
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -86,7 +86,9 @@ End-of-Day closing — cash count vs system totals, lock the day
 - **Doctor filter tabs** — appear when multiple doctors wrote prescriptions on that day; filter is client-side
 - **Search bar** — filter by patient name, patient code, Rx number, or doctor name; X clear button
 - Count display: "X of Y prescriptions" shown when doctor filter or search active
+- **Card design** — left-panel token column (`w-20 py-4`, blue `bg-[var(--color-primary)]` when token exists, `text-5xl font-black` number, "Token" label). Fallback shows "Rx" label in muted style. Phone number shown in card.
 - Click any Rx card → **detail modal opens** showing: patient info (name, code, allergy warning), doctor info (name, specialization, reg no), date/time, medicines table (medicine, dosage, frequency, duration, instructions, qty)
+- **Lab Tests section in modal** — shows lab tests ordered in the same consultation. Per test: test name, code, category, Done/Pending badge, result value + unit + reference range + result notes (when result available).
 - Modal footer: **View Patient** button + **PDF download** + **Print** button
 - No navigation away from the page — everything happens in-modal
 
@@ -222,7 +224,9 @@ End-of-Day closing — cash count vs system totals, lock the day
 - **Doctor filter tabs** — appear when multiple doctors have consultations that day; client-side filtering
 - **Search bar** — filter by patient name, code, phone, chief complaint, diagnosis, doctor; X clear button
 - **Follow-up filter pill** — toggle to show only consultations with a follow-up date set
+- **Card design** — left-panel token column (`w-20 py-4`, blue `bg-[var(--color-primary)]` when token exists, `text-5xl font-black` number, "Token" label). Fallback shows first letter of patient name in muted style. Phone number shown in patient info row.
 - Click any card → **detail modal opens** showing: patient info (name, code, allergies), doctor (name, spec, reg no), date/time, vitals grid (BP, pulse, temp, weight), clinical notes grid (chief complaint, symptoms, diagnosis, ICD-10, notes), follow-up date
+- **Lab Tests section in modal** — shows lab tests ordered during this consultation. Per test: test name, code, category, Done/Pending badge, result value + unit + reference range + result notes (when result available).
 - Modal footer: **View Patient** button
 - No navigation away from the page — all data shown in-modal
 
