@@ -176,6 +176,9 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
     }
     res.json({ status: 'success', message: 'Medicine updated', data: result.rows[0] });
   } catch (err) {
+    if (err.code === '22P02') {
+      return res.status(404).json({ status: 'error', message: 'Medicine not found' });
+    }
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
   }

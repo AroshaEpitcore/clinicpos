@@ -328,31 +328,282 @@ async function testPrescriptions() {
 async function testMedicines() {
   sec('6. Medicine Store');
 
-  // All roles can list medicines
+  // ── 6.1 List — all authenticated roles ───────────────────────────────────────
   for (const role of ['admin', 'doctor', 'receptionist', 'nurse']) {
     const r = await req('GET', '/medicines', tokens[role]);
     expect(r.status === 200, `${role} can list medicines`, `got ${r.status}`);
+    expect(Array.isArray(r.data.data), `${role} list returns array`, `got ${typeof r.data.data}`);
   }
 
-  // Create medicine — admin only
-  const medBody = { name: 'Test Paracetamol', generic_name: 'Paracetamol', unit: 'tablet', category: 'Analgesic', stock_quantity: 100, selling_price: 5, reorder_level: 10 };
+  // Unauthenticated request should be rejected
+  const noAuth = await req('GET', '/medicines', null);
+  expect(noAuth.status === 401, 'Unauthenticated request rejected', `got ${noAuth.status}`);
+
+  // ── 6.2 Low-stock endpoint — all roles ────────────────────────────────────────
+  for (const role of ['admin', 'doctor', 'receptionist', 'nurse']) {
+    const r = await req('GET', '/medicines/low-stock', tokens[role]);
+    expect(r.status === 200, `${role} can view low-stock list`, `got ${r.status}`);
+    expect(Array.isArray(r.data.data), `${role} low-stock returns array`, `got ${typeof r.data.data}`);
+  }
+
+  // ── 6.3 Near-expiry endpoint — all roles ─────────────────────────────────────
+  for (const role of ['admin', 'doctor', 'receptionist', 'nurse']) {
+    const r = await req('GET', '/medicines/near-expiry', tokens[role]);
+    expect(r.status === 200, `${role} can view near-expiry list`, `got ${r.status}`);
+    expect(Array.isArray(r.data.data), `${role} near-expiry returns array`, `got ${typeof r.data.data}`);
+  }
+
+  // ── 6.4 Create medicine — admin only ─────────────────────────────────────────
+  const ts = Date.now();
+  const medBody = {
+    name: `Test Paracetamol ${ts}`,
+    generic_name: 'Paracetamol',
+    unit: 'tablet',
+    category: 'Analgesic',
+    stock_quantity: 150,
+    selling_price: 5.50,
+    reorder_level: 20,
+  };
 
   const adminMed = await req('POST', '/medicines', tokens['admin'], medBody);
-  expect(adminMed.status === 201, 'Admin can add medicine', `got ${adminMed.status}`);
-  if (adminMed.status === 201) created.medicineId = adminMed.data.data?.id;
-
-  for (const role of ['doctor', 'receptionist', 'nurse']) {
-    const r = await req('POST', '/medicines', tokens[role], { ...medBody, name: `Test Med ${role}` });
-    expect(r.status === 403, `${role} cannot add medicine`, `got ${r.status}`);
+  expect(adminMed.status === 201, 'Admin can create medicine', `got ${adminMed.status}`);
+  if (adminMed.status === 201) {
+    created.medicineId = adminMed.data.data?.id;
+    expect(adminMed.data.data?.name === medBody.name, 'Created medicine name matches', `got "${adminMed.data.data?.name}"`);
+    expect(adminMed.data.data?.unit === medBody.unit, 'Created medicine unit matches', `got "${adminMed.data.data?.unit}"`);
+    expect(Number(adminMed.data.data?.stock_quantity) === medBody.stock_quantity, 'Created medicine stock matches', `got ${adminMed.data.data?.stock_quantity}`);
+    expect(Number(adminMed.data.data?.reorder_level) === medBody.reorder_level, 'Created medicine reorder_level matches', `got ${adminMed.data.data?.reorder_level}`);
+    expect(adminMed.data.data?.is_active === true, 'Newly created medicine is active', `got ${adminMed.data.data?.is_active}`);
+  } else {
+    warn('Medicine creation failed — skipping dependent tests');
   }
 
-  // Edit — admin only
-  if (created.medicineId) {
-    const edit = await req('PUT', `/medicines/${created.medicineId}`, tokens['admin'], { stock_quantity: 200 });
-    expect(edit.status === 200, 'Admin can edit medicine', `got ${edit.status}`);
+  // Non-admin cannot create
+  for (const role of ['doctor', 'receptionist', 'nurse']) {
+    const r = await req('POST', '/medicines', tokens[role], { ...medBody, name: `Hack Med ${role}` });
+    expect(r.status === 403, `${role} cannot create medicine`, `got ${r.status}`);
+  }
 
-    const editFail = await req('PUT', `/medicines/${created.medicineId}`, tokens['receptionist'], { stock_quantity: 999 });
-    expect(editFail.status === 403, 'Receptionist cannot edit medicine', `got ${editFail.status}`);
+  // ── 6.5 Validation — required fields ─────────────────────────────────────────
+  const noName = await req('POST', '/medicines', tokens['admin'], { unit: 'tablet' });
+  expect(noName.status === 400, 'Create without name returns 400', `got ${noName.status}`);
+
+  const noUnit = await req('POST', '/medicines', tokens['admin'], { name: 'Some Med' });
+  expect(noUnit.status === 400, 'Create without unit returns 400', `got ${noUnit.status}`);
+
+  const emptyName = await req('POST', '/medicines', tokens['admin'], { name: '   ', unit: 'tablet' });
+  expect(emptyName.status === 400, 'Create with blank name returns 400', `got ${emptyName.status}`);
+
+  // ── 6.6 Search filter ─────────────────────────────────────────────────────────
+  if (created.medicineId) {
+    const searchTerm = 'paracetamol';
+    const searchRes = await req('GET', `/medicines?search=${encodeURIComponent(searchTerm)}`, tokens['admin']);
+    expect(searchRes.status === 200, 'Search filter returns 200', `got ${searchRes.status}`);
+    const found = (searchRes.data.data || []).some(m => m.id === created.medicineId);
+    expect(found, 'Search finds created medicine by generic_name', `id ${created.medicineId}`);
+
+    // Search by partial name
+    const partialSearch = `Test Para`;
+    const partialRes = await req('GET', `/medicines?search=${encodeURIComponent(partialSearch)}`, tokens['admin']);
+    expect(partialRes.status === 200, 'Partial name search returns 200', `got ${partialRes.status}`);
+  }
+
+  // ── 6.7 Category filter ───────────────────────────────────────────────────────
+  if (created.medicineId) {
+    const catRes = await req('GET', '/medicines?category=Analgesic', tokens['admin']);
+    expect(catRes.status === 200, 'Category filter returns 200', `got ${catRes.status}`);
+    const catFound = (catRes.data.data || []).some(m => m.id === created.medicineId);
+    expect(catFound, 'Category filter finds created Analgesic medicine', `id ${created.medicineId}`);
+
+    // Non-matching category returns empty list (or at least not our medicine)
+    const wrongCat = await req('GET', '/medicines?category=Vitamin', tokens['admin']);
+    expect(wrongCat.status === 200, 'Non-matching category returns 200', `got ${wrongCat.status}`);
+    const wrongFound = (wrongCat.data.data || []).some(m => m.id === created.medicineId);
+    expect(!wrongFound, 'Category filter excludes wrong category', `id ${created.medicineId} should not appear`);
+  }
+
+  // ── 6.8 Edit — admin only ────────────────────────────────────────────────────
+  if (created.medicineId) {
+    // Admin can update stock_quantity
+    const editStock = await req('PUT', `/medicines/${created.medicineId}`, tokens['admin'], { stock_quantity: 250 });
+    expect(editStock.status === 200, 'Admin can update stock_quantity', `got ${editStock.status}`);
+    expect(Number(editStock.data.data?.stock_quantity) === 250, 'Stock quantity updated to 250', `got ${editStock.data.data?.stock_quantity}`);
+
+    // Admin can update selling_price
+    const editPrice = await req('PUT', `/medicines/${created.medicineId}`, tokens['admin'], { selling_price: 9.99 });
+    expect(editPrice.status === 200, 'Admin can update selling_price', `got ${editPrice.status}`);
+    expect(Number(editPrice.data.data?.selling_price) === 9.99, 'Selling price updated to 9.99', `got ${editPrice.data.data?.selling_price}`);
+
+    // Admin can update reorder_level
+    const editReorder = await req('PUT', `/medicines/${created.medicineId}`, tokens['admin'], { reorder_level: 30 });
+    expect(editReorder.status === 200, 'Admin can update reorder_level', `got ${editReorder.status}`);
+
+    // Verify change persisted — appears in list with updated values
+    const listAfterEdit = await req('GET', '/medicines', tokens['admin']);
+    const updatedMed = (listAfterEdit.data.data || []).find(m => m.id === created.medicineId);
+    expect(!!updatedMed, 'Edited medicine still appears in list', `id ${created.medicineId}`);
+    expect(Number(updatedMed?.stock_quantity) === 250, 'List reflects updated stock_quantity', `got ${updatedMed?.stock_quantity}`);
+
+    // Non-admin cannot edit
+    for (const role of ['doctor', 'receptionist', 'nurse']) {
+      const r = await req('PUT', `/medicines/${created.medicineId}`, tokens[role], { stock_quantity: 999 });
+      expect(r.status === 403, `${role} cannot edit medicine`, `got ${r.status}`);
+    }
+
+    // Edit nonexistent ID returns 404
+    const editMissing = await req('PUT', '/medicines/999999', tokens['admin'], { stock_quantity: 1 });
+    expect(editMissing.status === 404, 'Edit nonexistent medicine returns 404', `got ${editMissing.status}`);
+  }
+
+  // ── 6.9 Delete (soft) — admin only ───────────────────────────────────────────
+  if (created.medicineId) {
+    // Non-admin cannot delete
+    for (const role of ['doctor', 'receptionist', 'nurse']) {
+      const r = await req('DELETE', `/medicines/${created.medicineId}`, tokens[role]);
+      expect(r.status === 403, `${role} cannot delete medicine`, `got ${r.status}`);
+    }
+
+    // Admin can soft delete
+    const del = await req('DELETE', `/medicines/${created.medicineId}`, tokens['admin']);
+    expect(del.status === 200, 'Admin can soft-delete medicine', `got ${del.status}`);
+
+    // Deleted medicine does NOT appear in default list
+    const listAfterDel = await req('GET', '/medicines', tokens['admin']);
+    const stillActive = (listAfterDel.data.data || []).some(m => m.id === created.medicineId);
+    expect(!stillActive, 'Deleted medicine not in default list', `id ${created.medicineId} should be hidden`);
+
+    // Deleted medicine DOES appear with include_inactive=true
+    const listInactive = await req('GET', '/medicines?include_inactive=true', tokens['admin']);
+    const inInactive = (listInactive.data.data || []).some(m => m.id === created.medicineId);
+    expect(inInactive, 'Deleted medicine visible with include_inactive=true', `id ${created.medicineId}`);
+
+    // Verify is_active = false in include_inactive list
+    const deletedMed = (listInactive.data.data || []).find(m => m.id === created.medicineId);
+    expect(deletedMed?.is_active === false, 'Deleted medicine has is_active = false', `got ${deletedMed?.is_active}`);
+
+    // Restore via PUT is_active: true
+    const restore = await req('PUT', `/medicines/${created.medicineId}`, tokens['admin'], { is_active: true });
+    expect(restore.status === 200, 'Admin can restore deleted medicine', `got ${restore.status}`);
+    expect(restore.data.data?.is_active === true, 'Restored medicine has is_active = true', `got ${restore.data.data?.is_active}`);
+
+    // After restore, medicine reappears in default list
+    const listRestored = await req('GET', '/medicines', tokens['admin']);
+    const restoredVisible = (listRestored.data.data || []).some(m => m.id === created.medicineId);
+    expect(restoredVisible, 'Restored medicine appears in default list', `id ${created.medicineId}`);
+
+    // Clean up: soft delete again so it doesn't pollute later tests
+    await req('DELETE', `/medicines/${created.medicineId}`, tokens['admin']);
+  }
+
+  // ── 6.10 Low-stock logic verification ─────────────────────────────────────────
+  // Create a medicine where stock_quantity < reorder_level
+  const lowStockBody = {
+    name: `Low Stock Med ${ts}`,
+    unit: 'capsule',
+    category: 'Antibiotic',
+    stock_quantity: 3,
+    reorder_level: 25,
+  };
+  const lowMed = await req('POST', '/medicines', tokens['admin'], lowStockBody);
+  if (lowMed.status === 201) {
+    const lowId = lowMed.data.data?.id;
+    const lowList = await req('GET', '/medicines/low-stock', tokens['admin']);
+    const inLowList = (lowList.data.data || []).some(m => m.id === lowId);
+    expect(inLowList, 'Under-stocked medicine appears in /low-stock', `id ${lowId}, stock=3, reorder=25`);
+
+    // Verify all items in low-stock list satisfy condition
+    const allLow = (lowList.data.data || []).every(m => Number(m.stock_quantity) <= Number(m.reorder_level));
+    expect(allLow, 'All /low-stock items have stock <= reorder_level', `${(lowList.data.data || []).length} items`);
+
+    // Medicine with stock above reorder should NOT appear
+    const highStockBody = {
+      name: `High Stock Med ${ts}`,
+      unit: 'tablet',
+      stock_quantity: 500,
+      reorder_level: 10,
+    };
+    const highMed = await req('POST', '/medicines', tokens['admin'], highStockBody);
+    if (highMed.status === 201) {
+      const highId = highMed.data.data?.id;
+      const lowListAgain = await req('GET', '/medicines/low-stock', tokens['admin']);
+      const inLowListWrong = (lowListAgain.data.data || []).some(m => m.id === highId);
+      expect(!inLowListWrong, 'Well-stocked medicine does NOT appear in /low-stock', `id ${highId}, stock=500`);
+      // Clean up
+      await req('DELETE', `/medicines/${highId}`, tokens['admin']);
+    }
+    // Clean up
+    await req('DELETE', `/medicines/${lowId}`, tokens['admin']);
+  } else {
+    warn('Low-stock medicine creation failed — skipping low-stock logic tests');
+  }
+
+  // ── 6.11 Near-expiry logic verification ───────────────────────────────────────
+  // Compute a date 30 days from today (within 60-day window)
+  const d30 = new Date();
+  d30.setDate(d30.getDate() + 30);
+  const expirySoon = d30.toISOString().split('T')[0];
+
+  const nearExpiryBody = {
+    name: `Near Expiry Med ${ts}`,
+    unit: 'vial',
+    category: 'Vaccine',
+    stock_quantity: 50,
+    reorder_level: 5,
+    expiry_date: expirySoon,
+  };
+  const nearMed = await req('POST', '/medicines', tokens['admin'], nearExpiryBody);
+  if (nearMed.status === 201) {
+    const nearId = nearMed.data.data?.id;
+    const nearList = await req('GET', '/medicines/near-expiry', tokens['admin']);
+    const inNearList = (nearList.data.data || []).some(m => m.id === nearId);
+    expect(inNearList, 'Medicine expiring in 30 days appears in /near-expiry', `id ${nearId}, expiry ${expirySoon}`);
+
+    // Verify days_until_expiry field is returned
+    const nearEntry = (nearList.data.data || []).find(m => m.id === nearId);
+    expect(nearEntry?.days_until_expiry !== undefined, '/near-expiry includes days_until_expiry field', `got ${nearEntry?.days_until_expiry}`);
+
+    // Medicine expiring in 90 days should NOT appear
+    const d90 = new Date();
+    d90.setDate(d90.getDate() + 90);
+    const expiryFar = d90.toISOString().split('T')[0];
+    const farBody = {
+      name: `Far Expiry Med ${ts}`,
+      unit: 'tablet',
+      stock_quantity: 100,
+      reorder_level: 5,
+      expiry_date: expiryFar,
+    };
+    const farMed = await req('POST', '/medicines', tokens['admin'], farBody);
+    if (farMed.status === 201) {
+      const farId = farMed.data.data?.id;
+      const nearListAgain = await req('GET', '/medicines/near-expiry', tokens['admin']);
+      const farInList = (nearListAgain.data.data || []).some(m => m.id === farId);
+      expect(!farInList, 'Medicine expiring in 90 days NOT in /near-expiry', `id ${farId}, expiry ${expiryFar}`);
+      // Clean up
+      await req('DELETE', `/medicines/${farId}`, tokens['admin']);
+    }
+
+    // Medicine with no expiry_date should NOT appear in near-expiry
+    const noExpiryBody = {
+      name: `No Expiry Med ${ts}`,
+      unit: 'tablet',
+      stock_quantity: 100,
+      reorder_level: 5,
+    };
+    const noExpiryMed = await req('POST', '/medicines', tokens['admin'], noExpiryBody);
+    if (noExpiryMed.status === 201) {
+      const noExpId = noExpiryMed.data.data?.id;
+      const nearListNoExp = await req('GET', '/medicines/near-expiry', tokens['admin']);
+      const noExpInList = (nearListNoExp.data.data || []).some(m => m.id === noExpId);
+      expect(!noExpInList, 'Medicine with no expiry_date NOT in /near-expiry', `id ${noExpId}`);
+      // Clean up
+      await req('DELETE', `/medicines/${noExpId}`, tokens['admin']);
+    }
+
+    // Clean up
+    await req('DELETE', `/medicines/${nearId}`, tokens['admin']);
+  } else {
+    warn('Near-expiry medicine creation failed — skipping near-expiry logic tests');
   }
 }
 
