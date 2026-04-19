@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { AlertTriangle, Clock, User, Search, Trash2, Plus, Printer } from 'lucide-react';
+import { AlertTriangle, Clock, User, Search, Trash2, Plus, Printer, FlaskConical, X } from 'lucide-react';
 import { Modal }        from '../../components/ui/Modal';
 import { Button }       from '../../components/ui/Button';
 import { Input }        from '../../components/ui/Input';
@@ -9,6 +9,7 @@ import { DatePicker }   from '../../components/ui/DatePicker';
 import { consultationsApi } from '../../api/consultations';
 import { prescriptionsApi } from '../../api/prescriptions';
 import { medicinesApi }     from '../../api/medicines';
+import { labApi }           from '../../api/lab';
 import { printPrescription } from '../../utils/printPrescription';
 import { useAuth }      from '../../store/AuthContext';
 import { formatDate }   from '../../utils/format';
@@ -82,6 +83,19 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
   const [showDropdown,  setShowDropdown]  = useState([false]);
   const searchTimers = useRef([]);
 
+  // ── Lab tests state ───────────────────────────────────────────────────────
+  const [labTests,      setLabTests]      = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [labSearch,     setLabSearch]     = useState('');
+  const [labNotes,      setLabNotes]      = useState('');
+
+  // Load available tests once (hidden if feature disabled or catalog empty)
+  useEffect(() => {
+    labApi.getTests({ active_only: 'true' })
+      .then(r => setLabTests(r.data.data || []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (open && appointment) {
       reset();
@@ -93,6 +107,9 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
       setSuggestions([[]]);
       setSearching([false]);
       setShowDropdown([false]);
+      setSelectedTests([]);
+      setLabSearch('');
+      setLabNotes('');
     }
   }, [open, appointment, reset]);
 
@@ -186,6 +203,15 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
     return errors.every(e => Object.keys(e).length === 0);
   }
 
+  // ── Lab helpers ───────────────────────────────────────────────────────────
+  function toggleTest(test) {
+    setSelectedTests(prev =>
+      prev.find(t => t.id === test.id)
+        ? prev.filter(t => t.id !== test.id)
+        : [...prev, test]
+    );
+  }
+
   async function handlePrintRx() {
     if (!savedRx) return;
     try {
@@ -204,7 +230,7 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
 
     try {
       // 1. Save consultation
-      await consultationsApi.create({
+      const consultRes = await consultationsApi.create({
         appointment_id:  appointment.id,
         patient_id:      appointment.patient_id,
         doctor_id:       appointment.doctor_id,
@@ -220,8 +246,23 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
         pulse:           data.pulse            ? parseInt(data.pulse)         : null,
         follow_up_date:  data.follow_up_date   || null,
       });
+      const consultationId = consultRes.data.data?.id;
 
-      // 2. Save prescription if medicines were added
+      // 2. Request lab tests if any selected (non-fatal — consultation already saved)
+      if (selectedTests.length > 0 && consultationId) {
+        try {
+          await labApi.createRequest({
+            patient_id:      appointment.patient_id,
+            consultation_id: consultationId,
+            test_ids:        selectedTests.map(t => t.id),
+            notes:           labNotes.trim() || null,
+          });
+        } catch {
+          toast.error('Lab tests could not be requested — please add them from the Lab page.');
+        }
+      }
+
+      // 3. Save prescription if medicines were added
       if (filledItems.length > 0) {
         const rxPayload = rxItems
           .map((item, i) => {
@@ -249,9 +290,11 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
         });
         const { id, rx_number } = rxRes.data.data;
         setSavedRx({ id, rx_number });
-        toast.success(`Consultation saved · ${rx_number} written`);
+        const labMsg = selectedTests.length > 0 ? ` · ${selectedTests.length} lab test${selectedTests.length !== 1 ? 's' : ''} requested` : '';
+        toast.success(`Consultation saved · ${rx_number} written${labMsg}`);
       } else {
-        toast.success('Consultation saved successfully');
+        const labMsg = selectedTests.length > 0 ? ` · ${selectedTests.length} lab test${selectedTests.length !== 1 ? 's' : ''} requested` : '';
+        toast.success(`Consultation saved${labMsg}`);
         onClose();
       }
 
@@ -476,6 +519,96 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
             />
           </div>
         </section>
+
+        {/* ── Lab Tests ───────────────────────────────────────────────── */}
+        {labTests.length > 0 && (
+          <section>
+            <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-3">
+              Lab Tests <span className="normal-case font-normal">(optional)</span>
+            </p>
+
+            {/* Selected test chips */}
+            {selectedTests.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {selectedTests.map(t => (
+                  <span key={t.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--color-primary-light)] text-[var(--color-primary)] border border-[var(--color-primary)]">
+                    <FlaskConical className="w-3 h-3" />
+                    {t.name}
+                    {!savedRx && (
+                      <button type="button" onClick={() => toggleTest(t)}
+                        className="ml-0.5 hover:text-[var(--color-danger)] transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {!savedRx && (
+              <>
+                {/* Search */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+                  <input
+                    type="text"
+                    placeholder="Search tests by name or category…"
+                    value={labSearch}
+                    onChange={e => setLabSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  />
+                </div>
+
+                {/* Test buttons */}
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
+                  {labTests
+                    .filter(t => {
+                      if (!labSearch.trim()) return true;
+                      const q = labSearch.toLowerCase();
+                      return (t.name || '').toLowerCase().includes(q) ||
+                             (t.category || '').toLowerCase().includes(q) ||
+                             (t.code || '').toLowerCase().includes(q);
+                    })
+                    .map(t => {
+                      const isSelected = selectedTests.some(s => s.id === t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => toggleTest(t)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] text-xs font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                              : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                          }`}
+                        >
+                          <FlaskConical className="w-3 h-3" />
+                          {t.name}
+                          {t.code && <span className="opacity-70">· {t.code}</span>}
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* Lab notes — only shown when at least one test selected */}
+                {selectedTests.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-3">
+                    <label className="text-xs font-medium text-[var(--color-text)]">
+                      Lab Notes <span className="text-[var(--color-text-secondary)] font-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={1}
+                      placeholder="Instructions for lab staff…"
+                      value={labNotes}
+                      onChange={e => setLabNotes(e.target.value)}
+                      className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
 
       </form>
     </Modal>

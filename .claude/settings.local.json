@@ -28,7 +28,8 @@
       "Bash(taskkill /F /IM node.exe)",
       "Bash(taskkill *)",
       "Bash(powershell *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(npx vite *)"
     ]
   }
 }
