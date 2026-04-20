@@ -2,6 +2,7 @@ import api from './index';
 
 export const settingsApi = {
   get:              ()           => api.get('/settings'),
+  getSubscription:  ()           => api.get('/settings/subscription'),
   update:           (data)       => api.put('/settings', data),
   uploadLogo:       (file)       => {
     const form = new FormData();

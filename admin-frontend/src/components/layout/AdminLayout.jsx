@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Shield, LogOut, Menu, Sun, Moon,
+  LayoutDashboard, Building2, Shield, LogOut, Menu, Sun, Moon, CreditCard, RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuth } from '../../store/AdminAuthContext';
@@ -9,8 +9,10 @@ import { useTheme } from '../../store/ThemeContext';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
-  { to: '/',        label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/clinics', label: 'Clinics',   icon: Building2 },
+  { to: '/',               label: 'Dashboard',     icon: LayoutDashboard, end: true },
+  { to: '/clinics',        label: 'Clinics',        icon: Building2 },
+  { to: '/plans',          label: 'Plans',          icon: CreditCard },
+  { to: '/subscriptions',  label: 'Subscriptions',  icon: RefreshCw },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────────────────────

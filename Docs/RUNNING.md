@@ -123,6 +123,15 @@ node src/db/migrate_custom_medicine.js
 
 # Queue Display — adds queue_display_enabled column to clinic_settings
 node src/db/migrate_queue_display.js
+
+# Subscription Plans — creates subscription_plans table, adds plan_id/subscription_start/subscription_end to tenants
+node src/db/migrate_subscription_plans.js
+
+# Update plan prices to LKR and deactivate Premium plan
+node -r dotenv/config src/db/migrate_update_plans.js
+
+# Add billing_cycle column to subscription_plans, update Basic/Standard plan defaults
+node -r dotenv/config src/db/migrate_plan_billing_cycle.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -276,7 +285,10 @@ clinicpos/
 │   │   │   ├── migrate_optional_patient_fields.js      — drops NOT NULL from last_name/dob/gender
 │   │   │   ├── migrate_prescription_consultation_nullable.js — drops NOT NULL from consultation_id
 │   │   │   ├── migrate_custom_medicine.js              — nullable medicine_id + custom_medicine_name
-│   │   │   └── migrate_queue_display.js                — queue_display_enabled column
+│   │   │   ├── migrate_queue_display.js                — queue_display_enabled column
+│   │   │   ├── migrate_subscription_plans.js           — subscription_plans table + tenant subscription columns
+│   │   │   ├── migrate_update_plans.js                 — updates plan prices to LKR, deactivates Premium
+│   │   │   └── migrate_plan_billing_cycle.js           — adds billing_cycle column to subscription_plans
 │   │   ├── utils/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
 │   │   │   └── bookingReference.js — shared BK-XXXXXX generator
@@ -304,7 +316,8 @@ clinicpos/
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
 │   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
-│   │   │   └── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
+│   │   │   ├── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
+│   │   │   └── subscription/     — SubscriptionPage.jsx — clinic admin views own subscription status
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar (collapsible), TopBar (live clock + dark toggle), PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Drawer, Badge, Card, DatePicker, Spinner, EmptyState, OfflineBanner, ConfirmDialog, DispenseModal
@@ -325,7 +338,9 @@ clinicpos/
     │   │   ├── LoginPage.jsx       — Super admin login
     │   │   ├── DashboardPage.jsx   — Stat cards + recent clinics
     │   │   ├── ClinicsPage.jsx     — Clinic list + search + create
-    │   │   └── ClinicDetailPage.jsx — Clinic detail + feature flags + suspend/activate
+    │   │   ├── ClinicDetailPage.jsx — Clinic detail + feature flags + suspend/activate + set plan/renew
+    │   │   ├── PlansPage.jsx       — CRUD for subscription plans (name, billing cycle, price)
+    │   │   └── SubscriptionsPage.jsx — All clinics subscription status + assign/renew plan
     │   ├── components/
     │   │   ├── layout/
     │   │   │   └── AdminLayout.jsx — Collapsible sidebar + TopBar (live clock, dark/light toggle, logout)
@@ -339,7 +354,7 @@ clinicpos/
     │   │       ├── ConfirmDialog.jsx — Wraps Modal for all destructive confirmations
     │   │       └── EmptyState.jsx  — Consistent empty list state component
     │   ├── api/
-    │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi
+    │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi, adminPlansApi, adminSubscriptionsApi
     │   ├── store/
     │   │   ├── AdminAuthContext.jsx — Admin JWT + login/logout
     │   │   └── ThemeContext.jsx     — Dark/light mode toggle (persisted in localStorage)

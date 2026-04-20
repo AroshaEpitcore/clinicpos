@@ -439,8 +439,27 @@ Phase 7  →  Desktop version (later)
 | Feature flag toggles per clinic (per module switch) | admin-frontend | [x] |
 | Suspend / activate button | admin-frontend | [x] |
 | Login as clinic button (impersonation) | admin-frontend | [x] |
-| Removed: plan assignment (no tiers) | — | removed |
+| Removed: plan assignment (no tiers) | — | removed (replaced with full subscription system below) |
 | Removed: trial management (no trials) | — | removed |
+| **Subscription Plans Management** | | |
+| `GET /api/v1/admin/plans` — list all plans | backend | [x] *(done 2026-04-20)* |
+| `POST /api/v1/admin/plans` — create plan | backend | [x] *(done 2026-04-20)* |
+| `PUT /api/v1/admin/plans/:id` — update plan | backend | [x] *(done 2026-04-20)* |
+| `DELETE /api/v1/admin/plans/:id` — soft-deactivate plan | backend | [x] *(done 2026-04-20)* |
+| `PUT /api/v1/admin/tenants/:id/subscription` — assign plan to clinic | backend | [x] *(done 2026-04-20)* |
+| `PUT /api/v1/admin/tenants/:id/subscription/renew` — renew subscription | backend | [x] *(done 2026-04-20)* |
+| `GET /api/v1/admin/subscriptions` — all clinics + subscription info | backend | [x] *(done 2026-04-20)* |
+| `GET /api/v1/settings/subscription` — clinic admin views own subscription | backend | [x] *(done 2026-04-20)* |
+| Auto-suspend in tenant middleware when subscription_end < today | backend | [x] *(done 2026-04-20)* |
+| `migrate_subscription_plans.js` — subscription_plans table + tenant columns | backend | [x] *(done 2026-04-20)* |
+| `migrate_update_plans.js` — LKR pricing, deactivate Premium | backend | [x] *(done 2026-04-20)* |
+| `migrate_plan_billing_cycle.js` — billing_cycle column | backend | [x] *(done 2026-04-20)* |
+| `PlansPage.jsx` — create/edit/deactivate plans | admin-frontend | [x] *(done 2026-04-20)* |
+| `SubscriptionsPage.jsx` — all clinics subscription overview + assign/renew | admin-frontend | [x] *(done 2026-04-20)* |
+| Subscription card in `ClinicDetailPage.jsx` — plan info + set plan + renew buttons | admin-frontend | [x] *(done 2026-04-20)* |
+| Plans + Subscriptions nav items in AdminLayout sidebar | admin-frontend | [x] *(done 2026-04-20)* |
+| `SubscriptionPage.jsx` — clinic admin views own plan, dates, days remaining, expiry warnings | clinic-frontend | [x] *(done 2026-04-20)* |
+| Subscription nav item in clinic Sidebar (admin only) | clinic-frontend | [x] *(done 2026-04-20)* |
 | Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred)* |
 | System health display — server, DB, uptime | admin-frontend | [ ] *(deferred)* |
 | Audit log viewer | admin-frontend | [ ] *(deferred)* |
@@ -653,8 +672,11 @@ Phase 7  →  Desktop version (later)
 
 | Task | Done |
 |------|------|
+| Subscription plans + assignment system built (admin manages plans + assigns to clinics) | [x] *(done 2026-04-20)* |
+| Clinic admin subscription status view (`/subscription` page) | [x] *(done 2026-04-20)* |
+| Auto-suspend clinics with expired subscription_end | [x] *(done 2026-04-20 — tenant middleware)* |
 | Integrate payment gateway for SaaS subscriptions (PayHere / Stripe) | [ ] |
-| Auto-suspend clinics with overdue payment | [ ] |
+| Auto-suspend clinics with overdue payment (payment gateway webhook) | [ ] |
 | Invite 2–5 pilot clinics (free or discounted) | [ ] |
 | Collect feedback — fix top issues | [ ] |
 | Set up support channel (WhatsApp / email) | [ ] |

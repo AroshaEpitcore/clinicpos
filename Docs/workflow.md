@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-19
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals.
+## Last updated: 2026-04-20
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -439,6 +439,7 @@ Patient (PT-XXXXX)
 | 3 PDF generation | ✅ Complete | Invoice PDF + Prescription PDF via pdfkit; Download buttons in UI |
 | 4 Super Admin Panel | ✅ Complete (core) | Login, clinic list/create/edit/suspend/activate, feature flag toggles, impersonation; health/audit deferred to Phase 5 |
 | 4 Super Admin UI Rebuild | ✅ Complete | Full DESIGN.md-compliant UI — CSS variables, dark mode, Radix Dialog modals, matching sidebar/TopBar layout, Inter font, ConfirmDialog, EmptyState (2026-04-18) |
+| Subscription Billing | ✅ Complete | Plans CRUD (PlansPage), all-clinics subscription view (SubscriptionsPage), assign/renew from ClinicDetailPage, clinic admin view (SubscriptionPage), auto-suspend on expiry (2026-04-20) |
 | UI Polish | ✅ Complete | Dark mode, DatePicker, Inter font, improved Select, bg-white audit |
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
@@ -688,6 +689,35 @@ Public route (no JWT). Returns:
 - Changes take effect on next clinic staff request (no restart needed)
 - Count shows "X of 6 modules enabled" in card subtitle
 
+### Subscription Management
+
+**Plans Page (`/plans`)**
+- Create / edit / soft-deactivate subscription plans
+- Each plan has: name, billing_cycle (monthly | yearly), price (stored in monthly_price or yearly_price column)
+- Soft-delete sets `is_active = FALSE` — plan is hidden from pickers but existing subscriptions retain the reference
+- Default plans: Basic (monthly, LKR 10,000) and Standard (yearly, LKR 50,000)
+
+**Subscriptions Page (`/subscriptions`)**
+- Overview table of all clinics with their current plan, billing cycle, start/end dates, and days remaining
+- Days remaining colour-coded: green (> 7d), amber (0–7d / expiring today), red (expired)
+- "Set Plan" modal: choose plan + start date → backend calculates end date based on billing_cycle
+- "Renew" button: extends subscription from the current end date (or today if expired)
+
+**Clinic Detail — Subscription card**
+- Shows current plan name, cycle, start/end dates, days remaining badge
+- "Set Plan" button to assign or change plan
+- "Renew" button to extend
+
+**Auto-suspend (tenant middleware)**
+- On every clinic API request, `tenant.js` middleware checks: if `status = 'active'` AND `subscription_end < today`, it runs `UPDATE public.tenants SET status = 'suspended'` and returns 403 with "Your subscription has expired. Please contact your administrator to renew."
+- Suspension is immediate — no grace period
+
+**Clinic Admin Subscription Page (`/subscription`)**
+- Admin role only (hidden from other roles in Sidebar)
+- Shows: plan name, billing cycle, start date, end date, days remaining
+- Status widget: green banner (active, > 7d), amber banner (expiring soon ≤ 7d / today), red banner (expired)
+- Read-only — clinic admin cannot change their own plan
+
 ---
 
 ## Deferred Items
@@ -708,7 +738,8 @@ Public route (no JWT). Returns:
 | Reports PDF export | Phase 6 (remaining) |
 | Super admin system health (CPU/memory/uptime) | Phase 6 (remaining) |
 | Super admin audit log viewer | Phase 6 (remaining) |
-| Super admin trial management UI | Phase 6 (remaining) |
+| Super admin trial management UI | ✅ Replaced with subscription plan management (PlansPage + SubscriptionsPage + ClinicDetailPage subscription card) — 2026-04-20 |
+| Subscription billing management | ✅ Done (2026-04-20) — subscription_plans table, plan CRUD, assign/renew per clinic, auto-suspend, clinic admin view |
 | Session timeout enforcement (backend) | Phase 6 — UI setting exists but JWT expiry not yet driven by it |
 | `patient_portal_enabled` setting UI | ✅ Done (Phase 5.4) — toggle in Settings → Security tab |
 | Invoice auto-pull missing medicines | ✅ Fixed (2026-04-17) — `COALESCE(m.selling_price, 0)` includes all medicines |

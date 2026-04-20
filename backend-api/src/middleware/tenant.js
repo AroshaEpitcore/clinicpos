@@ -32,6 +32,21 @@ async function tenantMiddleware(req, res, next) {
       return res.status(403).json({ status: 'error', message: 'This clinic account is suspended' });
     }
 
+    // Auto-suspend if subscription has expired
+    if (tenant.status === 'active' && tenant.subscription_end) {
+      const today = new Date().toISOString().split('T')[0];
+      if (String(tenant.subscription_end).split('T')[0] < today) {
+        await queryPublic(
+          `UPDATE public.tenants SET status = 'suspended', updated_at = NOW() WHERE id = $1`,
+          [tenant.id]
+        );
+        return res.status(403).json({
+          status: 'error',
+          message: 'Your subscription has expired. Please contact your administrator to renew.'
+        });
+      }
+    }
+
     // Load feature flags
     const flagsResult = await queryPublic(
       `SELECT module, enabled FROM public.feature_flags WHERE tenant_id = $1`,

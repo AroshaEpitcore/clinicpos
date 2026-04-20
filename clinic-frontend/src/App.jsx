@@ -26,7 +26,10 @@ import EndOfDayPage from './pages/billing/EndOfDayPage';
 import ReportsPage from './pages/reports/ReportsPage';
 
 // Phase 2.7 — Settings
-import SettingsPage from './pages/settings/SettingsPage';
+import SettingsPage      from './pages/settings/SettingsPage';
+
+// Subscription info (admin only)
+import SubscriptionPage  from './pages/subscription/SubscriptionPage';
 
 // Phase 5.1 — Pharmacy
 import PharmacyPage from './pages/pharmacy/PharmacyPage';
@@ -119,6 +122,13 @@ export default function App() {
       <Route path="/settings" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <SettingsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Subscription */}
+      <Route path="/subscription" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <SubscriptionPage />
         </ProtectedRoute>
       } />
 

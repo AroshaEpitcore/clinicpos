@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Users, UserCheck, Edit2, Ban, CheckCircle,
-  ExternalLink, AlertTriangle, Save, Copy, Check,
+  ExternalLink, AlertTriangle, Save, Copy, Check, CreditCard, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminTenantsApi, adminFlagsApi } from '../api/admin';
+import { adminTenantsApi, adminFlagsApi, adminPlansApi, adminSubscriptionsApi } from '../api/admin';
 import { Card, StatCard } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -15,6 +15,105 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { LoadingState } from '../components/ui/Spinner';
 
 const CLINIC_URL = import.meta.env.VITE_CLINIC_URL || 'http://localhost:5173';
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function daysLabel(end) {
+  if (!end) return null;
+  const days = Math.round((new Date(end) - new Date()) / 86400000);
+  if (days < 0)  return { text: `Expired ${Math.abs(days)}d ago`, color: 'text-[var(--color-danger)]' };
+  if (days === 0) return { text: 'Expires today',                  color: 'text-[var(--color-warning,#d97706)]' };
+  if (days <= 7)  return { text: `${days}d remaining`,             color: 'text-[var(--color-warning,#d97706)]' };
+  return           { text: `${days}d remaining`,                   color: 'text-[var(--color-success)]' };
+}
+
+// ── Set Plan Modal (inline in detail page) ─────────────────────────────────────
+function SetPlanModal({ open, onClose, clinic, plans, onSaved }) {
+  const today = new Date().toISOString().split('T')[0];
+  const [form,   setForm]   = useState({ plan_id: '', plan_type: 'monthly', start_date: today });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && clinic) {
+      setForm({
+        plan_id:    clinic.plan_id || (plans[0]?.id ?? ''),
+        start_date: today,
+      });
+    }
+  }, [open, clinic]);
+
+  const selectedPlan = plans.find(p => p.id === form.plan_id);
+
+  async function handleSave() {
+    if (!form.plan_id || !form.start_date) return toast.error('Please fill all fields');
+    setSaving(true);
+    try {
+      const res = await adminSubscriptionsApi.setplan(clinic.id, form);
+      toast.success('Subscription assigned');
+      onSaved(res.data.data);
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Set Subscription"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} loading={saving}><Save className="w-3.5 h-3.5" /> Assign Plan</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-[var(--color-text)]">Plan <span className="text-[var(--color-danger)]">*</span></label>
+          <select
+            value={form.plan_id}
+            onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))}
+            className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          >
+            <option value="">Select a plan…</option>
+            {plans.filter(p => p.is_active).map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name} — LKR {(p.billing_cycle === 'monthly' ? p.monthly_price : p.yearly_price).toLocaleString('en-US', { minimumFractionDigits: 2 })} / {p.billing_cycle === 'monthly' ? 'month' : 'year'}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-[var(--color-text)]">Start Date <span className="text-[var(--color-danger)]">*</span></label>
+          <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
+            className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+        </div>
+        {selectedPlan && form.start_date && (
+          <div className="rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] px-4 py-3 text-sm space-y-1">
+            <p className="font-medium text-[var(--color-text)]">{selectedPlan.name}</p>
+            <p className="text-[var(--color-text-secondary)]">
+              LKR {(selectedPlan.billing_cycle === 'monthly' ? selectedPlan.monthly_price : selectedPlan.yearly_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {' per '}{selectedPlan.billing_cycle === 'monthly' ? 'month' : 'year'}
+            </p>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Valid until{' '}
+              {(() => {
+                const d = new Date(form.start_date);
+                selectedPlan.billing_cycle === 'monthly' ? d.setMonth(d.getMonth() + 1) : d.setFullYear(d.getFullYear() + 1);
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+              })()}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 const ALL_MODULES = [
   { key: 'pharmacy',      label: 'Pharmacy',      description: 'Medicine dispensing & inventory' },
@@ -102,15 +201,22 @@ export default function ClinicDetailPage() {
 
   const [clinic,        setClinic]        = useState(null);
   const [flags,         setFlags]         = useState({});
+  const [plans,         setPlans]         = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [showEdit,      setShowEdit]      = useState(false);
+  const [showSetPlan,   setShowSetPlan]   = useState(false);
   const [showSuspend,   setShowSuspend]   = useState(false);
   const [showActivate,  setShowActivate]  = useState(false);
+  const [showRenew,     setShowRenew]     = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [flagSaving,    setFlagSaving]    = useState(false);
   const [impersonating, setImpersonating] = useState(false);
+  const [renewing,      setRenewing]      = useState(false);
 
   useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    adminPlansApi.list().then(res => setPlans(res.data.data)).catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -184,6 +290,20 @@ export default function ClinicDetailPage() {
       toast.error(err.response?.data?.message || 'Impersonation failed');
     } finally {
       setImpersonating(false);
+    }
+  }
+
+  async function handleRenew() {
+    setRenewing(true);
+    try {
+      const res = await adminSubscriptionsApi.renew(id);
+      setClinic(c => ({ ...c, ...res.data.data }));
+      toast.success('Subscription renewed');
+      setShowRenew(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Renewal failed');
+    } finally {
+      setRenewing(false);
     }
   }
 
@@ -283,6 +403,55 @@ export default function ClinicDetailPage() {
         <StatCard label="Modules On"     value={activeFlags}                         icon={Building2}  color={activeFlags > 0 ? 'purple' : 'gray'} />
       </div>
 
+      {/* Subscription card */}
+      {(() => {
+        const plan      = plans.find(p => p.id === clinic.plan_id);
+        const dl        = daysLabel(clinic.subscription_end);
+        const hasPlan   = !!clinic.plan_id;
+        return (
+          <Card title="Subscription" subtitle={hasPlan ? (plan?.name || '—') : 'No plan assigned'}>
+            <div className="space-y-3">
+              {hasPlan ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ['Plan',       plan?.name || '—'],
+                      ['Cycle',      clinic.plan_type ? clinic.plan_type.charAt(0).toUpperCase() + clinic.plan_type.slice(1) : '—'],
+                      ['Start Date', formatDate(clinic.subscription_start)],
+                      ['End Date',   formatDate(clinic.subscription_end)],
+                    ].map(([label, value]) => (
+                      <div key={label} className="bg-[var(--color-bg)] rounded-[var(--radius)] px-3 py-2">
+                        <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
+                        <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {dl && (
+                    <div className={`flex items-center gap-1.5 text-sm font-medium ${dl.color}`}>
+                      <CreditCard className="w-4 h-4" />
+                      {dl.text}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-[var(--color-text-secondary)]">Assign a subscription plan to enable billing cycle tracking and auto-suspend.</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="secondary" onClick={() => setShowSetPlan(true)}>
+                  <CreditCard className="w-3.5 h-3.5" /> {hasPlan ? 'Change Plan' : 'Set Plan'}
+                </Button>
+                {hasPlan && (
+                  <Button size="sm" variant="secondary" onClick={() => setShowRenew(true)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Renew
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
       {/* Details + Feature Flags */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Clinic Details */}
@@ -333,6 +502,27 @@ export default function ClinicDetailPage() {
       </div>
 
       {/* Modals */}
+      <SetPlanModal
+        open={showSetPlan}
+        onClose={() => setShowSetPlan(false)}
+        clinic={clinic}
+        plans={plans}
+        onSaved={updated => setClinic(c => ({ ...c, ...updated }))}
+      />
+      <ConfirmDialog
+        open={showRenew}
+        onClose={() => setShowRenew(false)}
+        onConfirm={handleRenew}
+        loading={renewing}
+        title="Renew Subscription"
+        message={`Renew the ${clinic.plan_type || ''} subscription for "${clinic.clinic_name}"? The new period will start from ${
+          clinic.subscription_end
+            ? (() => { const d = new Date(clinic.subscription_end); d.setDate(d.getDate() + 1); return formatDate(d); })()
+            : 'today'
+        }.`}
+        confirmLabel="Renew"
+        variant="success"
+      />
       <EditClinicModal
         open={showEdit}
         onClose={() => setShowEdit(false)}

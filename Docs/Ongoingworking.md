@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** All core + add-on features complete through Phase 5.5 + admin-frontend UI rebuild — Phase 6 Beta & Launch next
-**Last updated:** 2026-04-19
-**Next up:** Phase 6 — deployment, production setup
+**Currently working on:** Subscription billing management complete — Phase 6 deployment next
+**Last updated:** 2026-04-20
+**Next up:** Phase 6 — deployment, production setup, payment gateway integration
 
 ### What is fully complete right now
 
@@ -60,6 +60,7 @@
 | Low Stock Tracking | ✅ Dashboard alert badge (Admin + Receptionist dashboards show Low Stock stat card with red border when count > 0, click navigates to /medicines), post-dispense toast warning (all 3 dispense locations), DispenseModal uses actual per-medicine reorder_level instead of hardcoded ≤5. (2026-04-18) |
 | Queue Display Bug Fix | ✅ `portalApi.get('/portal/queue-display')` was TypeError — `portalApi` is a named-method object, not an axios instance. Fixed by adding `getQueueDisplay` named method to `portal.js`; `DisplayPage.jsx` calls `portalApi.getQueueDisplay()`. (2026-04-18) |
 | Admin-frontend DESIGN.md UI Rebuild | ✅ Full rebuild matching clinic-frontend patterns: CSS variables (variables.css), ThemeContext dark/light mode, Radix Dialog modals (proper overlay), Button/Input/Badge/Card/Spinner/ConfirmDialog/EmptyState all rebuilt with CSS vars + clsx, Inter font (@fontsource/inter), AdminLayout sidebar redesigned to match clinic-frontend (white bg, collapsible, active=primary-light, user avatar, live clock TopBar with border-l toggle/logout). (2026-04-18) |
+| Subscription Billing Management | ✅ Super admin can create/edit/deactivate plans (PlansPage), view all clinic subscriptions + assign/renew plans (SubscriptionsPage), and manage a clinic's plan from ClinicDetailPage. Clinic admin views their own subscription status at `/subscription` (SubscriptionPage). Auto-suspend in tenant middleware when subscription_end < today. 3 migration scripts: migrate_subscription_plans.js (table + tenant columns), migrate_update_plans.js (LKR pricing), migrate_plan_billing_cycle.js (billing_cycle column). (2026-04-20) |
 | Medicine Store Test Automation | ✅ Section 6 of `backend-api/tests/automation.js` fully expanded from ~10 to ~55 assertions. Covers: all roles list/low-stock/near-expiry, create + data verification, role enforcement, required field validation (no name/unit/blank name), search filter, category filter, stock/price/reorder edit with persistence check, soft delete, include_inactive visibility, restore via is_active:true, low-stock logic (stock ≤ reorder_level), near-expiry logic (within 60 days), well-stocked and no-expiry exclusion. All test medicines cleaned up after each sub-section. (2026-04-19) |
 | Lab Request — Patient Search Fix | ✅ `LabPage.jsx` NewRequestModal: root cause was `r.data.data` being a paginated object (not array); fixed to `r.data.data?.patients \|\| []`. Replaced floating dropdown with static list in document flow (no blur/click race). `useEffect` debounce 300ms watching `patInput`. Modal size upgraded to `lg`. (2026-04-19) |
 | Token Numbers on List Pages | ✅ Token numbers now clearly displayed on `/billing` table (blue circle badge), `/prescriptions` cards (left-panel column), `/consultations` cards (left-panel column). Phone number added to patient cell on all three pages. Backend queries updated to JOIN through consultations→appointments for token_number on prescriptions and invoices. (2026-04-19) |

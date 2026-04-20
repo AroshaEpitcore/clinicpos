@@ -209,4 +209,37 @@ router.delete('/staff/:staffId/signature', requireRole('admin'), async (req, res
   }
 });
 
+// ── GET /api/v1/settings/subscription ────────────────────────────────────────
+// Returns the current clinic's subscription data (admin only)
+router.get('/subscription', requireRole('admin'), async (req, res) => {
+  try {
+    const result = await queryPublic(`
+      SELECT
+        t.status,
+        t.plan_type,
+        t.subscription_start,
+        t.subscription_end,
+        sp.id             AS plan_id,
+        sp.name           AS plan_name,
+        sp.description    AS plan_description,
+        sp.billing_cycle  AS plan_billing_cycle,
+        sp.monthly_price,
+        sp.yearly_price,
+        (t.subscription_end::date - CURRENT_DATE) AS days_remaining
+      FROM public.tenants t
+      LEFT JOIN public.subscription_plans sp ON sp.id = t.plan_id
+      WHERE t.id = $1
+    `, [req.tenant.id]);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Clinic not found' });
+    }
+
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('GET /settings/subscription', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
 module.exports = router;

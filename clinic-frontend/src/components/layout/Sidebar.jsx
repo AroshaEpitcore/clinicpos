@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, Stethoscope, Shield, UserCog,
+  Settings, Stethoscope, Shield, UserCog, CreditCard,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
@@ -20,8 +20,9 @@ const NAV_ITEMS = [
   { label: 'Lab',           icon: FlaskConical,     href: '/lab',           roles: ['doctor', 'nurse', 'admin', 'receptionist'], flag: 'lab' },
   { label: 'Insurance',    icon: Shield,           href: '/insurance',     roles: ['receptionist', 'admin', 'doctor'],          flag: 'insurance' },
   { label: 'Staff',         icon: UserCog,          href: '/staff',         roles: ['admin'] },
-  { label: 'Reports',       icon: BarChart2,        href: '/reports',       roles: ['admin'] },
-  { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
+  { label: 'Reports',        icon: BarChart2,   href: '/reports',       roles: ['admin'] },
+  { label: 'Settings',       icon: Settings,    href: '/settings',      roles: ['admin'] },
+  { label: 'Subscription',   icon: CreditCard,  href: '/subscription',  roles: ['admin'] },
 ];
 
 export function Sidebar({ collapsed }) {

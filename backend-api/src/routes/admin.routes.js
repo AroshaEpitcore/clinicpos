@@ -117,7 +117,14 @@ router.get('/tenants', async (req, res) => {
 router.get('/tenants/:id', async (req, res) => {
   try {
     const tenant = await queryPublic(
-      `SELECT * FROM public.tenants WHERE id = $1`, [req.params.id]
+      `SELECT t.*,
+              sp.name        AS plan_name,
+              sp.monthly_price,
+              sp.yearly_price
+       FROM public.tenants t
+       LEFT JOIN public.subscription_plans sp ON sp.id = t.plan_id
+       WHERE t.id = $1`,
+      [req.params.id]
     );
     if (!tenant.rows.length) {
       return res.status(404).json({ status: 'error', message: 'Clinic not found' });
@@ -413,6 +420,228 @@ router.put('/feature-flags/:tenantId', async (req, res) => {
     res.json({ status: 'success', message: 'Feature flags updated', data: result.rows });
   } catch (err) {
     console.error('PUT /admin/feature-flags', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── GET /api/v1/admin/plans ───────────────────────────────────────────────────
+router.get('/plans', async (req, res) => {
+  try {
+    const result = await queryPublic(
+      `SELECT * FROM public.subscription_plans ORDER BY monthly_price ASC`
+    );
+    res.json({ status: 'success', data: result.rows });
+  } catch (err) {
+    console.error('GET /admin/plans', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── POST /api/v1/admin/plans ──────────────────────────────────────────────────
+router.post('/plans', async (req, res) => {
+  const { name, description, monthly_price, yearly_price } = req.body;
+  if (!name || monthly_price == null || yearly_price == null) {
+    return res.status(400).json({ status: 'error', message: 'name, monthly_price, and yearly_price are required' });
+  }
+  try {
+    const result = await queryPublic(
+      `INSERT INTO public.subscription_plans (name, description, monthly_price, yearly_price)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name, description || null, monthly_price, yearly_price]
+    );
+    res.status(201).json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ status: 'error', message: 'A plan with that name already exists' });
+    }
+    console.error('POST /admin/plans', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── PUT /api/v1/admin/plans/:id ───────────────────────────────────────────────
+router.put('/plans/:id', async (req, res) => {
+  const { name, description, monthly_price, yearly_price, is_active } = req.body;
+  try {
+    const result = await queryPublic(
+      `UPDATE public.subscription_plans
+       SET name          = COALESCE($1, name),
+           description   = COALESCE($2, description),
+           monthly_price = COALESCE($3, monthly_price),
+           yearly_price  = COALESCE($4, yearly_price),
+           is_active     = COALESCE($5, is_active),
+           updated_at    = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [name || null, description ?? null, monthly_price ?? null, yearly_price ?? null, is_active ?? null, req.params.id]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Plan not found' });
+    }
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('PUT /admin/plans/:id', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── DELETE /api/v1/admin/plans/:id (soft-delete) ──────────────────────────────
+router.delete('/plans/:id', async (req, res) => {
+  try {
+    const result = await queryPublic(
+      `UPDATE public.subscription_plans SET is_active = FALSE, updated_at = NOW()
+       WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Plan not found' });
+    }
+    res.json({ status: 'success', message: 'Plan deactivated' });
+  } catch (err) {
+    console.error('DELETE /admin/plans/:id', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── PUT /api/v1/admin/tenants/:id/subscription ────────────────────────────────
+// Body: { plan_id, start_date (YYYY-MM-DD) }
+// plan_type is auto-derived from the plan's billing_cycle
+router.put('/tenants/:id/subscription', async (req, res) => {
+  const { plan_id, start_date } = req.body;
+  if (!plan_id || !start_date) {
+    return res.status(400).json({ status: 'error', message: 'plan_id and start_date are required' });
+  }
+
+  try {
+    // Verify plan exists and get billing_cycle
+    const planRes = await queryPublic(
+      `SELECT * FROM public.subscription_plans WHERE id = $1 AND is_active = TRUE`, [plan_id]
+    );
+    if (!planRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Plan not found or inactive' });
+    }
+
+    const plan_type = planRes.rows[0].billing_cycle || 'monthly';
+
+    // Calculate end date based on the plan's own billing_cycle
+    const start = new Date(start_date);
+    const end   = new Date(start);
+    if (plan_type === 'monthly') {
+      end.setMonth(end.getMonth() + 1);
+    } else {
+      end.setFullYear(end.getFullYear() + 1);
+    }
+    const end_date = end.toISOString().split('T')[0];
+
+    const result = await queryPublic(
+      `UPDATE public.tenants
+       SET plan_id            = $1,
+           plan_type          = $2,
+           subscription_start = $3,
+           subscription_end   = $4,
+           status             = 'active',
+           updated_at         = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [plan_id, plan_type, start_date, end_date, req.params.id]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Clinic not found' });
+    }
+    res.json({
+      status: 'success',
+      message: 'Subscription assigned',
+      data: { ...result.rows[0], plan: planRes.rows[0] },
+    });
+  } catch (err) {
+    console.error('PUT /admin/tenants/:id/subscription', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── POST /api/v1/admin/tenants/:id/renew ─────────────────────────────────────
+// Extends the subscription from the current end date (or today if expired)
+router.post('/tenants/:id/renew', async (req, res) => {
+  try {
+    const tenantRes = await queryPublic(
+      `SELECT t.*, sp.name AS plan_name, sp.billing_cycle AS plan_billing_cycle, sp.monthly_price, sp.yearly_price
+       FROM public.tenants t
+       LEFT JOIN public.subscription_plans sp ON sp.id = t.plan_id
+       WHERE t.id = $1`,
+      [req.params.id]
+    );
+    if (!tenantRes.rows.length) {
+      return res.status(404).json({ status: 'error', message: 'Clinic not found' });
+    }
+
+    const tenant = tenantRes.rows[0];
+    if (!tenant.plan_id || !tenant.plan_type) {
+      return res.status(400).json({ status: 'error', message: 'Clinic has no active plan. Assign a plan first.' });
+    }
+
+    const today   = new Date().toISOString().split('T')[0];
+    const current = tenant.subscription_end ? String(tenant.subscription_end).split('T')[0] : null;
+
+    // New start = the day after current end, or today if expired/no end
+    let newStart;
+    if (current && current >= today) {
+      const d = new Date(current);
+      d.setDate(d.getDate() + 1);
+      newStart = d.toISOString().split('T')[0];
+    } else {
+      newStart = today;
+    }
+
+    const newEnd = new Date(newStart);
+    if (tenant.plan_type === 'monthly') {
+      newEnd.setMonth(newEnd.getMonth() + 1);
+    } else {
+      newEnd.setFullYear(newEnd.getFullYear() + 1);
+    }
+    const newEndStr = newEnd.toISOString().split('T')[0];
+
+    const result = await queryPublic(
+      `UPDATE public.tenants
+       SET subscription_start = $1,
+           subscription_end   = $2,
+           status             = 'active',
+           updated_at         = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [newStart, newEndStr, req.params.id]
+    );
+    res.json({
+      status: 'success',
+      message: 'Subscription renewed',
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error('POST /admin/tenants/:id/renew', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── GET /api/v1/admin/subscriptions ──────────────────────────────────────────
+// All clinics with subscription info — for the subscriptions overview page
+router.get('/subscriptions', async (req, res) => {
+  try {
+    const result = await queryPublic(`
+      SELECT
+        t.id, t.clinic_name, t.subdomain, t.owner_email, t.status,
+        t.plan_type, t.subscription_start, t.subscription_end,
+        sp.id            AS plan_id,
+        sp.name          AS plan_name,
+        sp.billing_cycle AS plan_billing_cycle,
+        sp.monthly_price,
+        sp.yearly_price,
+        (t.subscription_end::date - CURRENT_DATE) AS days_remaining
+      FROM public.tenants t
+      LEFT JOIN public.subscription_plans sp ON sp.id = t.plan_id
+      ORDER BY t.subscription_end ASC NULLS LAST, t.clinic_name ASC
+    `);
+    res.json({ status: 'success', data: result.rows });
+  } catch (err) {
+    console.error('GET /admin/subscriptions', err);
     res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });

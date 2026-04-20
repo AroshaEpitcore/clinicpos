@@ -38,21 +38,26 @@ Stores every clinic registered in the system.
 
 ```sql
 CREATE TABLE public.tenants (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  clinic_name   VARCHAR(255) NOT NULL,
-  subdomain     VARCHAR(100) NOT NULL UNIQUE,   -- e.g. drsilva
-  owner_email   VARCHAR(255) NOT NULL UNIQUE,
-  owner_phone   VARCHAR(20),
-  status        VARCHAR(20) DEFAULT 'active',  -- active | suspended | cancelled
-  created_at    TIMESTAMP DEFAULT NOW(),
-  updated_at    TIMESTAMP DEFAULT NOW()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_name         VARCHAR(255) NOT NULL,
+  subdomain           VARCHAR(100) NOT NULL UNIQUE,   -- e.g. drsilva
+  owner_email         VARCHAR(255) NOT NULL UNIQUE,
+  owner_phone         VARCHAR(20),
+  status              VARCHAR(20) DEFAULT 'active',   -- active | suspended | cancelled
+  plan_id             UUID REFERENCES public.subscription_plans(id),
+  plan_type           VARCHAR(20) DEFAULT 'monthly',  -- monthly | yearly
+  subscription_start  DATE,
+  subscription_end    DATE,
+  created_at          TIMESTAMP DEFAULT NOW(),
+  updated_at          TIMESTAMP DEFAULT NOW()
 );
 
 -- Note: plan and trial_ends_at columns were removed (2026-04-15).
--- No subscription tiers. Super admin manages access manually via feature flags and activate/suspend.
+-- Subscription columns (plan_id, plan_type, subscription_start, subscription_end) added 2026-04-20.
+-- Auto-suspend: tenant middleware checks subscription_end < today and sets status = 'suspended'.
 ```
 
-**Connects to:** `feature_flags`, `subscriptions`
+**Connects to:** `feature_flags`, `subscriptions`, `subscription_plans`
 
 **Clinic creation flow (all in one transaction — `POST /api/v1/admin/tenants`):**
 ```
@@ -115,6 +120,48 @@ CREATE TABLE public.subscriptions (
 ```
 
 **Connects to:** `tenants`
+
+---
+
+### Table: `subscription_plans`
+
+Defines the available subscription plans that super admin can assign to clinics.
+
+```sql
+CREATE TABLE public.subscription_plans (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(100) NOT NULL UNIQUE,
+  description   TEXT,
+  monthly_price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  yearly_price  NUMERIC(10,2) NOT NULL DEFAULT 0,
+  billing_cycle VARCHAR(20) DEFAULT 'monthly',   -- monthly | yearly
+  is_active     BOOLEAN DEFAULT TRUE,
+  created_at    TIMESTAMP DEFAULT NOW(),
+  updated_at    TIMESTAMP DEFAULT NOW()
+);
+
+-- Default plans seeded:
+-- Basic    → monthly, LKR 10,000.00
+-- Standard → yearly,  LKR 50,000.00
+-- Premium  → deactivated (is_active = FALSE)
+```
+
+**Migration scripts:**
+- `migrate_subscription_plans.js` — creates table + adds plan_id/subscription_start/subscription_end to tenants
+- `migrate_update_plans.js` — updates prices to LKR, deactivates Premium
+- `migrate_plan_billing_cycle.js` — adds `billing_cycle` column, sets Basic=monthly, Standard=yearly
+
+**Connects to:** `tenants`
+
+**Admin API routes:**
+- `GET /api/v1/admin/plans` — list all active plans
+- `POST /api/v1/admin/plans` — create plan
+- `PUT /api/v1/admin/plans/:id` — update plan
+- `DELETE /api/v1/admin/plans/:id` — soft-deactivate (sets is_active = FALSE)
+- `PUT /api/v1/admin/tenants/:id/subscription` — assign plan + set start/end dates
+- `PUT /api/v1/admin/tenants/:id/subscription/renew` — extend subscription from current end date
+- `GET /api/v1/admin/subscriptions` — all clinics + subscription overview (days_remaining calculated)
+- `GET /api/v1/settings/subscription` — clinic admin reads own subscription (admin role only)
 
 ---
 

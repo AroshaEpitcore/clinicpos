@@ -48,4 +48,17 @@ export const adminFlagsApi = {
   update: (tenantId, flags) => api.put(`/feature-flags/${tenantId}`, { flags }),
 };
 
+export const adminPlansApi = {
+  list:       ()          => api.get('/plans'),
+  create:     (body)      => api.post('/plans', body),
+  update:     (id, body)  => api.put(`/plans/${id}`, body),
+  deactivate: (id)        => api.delete(`/plans/${id}`),
+};
+
+export const adminSubscriptionsApi = {
+  list:       ()                    => api.get('/subscriptions'),
+  setplan:    (tenantId, body)      => api.put(`/tenants/${tenantId}/subscription`, body),
+  renew:      (tenantId)            => api.post(`/tenants/${tenantId}/renew`),
+};
+
 export default api;
