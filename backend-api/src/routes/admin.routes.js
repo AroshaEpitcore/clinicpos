@@ -235,7 +235,7 @@ router.post('/tenants', async (req, res) => {
       data: {
         tenant,
         login: {
-          url: `https://${subdomain}.clinicpos.com`,
+          url: `https://${subdomain}.healthcenter.lk`,
           email: owner_email,
           password: initial_password,
         },

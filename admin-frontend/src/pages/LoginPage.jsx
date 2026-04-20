@@ -54,7 +54,7 @@ export default function LoginPage() {
               autoFocus
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@clinicpos.com"
+              placeholder="admin@healthcenter.lk"
             />
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-[var(--color-text)]">Password</label>

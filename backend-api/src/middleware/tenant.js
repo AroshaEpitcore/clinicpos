@@ -4,7 +4,7 @@ const { queryPublic } = require('../config/db');
  * Read the subdomain from the request Host header and load the matching tenant.
  * Attaches tenant info and feature flags to req.tenant and req.tenantFlags.
  *
- * Subdomains: drsilva.clinicpos.com → subdomain = "drsilva"
+ * Subdomains: drsilva.healthcenter.lk → subdomain = "drsilva"
  * Local dev:  pass X-Tenant-Subdomain header instead.
  */
 async function tenantMiddleware(req, res, next) {
