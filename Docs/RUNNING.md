@@ -246,7 +246,8 @@ server {
 ```
 clinicpos/
 ├── Docs/
-│   ├── RUNNING.md          ← This file
+│   ├── RUNNING.md          ← This file (local dev)
+│   ├── HOSTING.md          ← Step-by-step production deployment guide
 │   ├── PLAN.md             ← Build order and phases
 │   ├── DESIGN.md           ← UI design rules and component system
 │   ├── INSTRUCTION.md      ← Development rules
