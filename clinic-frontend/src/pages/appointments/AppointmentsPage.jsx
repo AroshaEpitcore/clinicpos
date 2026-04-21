@@ -109,6 +109,11 @@ export default function AppointmentsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
   async function handleStatusAction() {
     if (!pendingAction) return;
     setActioning(true);

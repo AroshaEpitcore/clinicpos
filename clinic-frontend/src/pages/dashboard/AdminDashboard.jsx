@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -21,22 +21,33 @@ export default function AdminDashboard() {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [loading,       setLoading]       = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(async (silent = false) => {
     const year  = now.getFullYear();
     const month = now.getMonth() + 1;
-
-    Promise.all([
-      reportsApi.daily(today),
-      reportsApi.monthly(year, month),
-      reportsApi.doctors(today, today),
-      medicinesApi.lowStock().catch(() => ({ data: { data: [] } })),
-    ]).then(([d, m, doc, ls]) => {
+    try {
+      const [d, m, doc, ls] = await Promise.all([
+        reportsApi.daily(today),
+        reportsApi.monthly(year, month),
+        reportsApi.doctors(today, today),
+        medicinesApi.lowStock().catch(() => ({ data: { data: [] } })),
+      ]);
       setDaily(d.data.data);
       setMonthly(m.data.data?.daily || []);
       setDoctors(doc.data.data || []);
       setLowStockCount((ls.data.data || []).length);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    } catch {
+      // keep existing data on silent refresh errors
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [today]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   const rev  = daily?.revenue  || {};
   const appt = daily?.appointments || {};

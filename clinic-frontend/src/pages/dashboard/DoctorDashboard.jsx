@@ -24,19 +24,24 @@ export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [loading,      setLoading]      = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await appointmentsApi.list({ date: today, doctor_id: user?.id });
       setAppointments(res.data.data || []);
     } catch {
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [today, user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   // Derive queue state
   const allActive   = appointments.filter(a => a.status !== 'completed' && a.status !== 'cancelled');

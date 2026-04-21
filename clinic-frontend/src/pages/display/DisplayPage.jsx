@@ -10,7 +10,7 @@ import { Maximize2, Minimize2, RefreshCw, Zap, Clock, Wifi, WifiOff } from 'luci
 import { portalApi } from '../../api/portal';
 import { mediaUrl } from '../../utils/mediaUrl';
 
-const REFRESH_INTERVAL = 30; // seconds
+const REFRESH_INTERVAL = 10; // seconds
 
 // ── Grid column count based on doctor count ──────────────────────────────────
 function gridCols(n) {

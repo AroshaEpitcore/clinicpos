@@ -27,8 +27,8 @@ export default function ReceptionistDashboard() {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [loading,       setLoading]       = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [apptRes, sumRes, lsRes] = await Promise.all([
         appointmentsApi.list({ date: today }),
@@ -39,13 +39,18 @@ export default function ReceptionistDashboard() {
       setSummary(sumRes.data?.data || null);
       setLowStockCount((lsRes.data.data || []).length);
     } catch {
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [today]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   const total     = appointments.length;
   const waiting   = appointments.filter(a => ['pending','confirmed'].includes(a.status)).length;

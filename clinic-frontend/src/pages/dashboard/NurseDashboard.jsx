@@ -15,19 +15,24 @@ export default function NurseDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [loading,      setLoading]      = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await appointmentsApi.list({ date: today });
       setAppointments(res.data.data || []);
     } catch {
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [today]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   // Arrived = waiting for doctor → nurse can prepare vitals
   const arrived   = appointments.filter(a => a.status === 'arrived');
