@@ -34,8 +34,10 @@ async function tenantMiddleware(req, res, next) {
 
     // Auto-suspend if subscription has expired
     if (tenant.status === 'active' && tenant.subscription_end) {
-      const today = new Date().toISOString().split('T')[0];
-      if (String(tenant.subscription_end).split('T')[0] < today) {
+      const today  = new Date().toISOString().split('T')[0];
+      // subscription_end may be a Date object or a string depending on pg driver version
+      const endStr = new Date(tenant.subscription_end).toISOString().split('T')[0];
+      if (endStr < today) {
         await queryPublic(
           `UPDATE public.tenants SET status = 'suspended', updated_at = NOW() WHERE id = $1`,
           [tenant.id]

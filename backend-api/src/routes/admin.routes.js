@@ -580,7 +580,7 @@ router.post('/tenants/:id/renew', async (req, res) => {
     }
 
     const today   = new Date().toISOString().split('T')[0];
-    const current = tenant.subscription_end ? String(tenant.subscription_end).split('T')[0] : null;
+    const current = tenant.subscription_end ? new Date(tenant.subscription_end).toISOString().split('T')[0] : null;
 
     // New start = the day after current end, or today if expired/no end
     let newStart;
