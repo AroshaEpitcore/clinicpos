@@ -470,10 +470,12 @@
 
     grid.innerHTML = plans.map((plan, i) => {
       const featured = plans.length > 1 && i === midIdx;
-      const monthly  = plan.monthly_price ? `LKR ${Number(plan.monthly_price).toLocaleString()}` : null;
-      const yearly   = plan.yearly_price  ? `LKR ${Number(plan.yearly_price).toLocaleString()}`  : null;
-      const saving   = (plan.monthly_price && plan.yearly_price)
-        ? Math.round(((plan.monthly_price * 12 - plan.yearly_price) / (plan.monthly_price * 12)) * 100)
+      const mPrice   = Number(plan.monthly_price) || 0;
+      const yPrice   = Number(plan.yearly_price)  || 0;
+      const monthly  = mPrice > 0 ? `LKR ${mPrice.toLocaleString()}` : null;
+      const yearly   = yPrice > 0 ? `LKR ${yPrice.toLocaleString()}` : null;
+      const saving   = (mPrice > 0 && yPrice > 0 && mPrice * 12 > yPrice)
+        ? Math.round(((mPrice * 12 - yPrice) / (mPrice * 12)) * 100)
         : 0;
 
       return `
@@ -494,7 +496,7 @@
             <li>Prescriptions &amp; billing</li>
             <li>Reports &amp; analytics</li>
             <li>Free onboarding support</li>
-            ${plan.billing_cycle === 'yearly' || plan.yearly_price ? '<li>Priority support</li>' : ''}
+            ${(plan.billing_cycle === 'yearly' || yPrice > 0) ? '<li>Priority support</li>' : ''}
           </ul>
         </div>`;
     }).join('');
