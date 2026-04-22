@@ -9,10 +9,13 @@
 
 | What | Where |
 |------|-------|
-| Clinic staff app | `https://clinicname.clinicpos.com` (wildcard) |
-| Admin panel | `https://admin.clinicpos.com` |
+| Landing page | `https://yourdomain.com` (root domain) |
+| Clinic staff app | `https://clinicname.yourdomain.com` (wildcard) |
+| Admin panel | `https://admin.yourdomain.com` |
 | Backend API | Internal — `http://localhost:4000` (never exposed directly) |
 | Database | PostgreSQL — local on the server, not public |
+
+> **Production domain:** healthcenter.lk (see HOSTING_SESSION.md for full deployment record)
 
 ---
 
@@ -329,6 +332,12 @@ node -r dotenv/config src/db/migrate_update_plans.js
 
 # Add billing_cycle column
 node -r dotenv/config src/db/migrate_plan_billing_cycle.js
+
+# Platform settings table (landing page toggle)
+node -r dotenv/config src/db/migrate_platform_settings.js
+
+# Patch any clinic schemas created before addon modules existed (run after the above)
+node -r dotenv/config src/db/migrate_fix_new_clinics.js
 ```
 
 If any migration fails, check the error message — usually it's a wrong DATABASE_URL in `.env`.
@@ -347,6 +356,9 @@ npm run build
 cd /var/www/clinicpos/admin-frontend
 npm run build
 # Output: /var/www/clinicpos/admin-frontend/dist/
+
+# landing-frontend — no build needed (plain HTML, served directly by nginx)
+# Output: /var/www/clinicpos/landing-frontend/index.html
 ```
 
 ---
@@ -456,12 +468,59 @@ server {
 }
 ```
 
-### 15.3 — Enable both configs
+### 15.3 — Create the landing page config (root domain)
+
+```bash
+sudo nano /etc/nginx/sites-available/clinicpos-landing
+```
+
+Paste:
+
+```nginx
+# Redirect HTTP to HTTPS (root domain)
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+
+    ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    root /var/www/clinicpos/landing-frontend;
+    index index.html;
+
+    # Proxy /api calls to backend (for dynamic pricing fetch)
+    location /api/ {
+        proxy_pass         http://localhost:4000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+> Note: If the existing wildcard HTTP block already includes `yourdomain.com` in its `server_name`, nginx will warn about a conflicting port-80 server name — this is harmless (the redirect still works via the wildcard block).
+
+### 15.4 — Enable all configs
 
 ```bash
 # Create symlinks to enable them
-sudo ln -s /etc/nginx/sites-available/clinicpos-clinic /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/clinicpos-admin  /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clinicpos-clinic   /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clinicpos-admin    /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clinicpos-landing  /etc/nginx/sites-enabled/
 
 # Remove the default Nginx page (it conflicts)
 sudo rm /etc/nginx/sites-enabled/default

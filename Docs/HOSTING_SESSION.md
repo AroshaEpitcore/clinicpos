@@ -29,6 +29,7 @@
 
 | URL | Purpose |
 |-----|---------|
+| https://healthcenter.lk | Landing / marketing page (public) |
 | https://admin.healthcenter.lk | Super admin panel |
 | https://demo.healthcenter.lk | Demo clinic |
 | https://clinicname.healthcenter.lk | Any new clinic (auto-created) |
@@ -139,6 +140,32 @@ server {
     }
 }
 ```
+
+### /etc/nginx/sites-available/healthcenter.lk (root domain → landing page, added 2026-04-22)
+```nginx
+server {
+    listen 443 ssl;
+    server_name healthcenter.lk;
+    ssl_certificate     /etc/letsencrypt/live/healthcenter.lk/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/healthcenter.lk/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    root /var/www/clinicpos/landing-frontend;
+    index index.html;
+    location /api/ {
+        proxy_pass         http://localhost:4000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+> HTTP → HTTPS redirect for the root domain is handled by the existing `clinicpos-clinic` block which includes `healthcenter.lk` in its port-80 `server_name`. Nginx warns about "conflicting server_name on 0.0.0.0:80" — this is harmless.
 
 ### /etc/nginx/sites-available/clinicpos-admin
 ```nginx
@@ -261,6 +288,12 @@ node src/db/migrate_queue_display.js
 node -r dotenv/config src/db/migrate_subscription_plans.js
 node -r dotenv/config src/db/migrate_update_plans.js
 node -r dotenv/config src/db/migrate_plan_billing_cycle.js
+
+# Platform settings table (landing page toggle) — added 2026-04-22
+node -r dotenv/config src/db/migrate_platform_settings.js
+
+# Patch new-clinic schema gaps — added 2026-04-22
+node -r dotenv/config src/db/migrate_fix_new_clinics.js
 ```
 
 > **Note:** `migrate_subscription_plans.js` must be run with `-r dotenv/config` or it runs silently without error and creates nothing.
@@ -291,7 +324,8 @@ This makes every clinic's frontend call its own subdomain's `/api/v1` — which 
 ```bash
 ssh root@178.128.98.34
 cd /var/www/clinicpos
-git pull origin master
+git config --global --add safe.directory /var/www/clinicpos   # if git complains about ownership
+git pull origin development
 
 # If backend changed:
 cd /var/www/clinicpos/backend-api
@@ -306,6 +340,8 @@ npm run build
 cd /var/www/clinicpos/admin-frontend
 npm run build
 
+# landing-frontend — no build needed (plain HTML, served directly by nginx)
+
 systemctl reload nginx
 ```
 
@@ -314,48 +350,61 @@ systemctl reload nginx
 ## Branch Strategy
 
 ```
-develop   → daily coding (local machine)
-master    → production-ready code only
-server    → always pulls from master
+development → daily coding (local machine + server pulls from here)
+main        → backup / archive
 ```
 
 ```bash
-# Daily work on develop
-git checkout develop
+# Daily work on development branch
+git checkout development
 # ... write code ...
 git add .
-git commit -m "[feature] description"
-git push origin develop
-
-# When ready to deploy
-git checkout master
-git merge develop
-git push origin master
+git commit -m "description"
+git push origin development
 
 # Then on server:
 ssh root@178.128.98.34
-cd /var/www/clinicpos && git pull origin master
+cd /var/www/clinicpos && git pull origin development
 # rebuild + restart (see above)
 ```
 
 ---
 
-## Known Bug Found at End of Session (UNRESOLVED)
+## Post-Deployment Bugs Fixed (2026-04-22)
 
-**Problem:** When a new clinic is created from the admin panel, the `createTenantSchema()` function only creates the **base tables**. The pharmacy, lab, insurance, portal, and other addon migration scripts do NOT run automatically for the new tenant schema.
+### Bug 1 — New clinic Settings page "Server error" ✅ FIXED
 
-**Symptoms:**
-- Settings page → Clinic Details → Save → `Server error`
-- Online Booking toggle → `Server error`
-- Anything that touches addon tables (lab_requests, insurance_claims, etc.) fails
+**Root cause:** `createTenantSchema.js` only created base tables. All addon tables (pharmacy, lab, insurance) added via standalone migrations were never backported. New clinics were missing `queue_display_enabled` column + ~10 tables.
 
-**Root cause:** The per-tenant migrations (migrate_pharmacy, migrate_lab, etc.) are standalone scripts that were designed to be run once against existing tenants. `createTenantSchema.js` (called on new clinic creation) does not include these addon tables.
+**Fix:** Backported all missing columns and tables into `createTenantSchema.js`. Created `migrate_fix_new_clinics.js` to patch existing schemas. Run on server:
+```bash
+node -r dotenv/config src/db/migrate_fix_new_clinics.js
+# Output: ✓ Fixed tenant_demo, ✓ Fixed tenant_familycare
+```
 
-**Fix needed:** Either:
-1. Add all addon table definitions directly into `createTenantSchema.js` so every new clinic gets everything on creation, OR
-2. Call all migration scripts automatically after tenant creation in `admin.routes.js`
+---
 
-**Priority:** High — affects every newly created clinic.
+### Bug 2 — Basic plan auto-suspends immediately ✅ FIXED
+
+**Root cause:** `pg` returns DATE columns as JS `Date` objects. `String(new Date()).split('T')[0]` = `''` (no 'T' in locale date string) → always less than any date → every clinic suspended.
+
+**Fix:** Changed to `new Date(val).toISOString().split('T')[0]` in `tenant.js` and `admin.routes.js` renew route.
+
+---
+
+### Bug 3 — Logo not visible in production ✅ FIXED
+
+**Root cause:** `mediaUrl.js` used `VITE_API_URL || 'http://localhost:4000'` — in production `VITE_API_URL` is empty, so all image URLs pointed to localhost.
+
+**Fix:** `mediaUrl.js` now uses `window.location.origin + path`.
+
+---
+
+### Bug 4 — healthcenter.lk redirected to admin panel ✅ FIXED
+
+**Root cause:** Nginx wildcard `*.healthcenter.lk` only covers subdomains — the apex domain fell through to the admin block (first `server {}` in config).
+
+**Fix:** Added `/etc/nginx/sites-available/healthcenter.lk` dedicated block (see Nginx section below).
 
 ---
 

@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Subscription billing management complete — Phase 6 deployment next
-**Last updated:** 2026-04-20
-**Next up:** Phase 6 — deployment, production setup, payment gateway integration
+**Currently working on:** Production live — landing page deployed, bugs fixed, polling added
+**Last updated:** 2026-04-22
+**Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
 
 ### What is fully complete right now
 
@@ -66,9 +66,16 @@
 | Token Numbers on List Pages | ✅ Token numbers now clearly displayed on `/billing` table (blue circle badge), `/prescriptions` cards (left-panel column), `/consultations` cards (left-panel column). Phone number added to patient cell on all three pages. Backend queries updated to JOIN through consultations→appointments for token_number on prescriptions and invoices. (2026-04-19) |
 | Left-Panel Token Card Design — Consultations + Prescriptions | ✅ Both pages now use the same left-panel design as AppointmentsPage: `w-20 shrink-0 py-4` column, blue `bg-[var(--color-primary)]` background when token exists, `text-5xl font-black` token number, "Token" label. Fallback shows first letter of patient name (consultations) or "Rx" label (prescriptions) in muted style when no token. Appointment card height and layout was NOT changed — only the other two pages received this design. (2026-04-19) |
 | Lab Requests in Consultations + Prescriptions Modals | ✅ Consultation detail modal and Prescription detail modal now show lab tests ordered during the same consultation. Backend: `GET /consultations/:id` and `GET /prescriptions/:id` both run a second query fetching `lab_requests + lab_tests + lab_results` WHERE `consultation_id = ?`. Frontend modals show test name, code, category, Done/Pending status badge, result value + unit + reference range + result notes when available. (2026-04-19) |
+| **Production Deployment** | ✅ Full deployment to healthcenter.lk on DigitalOcean Singapore (178.128.98.34). Ubuntu 24.04, Node 20, PostgreSQL 16, Nginx, PM2, Let's Encrypt wildcard SSL. All migrations run. All 3 apps built and served. Super admin: admin.healthcenter.lk, Demo: demo.healthcenter.lk. (2026-04-21) |
+| **New Clinic Schema Fix** | ✅ `createTenantSchema.js` was missing `queue_display_enabled` + all addon tables (pharmacy, lab, insurance). Audited all 13 migration scripts and backported every missing column/table. Created `migrate_fix_new_clinics.js` to repair all existing schemas. Ran on server — fixed `tenant_demo` and `tenant_familycare`. (2026-04-22) |
+| **Basic Plan Auto-Suspension Fix** | ✅ `pg` returns DATE columns as JS Date objects. `String(dateObj).split('T')[0]` = `''` which is always `<` any date string → every plan immediately triggered auto-suspend. Fixed: `new Date(val).toISOString().split('T')[0]` in `tenant.js` middleware and `admin.routes.js` renew route. (2026-04-22) |
+| **Logo Display Fix** | ✅ `mediaUrl.js` fell back to `http://localhost:4000` when `VITE_API_URL` was empty (intentional in production). Fixed: uses `window.location.origin + path`. Added `/uploads` proxy to `vite.config.js` for local dev. (2026-04-22) |
+| **Live Dashboard & Queue Auto-Polling** | ✅ All 4 role dashboards + AppointmentsPage poll every 30s silently. DisplayPage (TV screen) polls every 10s. `useCallback` with `silent` param skips loading spinner on background polls. (2026-04-22) |
+| **Landing Page — healthcenter.lk** | ✅ `landing-frontend/index.html` — standalone marketing page with features, How It Works, dynamic pricing from `/api/v1/public/landing`, testimonials, CTA. Nginx root domain block serves it. (2026-04-22) |
+| **Platform Settings (Super Admin)** | ✅ `public.platform_settings` table. `GET/PUT /api/v1/admin/platform` endpoints. `GET /api/v1/public/landing` public endpoint. Admin Dashboard → Platform Settings card with landing page toggle. `migrate_platform_settings.js` run on server. (2026-04-22) |
+| **Nginx Root Domain Fix** | ✅ Added dedicated nginx server block for `healthcenter.lk` apex domain → `landing-frontend/`. Wildcard `*.healthcenter.lk` only covered subdomains, not root. (2026-04-22) |
 
 ### What is NOT yet started
-- Phase 6 — Beta & launch (deployment, onboarding)
 - Phase 7 — Electron desktop version
 
 ### Small items deferred (documented but not started)
@@ -78,6 +85,11 @@
 | `duplicate_check_enabled` backend logic | Phase 6 |
 | Session timeout backend enforcement | Phase 6 |
 | PDF export for all reports | Phase 6 |
+| Payment gateway integration (LKR online payments) | Phase 6 |
+| SMS/WhatsApp appointment reminders | Phase 6 |
+| Super admin system health (CPU/memory/uptime) | Phase 6 |
+| Super admin audit log viewer | Phase 6 |
+| Lab result notification to patient | Phase 6 |
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
 | System health display in admin panel | Phase 6 |
 | Audit log viewer | Phase 6 |

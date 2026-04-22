@@ -6,8 +6,8 @@
 
 ---
 
-## Last updated: 2026-04-20
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management.
+## Last updated: 2026-04-22
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management + Production deployment (healthcenter.lk) + Schema completeness fix + Date comparison bug fix + Logo display fix + Auto-polling dashboards + Landing page + Platform settings.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -440,12 +440,15 @@ Patient (PT-XXXXX)
 | 4 Super Admin Panel | ✅ Complete (core) | Login, clinic list/create/edit/suspend/activate, feature flag toggles, impersonation; health/audit deferred to Phase 5 |
 | 4 Super Admin UI Rebuild | ✅ Complete | Full DESIGN.md-compliant UI — CSS variables, dark mode, Radix Dialog modals, matching sidebar/TopBar layout, Inter font, ConfirmDialog, EmptyState (2026-04-18) |
 | Subscription Billing | ✅ Complete | Plans CRUD (PlansPage), all-clinics subscription view (SubscriptionsPage), assign/renew from ClinicDetailPage, clinic admin view (SubscriptionPage), auto-suspend on expiry (2026-04-20) |
+| **Auto-Polling** | ✅ Complete | All 4 role dashboards + AppointmentsPage: 30s silent background poll. DisplayPage: 10s. `useCallback(load, silent)` pattern — background polls skip loading spinner. (2026-04-22) |
+| **Landing Page** | ✅ Complete | `landing-frontend/index.html` standalone marketing page at healthcenter.lk. Features, pricing from API, testimonials, CTA. Public `GET /api/v1/public/landing` endpoint. Super admin toggle in Dashboard. (2026-04-22) |
+| **Platform Settings** | ✅ Complete | `public.platform_settings` key-value table. `GET/PUT /api/v1/admin/platform` (super admin). Admin Dashboard → Platform Settings card with landing page toggle switch. (2026-04-22) |
 | UI Polish | ✅ Complete | Dark mode, DatePicker, Inter font, improved Select, bg-white audit |
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
 | 5.3 Insurance | ✅ Complete | Claims (CLM-XXXXX auto-number), Insurance Providers, Corporate Accounts + monthly billing summary; admin + receptionist full, doctor view-only |
 | 5.4 Patient Portal | ✅ Complete | Public `/book` page (no login), BK-XXXXXX booking reference, Settings toggle + URL share, Online badge in queue, enhanced Doctor dashboard (Now Seeing + Next Up); UI redesigned full-width dark/light CSS-variable themed with clinic logo (2026-04-17) |
-| 5.5 Queue Display | ✅ Complete | Public `/display` TV screen (no login), per-doctor grid (auto-adjusting columns), now_seeing + next_up + token chips, real-time clock, 30s auto-refresh, fullscreen API, online/offline indicator, emergency badges; Settings toggle + shareable URL (2026-04-18) |
+| 5.5 Queue Display | ✅ Complete | Public `/display` TV screen (no login), per-doctor grid (auto-adjusting columns), now_seeing + next_up + token chips, real-time clock, **10s auto-refresh** (changed from 30s), fullscreen API, online/offline indicator, emergency badges; Settings toggle + shareable URL (2026-04-18, refresh interval updated 2026-04-22) |
 | Dispense Confirmation Modal | ✅ Complete | Reusable `DispenseModal` used in PharmacyPage, PrescriptionsPage, InvoiceModal; shows allergy warning, medicines table with stock levels, LOW stock highlighted red (2026-04-18) |
 | Staff Management | ✅ Complete | Admin creates/edits/deactivates staff (all roles). Reset-password. Grouped by role. `/api/v1/staff` backend. `/staff` page in clinic-frontend. |
 | SaaS Onboarding | ✅ Complete | Clinic creation auto-creates first admin staff. Credentials copy screen. No trial/plan system. Super admin manually activates/suspends. |
@@ -740,6 +743,12 @@ Public route (no JWT). Returns:
 | Super admin audit log viewer | Phase 6 (remaining) |
 | Super admin trial management UI | ✅ Replaced with subscription plan management (PlansPage + SubscriptionsPage + ClinicDetailPage subscription card) — 2026-04-20 |
 | Subscription billing management | ✅ Done (2026-04-20) — subscription_plans table, plan CRUD, assign/renew per clinic, auto-suspend, clinic admin view |
+| Live data without manual refresh (polling) | ✅ Done (2026-04-22) — 30s polling on all dashboards + appointments; 10s on display TV |
+| Landing page for healthcenter.lk | ✅ Done (2026-04-22) — `landing-frontend/index.html`, public API endpoint, super admin toggle |
+| healthcenter.lk root domain redirect | ✅ Done (2026-04-22) — dedicated nginx block for apex domain → landing page |
+| New clinic schema completeness | ✅ Done (2026-04-22) — `createTenantSchema.js` now includes all addon tables; `migrate_fix_new_clinics.js` patched existing schemas |
+| Basic plan auto-suspension (Date bug) | ✅ Done (2026-04-22) — `new Date(val).toISOString()` used everywhere for date comparisons |
+| Logo not displaying in production | ✅ Done (2026-04-22) — `mediaUrl.js` now uses `window.location.origin` |
 | Session timeout enforcement (backend) | Phase 6 — UI setting exists but JWT expiry not yet driven by it |
 | `patient_portal_enabled` setting UI | ✅ Done (Phase 5.4) — toggle in Settings → Security tab |
 | Invoice auto-pull missing medicines | ✅ Fixed (2026-04-17) — `COALESCE(m.selling_price, 0)` includes all medicines |

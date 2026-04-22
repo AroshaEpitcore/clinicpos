@@ -128,6 +128,89 @@ These tests failed due to wrong assumptions in the test script, not actual backe
 
 ---
 
+---
+
+## Bug #9 — Settings page "Server error" on new clinics
+
+**File:** `backend-api/src/db/createTenantSchema.js`  
+**Severity:** High  
+**Found:** 2026-04-22 — familycare.healthcenter.lk could not toggle Patient Portal or Waiting Room Display
+
+**Problem:**  
+`createTenantSchema.js` did not include `queue_display_enabled` in the `clinic_settings` INSERT. The `PUT /settings` route references this column unconditionally, so new clinics always got a 500. Demo clinic worked because `migrate_queue_display.js` had already patched its schema.
+
+**Root cause (wider):** All addon module tables (pharmacy, lab, insurance) were added via standalone one-shot migration scripts that only ran on existing schemas. These were never backported to `createTenantSchema.js`, meaning every clinic created after those migrations was missing ~10 tables and 3 columns.
+
+**Fix:**
+- Added `queue_display_enabled BOOLEAN DEFAULT FALSE` to `clinic_settings` in `createTenantSchema.js`
+- Added dispensing columns (`is_dispensed`, `dispensed_at`, `dispensed_by`) to `prescriptions`
+- Added full pharmacy tables: `suppliers`, `purchase_orders`, `purchase_order_items`, `stock_adjustments`
+- Added full lab tables: `lab_tests`, `lab_requests`, `lab_results` with 12 seeded tests
+- Added full insurance tables: `insurance_providers`, `corporate_accounts`, `insurance_claims` with 4 seeded providers
+- Added `ALTER TABLE patients ADD COLUMN IF NOT EXISTS corporate_account_id` after `corporate_accounts`
+- Created `migrate_fix_new_clinics.js` — iterates all `tenant_*` schemas and patches them using `IF NOT EXISTS` guards (safe to re-run). Ran on server: fixed `tenant_demo` and `tenant_familycare`.
+
+---
+
+## Bug #10 — Basic plan auto-suspends immediately after assignment
+
+**File:** `backend-api/src/middleware/tenant.js` and `backend-api/src/routes/admin.routes.js`  
+**Severity:** High  
+**Found:** 2026-04-22 — assigning the Basic plan to any clinic instantly suspended it; renewing also triggered suspension
+
+**Problem:**  
+The PostgreSQL `pg` library returns `DATE` columns as JavaScript `Date` objects, not strings. The auto-suspend check was:
+```javascript
+const endStr = String(tenant.subscription_end).split('T')[0];
+if (endStr < today) { /* suspend */ }
+```
+`String(new Date('2026-05-21'))` → `'Thu May 21 2026 00:00:00 GMT+0000 (UTC)'`  
+`.split('T')[0]` → `''` (empty string — there is no `T` in that format)  
+`'' < '2026-04-22'` → always `true` → every active clinic with any plan auto-suspended.
+
+Standard plan appeared to work only because it had already been tested with a direct DB fix.
+
+Same bug existed in the renew route when calculating the base date for extension.
+
+**Fix:**
+```javascript
+// tenant.js
+const endStr = new Date(tenant.subscription_end).toISOString().split('T')[0];
+
+// admin.routes.js renew route
+const current = tenant.subscription_end
+  ? new Date(tenant.subscription_end).toISOString().split('T')[0]
+  : null;
+```
+`new Date(dateValue).toISOString()` handles both string and Date object returns from `pg`, always producing `'2026-05-21T00:00:00.000Z'` — `.split('T')[0]` = `'2026-05-21'` — comparison works correctly.
+
+---
+
+## Bug #11 — Logo not displaying in production after upload
+
+**File:** `clinic-frontend/src/utils/mediaUrl.js`  
+**Severity:** Medium  
+**Found:** 2026-04-22 — logos uploaded fine, appeared on the upload preview, but never rendered anywhere else in the app on production
+
+**Problem:**  
+`mediaUrl.js` built URLs using `VITE_API_URL`:
+```javascript
+return (import.meta.env.VITE_API_URL || 'http://localhost:4000') + path;
+```
+In production `VITE_API_URL` is intentionally left empty (frontend proxies `/api` via Nginx). The empty string triggered the `|| 'http://localhost:4000'` fallback — so all logo URLs pointed to `http://localhost:4000/uploads/...` which is unreachable from the browser.
+
+**Fix:**
+```javascript
+export function mediaUrl(path) {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return window.location.origin + path;
+}
+```
+Uses `window.location.origin` (e.g. `https://familycare.healthcenter.lk`) so the path resolves correctly in both production and local dev. Added `/uploads` proxy entry to `vite.config.js` for local dev.
+
+---
+
 ## Fix Status
 
 | # | Bug | Severity | Status |
@@ -140,3 +223,6 @@ These tests failed due to wrong assumptions in the test script, not actual backe
 | 6 | Receptionist cannot access reports | Medium | ✅ Fixed |
 | 7 | Invalid patient ID causes 500 | Low | ✅ Fixed |
 | 8 | Invalid date causes 500 in appointments | Low | ✅ Fixed |
+| 9 | Settings server error on new clinics (missing schema columns/tables) | High | ✅ Fixed |
+| 10 | Basic plan auto-suspends — Date object `.split('T')` returns empty string | High | ✅ Fixed |
+| 11 | Logo not displaying in production — `mediaUrl.js` localhost fallback | Medium | ✅ Fixed |
