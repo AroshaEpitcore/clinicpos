@@ -424,7 +424,7 @@ export default function PrescriptionsPage() {
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)] mb-2">
                 Medicines ({selectedRx.items?.length || 0})
               </p>
-              <div className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
+              <div className="rounded-[var(--radius)] border border-[var(--color-border)] overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">

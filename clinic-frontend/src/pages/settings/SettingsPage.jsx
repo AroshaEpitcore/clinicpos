@@ -750,7 +750,7 @@ function DoctorFeesTab() {
       <p className="text-sm text-[var(--color-text-secondary)]">
         Set the consultation fee for each doctor. Upload a signature image (JPG/PNG) to appear on printed and PDF prescriptions.
       </p>
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">
@@ -944,7 +944,7 @@ function CustomServicesTab() {
         </div>
       )}
 
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">

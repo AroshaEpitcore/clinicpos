@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
@@ -18,30 +18,41 @@ const NAV_ITEMS = [
   { label: 'Billing',       icon: Receipt,          href: '/billing',       roles: ['receptionist', 'admin'] },
   { label: 'Pharmacy',      icon: Package,          href: '/pharmacy',      roles: ['receptionist', 'admin'],         flag: 'pharmacy' },
   { label: 'Lab',           icon: FlaskConical,     href: '/lab',           roles: ['doctor', 'nurse', 'admin', 'receptionist'], flag: 'lab' },
-  { label: 'Insurance',    icon: Shield,           href: '/insurance',     roles: ['receptionist', 'admin', 'doctor'],          flag: 'insurance' },
+  { label: 'Insurance',     icon: Shield,           href: '/insurance',     roles: ['receptionist', 'admin', 'doctor'], flag: 'insurance' },
   { label: 'Staff',         icon: UserCog,          href: '/staff',         roles: ['admin'] },
-  { label: 'Reports',        icon: BarChart2,   href: '/reports',       roles: ['admin'] },
-  { label: 'Settings',       icon: Settings,    href: '/settings',      roles: ['admin'] },
-  { label: 'Subscription',   icon: CreditCard,  href: '/subscription',  roles: ['admin'] },
-  { label: 'Help & Guide',   icon: BookOpen,    href: '/help',          roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
+  { label: 'Reports',       icon: BarChart2,        href: '/reports',       roles: ['admin'] },
+  { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
+  { label: 'Subscription',  icon: CreditCard,       href: '/subscription',  roles: ['admin'] },
+  { label: 'Help & Guide',  icon: BookOpen,         href: '/help',          roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
 ];
 
-export function Sidebar({ collapsed }) {
+export function Sidebar({ collapsed, isMobile, mobileOpen, onMobileClose }) {
   const { user, tenantFlags, clinic } = useAuth();
 
   const visibleItems = NAV_ITEMS.filter(item => {
     if (!item.roles.includes(user?.role)) return false;
-    if (item.flag && !tenantFlags[item.flag])  return false;
+    if (item.flag && !tenantFlags[item.flag]) return false;
     return true;
   });
 
+  const showLabels = isMobile ? true : !collapsed;
+  const sidebarWidth = isMobile ? '240px' : (collapsed ? '64px' : '240px');
+
+  const sidebarStyle = isMobile
+    ? {
+        width: '240px',
+        transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.3s ease-in-out',
+      }
+    : {
+        width: sidebarWidth,
+        transition: 'width 0.3s ease-in-out',
+      };
+
   return (
     <aside
-      className={clsx(
-        'fixed top-0 left-0 h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col z-30',
-        'transition-[width] duration-300 ease-in-out overflow-hidden'
-      )}
-      style={{ width: collapsed ? '64px' : '240px' }}
+      className="fixed top-0 left-0 h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col z-50 overflow-hidden"
+      style={sidebarStyle}
     >
       {/* Clinic branding */}
       <div
@@ -55,7 +66,7 @@ export function Sidebar({ collapsed }) {
             {clinic?.name?.charAt(0) || 'C'}
           </div>
         )}
-        {!collapsed && (
+        {showLabels && (
           <span className="text-sm font-semibold text-[var(--color-text)] truncate">
             {clinic?.name || 'ClinicPOS'}
           </span>
@@ -68,11 +79,12 @@ export function Sidebar({ collapsed }) {
           <NavLink
             key={item.href}
             to={item.href}
-            title={collapsed ? item.label : undefined}
+            title={!showLabels ? item.label : undefined}
+            onClick={isMobile ? onMobileClose : undefined}
             className={({ isActive }) =>
               clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius)] text-sm font-medium transition-colors mb-0.5',
-                collapsed && 'justify-center',
+                !showLabels && 'justify-center',
                 isActive
                   ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
                   : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
@@ -80,18 +92,18 @@ export function Sidebar({ collapsed }) {
             }
           >
             <item.icon className="w-5 h-5 shrink-0" />
-            {!collapsed && <span className="truncate">{item.label}</span>}
+            {showLabels && <span className="truncate">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
       {/* User info */}
       <div className="border-t border-[var(--color-border)] p-3">
-        <div className={clsx('flex items-center gap-3 px-2 py-2', collapsed && 'justify-center')}>
+        <div className={clsx('flex items-center gap-3 px-2 py-2', !showLabels && 'justify-center')}>
           <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-[var(--color-primary)] text-sm font-semibold shrink-0">
             {user?.name?.charAt(0) || '?'}
           </div>
-          {!collapsed && (
+          {showLabels && (
             <div className="overflow-hidden">
               <p className="text-xs font-medium text-[var(--color-text)] truncate">{user?.name}</p>
               <p className="text-xs text-[var(--color-text-secondary)] capitalize">{user?.role}</p>

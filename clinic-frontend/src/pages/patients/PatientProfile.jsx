@@ -436,7 +436,7 @@ function BillingTab({ patientId }) {
       </div>
 
       {/* Invoice list */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-[var(--color-bg)] border-b border-[var(--color-border)]">

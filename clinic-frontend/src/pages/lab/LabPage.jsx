@@ -834,7 +834,7 @@ function CatalogTab() {
               <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2 px-1">
                 {category}
               </h3>
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] overflow-hidden">
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">

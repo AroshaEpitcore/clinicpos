@@ -526,7 +526,10 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
         ? 'border-[var(--color-danger)]'
         : 'border-[var(--color-border)]'
     }`}>
-      <div className="flex items-stretch">
+      <div className="flex flex-col sm:flex-row items-stretch">
+
+        {/* Token + info row */}
+        <div className="flex items-stretch flex-1 min-w-0">
 
         {/* ── Token column ─────────────────────────────────────── */}
         <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${
@@ -599,8 +602,10 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
           </div>
         </div>
 
-        {/* ── Actions column — fixed width keeps border aligned on every card ── */}
-        <div className="flex items-center justify-end gap-1.5 px-3 py-3 bg-[var(--color-surface)] shrink-0 border-l border-[var(--color-border)] w-[300px]">
+        </div>{/* end token+info row */}
+
+        {/* ── Actions column ── */}
+        <div className="flex items-center justify-end gap-1.5 px-3 py-3 bg-[var(--color-surface)] shrink-0 border-t sm:border-t-0 sm:border-l border-[var(--color-border)] sm:w-[300px]">
           {canConsult && (
             <Button size="sm" onClick={onConsult}>Consult</Button>
           )}

@@ -310,6 +310,7 @@ function RxCard({ rx, expanded, onToggle, onDispense, dispensing }) {
               <p className="text-xs font-medium">Allergy note: {rx.allergies}</p>
             </div>
           )}
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-[var(--color-text-secondary)]">
@@ -337,6 +338,7 @@ function RxCard({ rx, expanded, onToggle, onDispense, dispensing }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
@@ -439,7 +441,7 @@ function PurchaseOrdersTab() {
           }
         />
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
@@ -738,7 +740,7 @@ function SuppliersTab() {
           }
         />
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
@@ -881,7 +883,7 @@ function AdjustmentsTab() {
       {loading ? <LoadingState message="Loading adjustments..." /> : adjustments.length === 0 ? (
         <EmptyState icon={SlidersHorizontal} title="No adjustments logged" description="Record when stock is damaged, expired, or manually corrected." action={<Button size="sm" onClick={() => setModalOpen(true)}>+ Log Adjustment</Button>} />
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">

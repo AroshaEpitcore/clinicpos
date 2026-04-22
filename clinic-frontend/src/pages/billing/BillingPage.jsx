@@ -218,7 +218,7 @@ export default function BillingPage() {
           action={bq ? <Button size="sm" variant="secondary" onClick={() => setSearch('')}>Clear search</Button> : undefined}
         />
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
