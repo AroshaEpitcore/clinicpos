@@ -1,33 +1,78 @@
 const router = require('express').Router();
 const { queryPublic } = require('../config/db');
 
+// Keys returned publicly (no sensitive data)
+const PUBLIC_KEYS = [
+  'landing_page_enabled',
+  'company_name', 'company_tagline',
+  'support_email', 'sales_email',
+  'phone_primary', 'phone_whatsapp',
+  'address_line1', 'address_line2', 'city', 'country',
+];
+
 // ── GET /api/v1/public/landing ────────────────────────────────────────────────
-// Returns platform settings + active plans for the landing page.
-// No authentication required.
 router.get('/landing', async (req, res) => {
   try {
-    const settingRes = await queryPublic(
-      `SELECT value FROM public.platform_settings WHERE key = 'landing_page_enabled'`
-    );
-    const enabled = settingRes.rows.length === 0 || settingRes.rows[0].value === 'true';
+    const [settingsRes, plansRes] = await Promise.all([
+      queryPublic(`SELECT key, value FROM public.platform_settings WHERE key = ANY($1)`, [PUBLIC_KEYS]),
+      queryPublic(
+        `SELECT id, name, description, billing_cycle, monthly_price, yearly_price
+         FROM public.subscription_plans
+         WHERE is_active = TRUE
+         ORDER BY monthly_price ASC, yearly_price ASC`
+      ),
+    ]);
 
-    if (!enabled) {
-      return res.json({ status: 'success', data: { enabled: false, plans: [] } });
-    }
+    const settings = {};
+    settingsRes.rows.forEach(r => { settings[r.key] = r.value; });
 
-    const plansRes = await queryPublic(
-      `SELECT id, name, description, billing_cycle, monthly_price, yearly_price
-       FROM public.subscription_plans
-       WHERE is_active = TRUE
-       ORDER BY monthly_price ASC, yearly_price ASC`
-    );
+    const enabled = settings.landing_page_enabled !== 'false';
 
     res.json({
       status: 'success',
-      data: { enabled: true, plans: plansRes.rows },
+      data: {
+        enabled,
+        plans:   enabled ? plansRes.rows : [],
+        contact: {
+          company_name:    settings.company_name    || 'HealthCenter.lk',
+          company_tagline: settings.company_tagline || '',
+          support_email:   settings.support_email   || '',
+          sales_email:     settings.sales_email     || '',
+          phone_primary:   settings.phone_primary   || '',
+          phone_whatsapp:  settings.phone_whatsapp  || '',
+          address_line1:   settings.address_line1   || '',
+          address_line2:   settings.address_line2   || '',
+          city:            settings.city            || '',
+          country:         settings.country         || 'Sri Lanka',
+        },
+      },
     });
   } catch (err) {
     console.error('GET /public/landing', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── GET /api/v1/public/platform-info ─────────────────────────────────────────
+// Returns non-sensitive platform info for display in clinic apps.
+router.get('/platform-info', async (req, res) => {
+  try {
+    const result = await queryPublic(
+      `SELECT key, value FROM public.platform_settings WHERE key = ANY($1)`,
+      [[
+        'company_name', 'company_tagline',
+        'support_email', 'sales_email',
+        'phone_primary', 'phone_whatsapp',
+        'address_line1', 'address_line2', 'city', 'country',
+        'bank_name', 'bank_account_name', 'bank_account_number',
+        'bank_branch', 'bank_swift_code', 'payment_instructions',
+      ]]
+    );
+    const info = {};
+    result.rows.forEach(r => { info[r.key] = r.value; });
+    res.json({ status: 'success', data: info });
+  } catch (err) {
+    console.error('GET /public/platform-info', err);
     res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });

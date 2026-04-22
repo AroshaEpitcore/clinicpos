@@ -660,7 +660,7 @@ router.get('/platform', async (req, res) => {
 });
 
 // ── PUT /api/v1/admin/platform ────────────────────────────────────────────────
-// Body: { key: 'landing_page_enabled', value: 'true' | 'false' }
+// Body: { key: '...', value: '...' }  — single key update
 router.put('/platform', async (req, res) => {
   const { key, value } = req.body;
   if (!key || value === undefined) {
@@ -676,6 +676,30 @@ router.put('/platform', async (req, res) => {
     res.json({ status: 'success', message: 'Setting updated' });
   } catch (err) {
     console.error('PUT /admin/platform', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PUT /api/v1/admin/platform/batch ─────────────────────────────────────────
+// Body: { settings: { key: value, ... } }  — bulk update
+router.put('/platform/batch', async (req, res) => {
+  const { settings } = req.body;
+  if (!settings || typeof settings !== 'object') {
+    return res.status(400).json({ status: 'error', message: 'settings object required' });
+  }
+  try {
+    const entries = Object.entries(settings);
+    for (const [key, value] of entries) {
+      await queryPublic(
+        `INSERT INTO public.platform_settings (key, value, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+        [key, String(value ?? '')]
+      );
+    }
+    res.json({ status: 'success', message: `${entries.length} settings saved` });
+  } catch (err) {
+    console.error('PUT /admin/platform/batch', err);
     res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });

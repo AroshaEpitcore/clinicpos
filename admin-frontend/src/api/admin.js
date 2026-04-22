@@ -62,8 +62,9 @@ export const adminSubscriptionsApi = {
 };
 
 export const adminPlatformApi = {
-  get:    ()           => api.get('/platform'),
-  set:    (key, value) => api.put('/platform', { key, value }),
+  get:      ()               => api.get('/platform'),
+  set:      (key, value)     => api.put('/platform', { key, value }),
+  setBatch: (settings)       => api.put('/platform/batch', { settings }),
 };
 
 export default api;

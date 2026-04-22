@@ -1325,16 +1325,20 @@
     <div class="cta-inner">
       <div class="eyebrow" style="justify-content:center">Ready to get started?</div>
       <h2>Modernise your clinic <span class="gradient-text">today</span></h2>
-      <p>Join clinics across Sri Lanka already saving time and growing with HealthCenter.lk. Contact us for a free demo and setup.</p>
-      <div class="cta-actions">
-        <a href="mailto:info@healthcenter.lk" class="btn-hero-primary">
+      <p>Join clinics across Sri Lanka already saving time and growing with HealthCenter.lk. Contact us for a free demo and personalised setup.</p>
+      <div class="cta-actions" id="cta-actions">
+        <a href="mailto:info@healthcenter.lk" id="cta-email" class="btn-hero-primary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5M2 4h12v8H2V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
           Email Us to Get Started
         </a>
-        <a href="tel:+94XXXXXXXXX" class="btn-hero-secondary">
+        <a href="#" id="cta-phone" class="btn-hero-secondary" style="display:none">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h3l1.5 3.5L6 7s1 2 3 3l1.5-1.5L14 10v3a1 1 0 0 1-1 1C5.5 14 2 7.5 2 3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-          Call Us
+          <span id="cta-phone-text">Call Us</span>
         </a>
+      </div>
+      <!-- Contact details strip -->
+      <div id="contact-strip" style="display:none;margin-top:40px;border-top:1px solid rgba(255,255,255,0.08);padding-top:32px">
+        <div id="contact-cards" style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap"></div>
       </div>
     </div>
   </div>
@@ -1348,11 +1352,11 @@
         <div class="nav-logo-mark" style="width:30px;height:30px;border-radius:8px">
           <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2v16M2 10h16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
         </div>
-        <div class="brand-name">Health<em>Center</em>.lk</div>
+        <div class="brand-name" id="footer-brand-name">Health<em>Center</em>.lk</div>
       </div>
-      <div class="footer-copy">© 2026 HealthCenter.lk · All rights reserved</div>
+      <div class="footer-copy" id="footer-copy">© 2026 HealthCenter.lk · All rights reserved</div>
       <div class="footer-links">
-        <a href="mailto:info@healthcenter.lk">info@healthcenter.lk</a>
+        <a href="#" id="footer-email" style="display:none"></a>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
       </div>
@@ -1386,6 +1390,77 @@ function switchRole(role, btn) {
   btn.classList.add('active');
   document.getElementById('role-' + role).classList.add('active');
 }
+
+/* ─── CONTACT INFO ───────────────────────── */
+(async () => {
+  const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+  try {
+    const res  = await fetch(`${apiBase}/api/v1/public/platform-info`);
+    const json = await res.json();
+    const p    = json.data || {};
+
+    // Update CTA email button
+    if (p.sales_email || p.support_email) {
+      const email = p.sales_email || p.support_email;
+      const el = document.getElementById('cta-email');
+      el.href = `mailto:${email}`;
+      el.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5M2 4h12v8H2V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> ${email}`;
+    }
+    // Show phone button
+    if (p.phone_primary) {
+      const el = document.getElementById('cta-phone');
+      el.href = `tel:${p.phone_primary}`;
+      document.getElementById('cta-phone-text').textContent = p.phone_primary;
+      el.style.display = 'inline-flex';
+    }
+
+    // Contact cards strip
+    const cards = [];
+    if (p.phone_primary || p.phone_whatsapp) {
+      cards.push(`
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px 24px;text-align:left;min-width:180px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-sub);margin-bottom:8px">Phone</div>
+          ${p.phone_primary ? `<a href="tel:${p.phone_primary}" style="display:block;font-weight:700;color:var(--text)">${p.phone_primary}</a>` : ''}
+          ${p.phone_whatsapp && p.phone_whatsapp !== p.phone_primary ? `<a href="https://wa.me/${p.phone_whatsapp.replace(/\D/g,'')}" target="_blank" style="display:block;font-size:0.82rem;color:var(--text-sub);margin-top:4px">WhatsApp: ${p.phone_whatsapp}</a>` : ''}
+        </div>`);
+    }
+    if (p.support_email || p.sales_email) {
+      cards.push(`
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px 24px;text-align:left;min-width:220px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-sub);margin-bottom:8px">Email</div>
+          ${p.support_email ? `<a href="mailto:${p.support_email}" style="display:block;font-weight:700;color:var(--text)">${p.support_email}</a>` : ''}
+          ${p.sales_email && p.sales_email !== p.support_email ? `<a href="mailto:${p.sales_email}" style="display:block;font-size:0.82rem;color:var(--text-sub);margin-top:4px">${p.sales_email}</a>` : ''}
+        </div>`);
+    }
+    const addr = [p.address_line1, p.address_line2, p.city, p.country].filter(Boolean).join(', ');
+    if (addr) {
+      cards.push(`
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px 24px;text-align:left;max-width:260px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-sub);margin-bottom:8px">Address</div>
+          <p style="font-size:0.875rem;color:var(--text-sub);line-height:1.5">${addr}</p>
+        </div>`);
+    }
+    if (cards.length) {
+      document.getElementById('contact-cards').innerHTML = cards.join('');
+      document.getElementById('contact-strip').style.display = 'block';
+    }
+
+    // Footer
+    if (p.company_name) {
+      const bn = document.getElementById('footer-brand-name');
+      const [first, ...rest] = p.company_name.split('.');
+      bn.innerHTML = first + (rest.length ? `<em>.${rest.join('.')}</em>` : '');
+      document.getElementById('footer-copy').textContent = `© ${new Date().getFullYear()} ${p.company_name} · All rights reserved`;
+    }
+    if (p.support_email || p.sales_email) {
+      const email = p.support_email || p.sales_email;
+      const el = document.getElementById('footer-email');
+      el.href = `mailto:${email}`;
+      el.textContent = email;
+      el.style.display = 'inline';
+    }
+  } catch (e) { /* silently fail — hardcoded fallbacks remain */ }
+})();
 
 /* ─── PRICING ────────────────────────────── */
 (async () => {

@@ -1,12 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AdminAuthProvider, useAdminAuth } from './store/AdminAuthContext';
 import AdminLayout from './components/layout/AdminLayout';
-import LoginPage           from './pages/LoginPage';
-import DashboardPage       from './pages/DashboardPage';
-import ClinicsPage         from './pages/ClinicsPage';
-import ClinicDetailPage    from './pages/ClinicDetailPage';
-import PlansPage           from './pages/PlansPage';
-import SubscriptionsPage   from './pages/SubscriptionsPage';
+import LoginPage              from './pages/LoginPage';
+import DashboardPage          from './pages/DashboardPage';
+import ClinicsPage            from './pages/ClinicsPage';
+import ClinicDetailPage       from './pages/ClinicDetailPage';
+import PlansPage              from './pages/PlansPage';
+import SubscriptionsPage      from './pages/SubscriptionsPage';
+import PlatformSettingsPage   from './pages/PlatformSettingsPage';
 
 function ProtectedRoute({ children }) {
   const { admin } = useAdminAuth();
@@ -24,6 +25,7 @@ function AppRoutes() {
       <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetailPage /></ProtectedRoute>} />
       <Route path="/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
       <Route path="/subscriptions" element={<ProtectedRoute><SubscriptionsPage /></ProtectedRoute>} />
+      <Route path="/platform-settings" element={<ProtectedRoute><PlatformSettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
