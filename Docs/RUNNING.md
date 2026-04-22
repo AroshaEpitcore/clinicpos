@@ -132,6 +132,12 @@ node -r dotenv/config src/db/migrate_update_plans.js
 
 # Add billing_cycle column to subscription_plans, update Basic/Standard plan defaults
 node -r dotenv/config src/db/migrate_plan_billing_cycle.js
+
+# Platform settings — seeds company/contact/payment/system keys in public.platform_settings
+node -r dotenv/config src/db/migrate_platform_info.js
+
+# Nurse vitals — adds patient_vitals table to all tenant schemas
+node -r dotenv/config src/db/migrate_vitals.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  

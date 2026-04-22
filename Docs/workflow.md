@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-22
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management + Production deployment (healthcenter.lk) + Schema completeness fix + Date comparison bug fix + Logo display fix + Auto-polling dashboards + Landing page redesign (dark UI, role tabs, animated hero) + Platform Settings full page (company/contact/payment/system) + Clinic subscription contact+payment cards + Platform info public API.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management + Production deployment (healthcenter.lk) + Schema completeness fix + Date comparison bug fix + Logo display fix + Auto-polling dashboards + Landing page redesign (dark UI, role tabs, animated hero) + Platform Settings full page (company/contact/payment/system) + Clinic subscription contact+payment cards + Platform info public API + Mobile/tablet responsive layout + Help & User Guide page + Landing page guide.html + Nurse vitals workflow (patient_vitals table, VitalsModal, pre-populate ConsultationModal).
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -24,7 +24,11 @@ ALL bookings get a sequential token number per doctor per date
       ↓
 Patient marked as Arrived
       ↓
-Doctor clicks Consult → ONE modal: vitals + diagnosis + notes + medicines (optional)
+[ NEW ] Nurse opens "Vitals" button → VitalsModal: BP, pulse, SpO2, temperature, weight, height
+        Vitals saved to patient_vitals table (linked to appointment)
+      ↓
+Doctor clicks Consult → ONE modal opens with nurse vitals pre-populated (blue summary banner shown)
+Doctor reviews/adjusts vitals + adds diagnosis + notes + medicines (optional)
       ↓         ← appointment auto-flips to "completed" on Save & Complete
 If medicines were added → Prescription auto-saved in same submit (Rx number shown, Print Rx button activates)
 If no medicines → only consultation saved (Write Rx button stays available for later)
@@ -190,7 +194,7 @@ End-of-Day closing — cash count vs system totals, lock the day
 - Allergies alert (red banner) if allergies on record
 - **Form sections (top to bottom):**
   1. **Chief Complaint** (required) — first field, immediately visible on open
-  2. **Vitals** — BP systolic/diastolic, pulse (bpm), temperature (°C), weight (kg)
+  2. **Vitals** — BP systolic/diastolic, pulse (bpm), temperature (°C), weight (kg). If a nurse recorded vitals before consultation, a **blue banner** appears at the top of the Vitals section showing all nurse values, and BP/pulse/temp/weight fields are pre-populated.
   3. **Clinical Notes** — symptoms, diagnosis, ICD-10 code, doctor's notes
   4. **Follow-up** — optional follow-up date picker
   5. **Medicines** (optional) — embedded prescription section
@@ -247,24 +251,37 @@ End-of-Day closing — cash count vs system totals, lock the day
 
 ### Nurse
 
-**Sidebar access:** Dashboard · Patients · Appointments · Prescriptions · Lab *(if flag ON)*
+**Sidebar access:** Dashboard · Patients · Appointments · Prescriptions · Lab *(if flag ON)* · Help & Guide
 
 #### Dashboard
 - Stat cards: With Doctor (arrived), Waiting, Completed
 - Full list of all patients in clinic today (all statuses) with token, name, doctor, time, status
 - Click patient row → navigates to patient profile
 
-#### What Nurses Can Do
+#### Appointments & Vitals Recording (`/appointments`)
+- Nurse can view the full appointment queue (same page as receptionist/doctor)
+- **Vitals button** appears on every `arrived` appointment row
+- Click **Vitals** → **VitalsModal** opens:
+  - Fetches any existing vitals for the appointment (shows "Recorded" badge if found)
+  - Fields: BP systolic/diastolic (mmHg), Pulse (bpm), SpO2 (%), Temperature (°C), Weight (kg), Height (cm), Notes
+  - If vitals already exist → pre-populates all fields for editing
+  - Save → upserts `patient_vitals` record linked to the appointment
+  - Toast: "Vitals recorded" or "Vitals updated"
+- Nurse **cannot** change appointment status (no Arrived/Cancel/Complete buttons)
+- Nurse **cannot** write consultations or prescriptions
+
+#### What Nurses Can Also Do
 - Browse patient list and open patient profiles (read-only)
 - View all tabs on patient profile — overview, visits, prescriptions, billing
 - View prescriptions by date on the Prescriptions page
 - Print prescriptions from the Prescriptions page
+- View Help & Guide page
 
 #### Lab *(if lab flag ON)*
 - Can view Lab Queue and enter results (same as other roles)
 - **Cannot** create lab requests or add/edit/delete tests from catalog
 
-**Cannot do:** Register or edit patients · Add to queue · Write consultations · Write prescriptions · Access Medicine Store
+**Cannot do:** Register or edit patients · Add to queue / change appointment status · Write consultations · Write prescriptions · Access Medicine Store
 
 ---
 
@@ -361,8 +378,10 @@ End-of-Day closing — cash count vs system totals, lock the day
 Patient (PT-XXXXX)
  ├── Appointments
  │    ├── status: pending → confirmed → arrived → completed → cancelled
+ │    ├── Patient Vitals (one per appointment — recorded by nurse before consultation)
+ │    │    └── bp_systolic, bp_diastolic, pulse, spo2, temperature, weight, height
  │    └── Consultation (one per appointment)
- │         ├── vitals: BP, pulse, temp, weight
+ │         ├── vitals: BP, pulse, temp, weight (pre-populated from nurse entry)
  │         ├── diagnosis + ICD-10 code
  │         └── Prescription (one per consultation)
  │              ├── Prescription Items (many)
@@ -399,6 +418,7 @@ Patient (PT-XXXXX)
 | Make emergency | ✗ | ✗ | ✗ | ✅ |
 | Set working hours | ✗ | ✗ | ✗ | ✅ |
 | Manage holidays | ✗ | ✗ | ✗ | ✅ |
+| **Record / update vitals** | ✗ | ✅ | ✅ | ✅ |
 | Write consultation | ✗ | ✅ | ✗ | ✅ |
 | Write prescription | ✗ | ✅ | ✗ | ✅ |
 | View / print prescriptions | ✅ | ✅ | ✅ | ✅ |
@@ -440,6 +460,9 @@ Patient (PT-XXXXX)
 | 4 Super Admin Panel | ✅ Complete (core) | Login, clinic list/create/edit/suspend/activate, feature flag toggles, impersonation; health/audit deferred to Phase 5 |
 | 4 Super Admin UI Rebuild | ✅ Complete | Full DESIGN.md-compliant UI — CSS variables, dark mode, Radix Dialog modals, matching sidebar/TopBar layout, Inter font, ConfirmDialog, EmptyState (2026-04-18) |
 | Subscription Billing | ✅ Complete | Plans CRUD (PlansPage), all-clinics subscription view (SubscriptionsPage), assign/renew from ClinicDetailPage, clinic admin view (SubscriptionPage), auto-suspend on expiry (2026-04-20) |
+| **Mobile / Tablet Responsive** | ✅ Complete | PageLayout: useIsMobile hook, sidebar overlay on mobile (z-50), backdrop, sidebarWidth=0. Sidebar: transform-based slide-in drawer. AppointmentsPage QueueRow: actions stack below on mobile. All data tables: overflow-x-auto. (2026-04-22) |
+| **Help & User Guide** | ✅ Complete | `/help` page accessible to all roles. Tabs: Overview, Receptionist, Doctor, Nurse, Admin guides. User's own role tab highlighted with "You" badge. Step-by-step numbered steps with connecting lines, tips, role badges, next-step arrows. Also `/guide.html` on landing page with identical navbar. (2026-04-22) |
+| **Nurse Vitals Workflow** | ✅ Complete | `patient_vitals` table (BP, pulse, SpO2, temp, weight, height). `POST/GET /api/v1/vitals`. VitalsModal in AppointmentsPage — nurses see "Vitals" button on arrived patients. ConsultationModal fetches nurse vitals on open, shows blue summary banner, pre-populates BP/pulse/temp/weight. (2026-04-22) |
 | **Auto-Polling** | ✅ Complete | All 4 role dashboards + AppointmentsPage: 30s silent background poll. DisplayPage: 10s. `useCallback(load, silent)` pattern — background polls skip loading spinner. (2026-04-22) |
 | **Landing Page** | ✅ Complete | `landing-frontend/index.html` — full dark redesign: animated hero with queue mockup, role tabs (Receptionist/Doctor/Nurse/Admin) with permission checklists, 12 features grid, 4-step How It Works, dynamic pricing, testimonials, scroll-triggered animations. Contact/footer populated dynamically from `/api/v1/public/platform-info`. (2026-04-22) |
 | **Platform Settings** | ✅ Complete | 4-tab super admin page: Company Info, Contact Details, Payment Details, System controls. `public.platform_settings` key-value table (17 keys). `GET/PUT /api/v1/admin/platform` + `PUT /api/v1/admin/platform/batch` endpoints. `GET /api/v1/public/platform-info` public endpoint. Data shows on: landing page contact section + footer, clinic admin Subscription page (Contact & Support card + Payment Details card). `migrate_platform_info.js` seeds defaults. (2026-04-22) |
@@ -748,6 +771,9 @@ Public route (no JWT). Returns:
 | Stock auto-deduct on dispensing | ✅ Done — pharmacy dispense endpoint deducts stock |
 | Expiry alert notifications | Phase 6 (remaining) |
 | Online patient booking | ✅ Done (Phase 5.4) |
+| Nurse vitals workflow | ✅ Done (2026-04-22) — patient_vitals table, VitalsModal, nurse sees Appointments page, doctor ConsultationModal pre-populated |
+| Mobile/tablet responsive | ✅ Done (2026-04-22) — useIsMobile, sidebar overlay, all tables overflow-x-auto, QueueRow responsive actions |
+| Help & User Guide page | ✅ Done (2026-04-22) — /help page all roles + /guide.html on landing page |
 | Appointment SMS/WhatsApp reminders | Phase 6 (remaining) |
 | Scheduled monthly email report | Phase 6 (remaining) |
 | Reports PDF export | Phase 6 (remaining) |
