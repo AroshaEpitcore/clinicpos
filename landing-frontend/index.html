@@ -7,450 +7,1393 @@
   <meta name="description" content="Complete clinic management software for Sri Lanka. Manage patients, appointments, prescriptions, lab, pharmacy and more — all in one place." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --blue:      #2563eb;
-      --blue-dark: #1d4ed8;
-      --blue-light:#eff6ff;
-      --teal:      #0d9488;
-      --green:     #16a34a;
-      --text:      #0f172a;
-      --text-sub:  #475569;
-      --border:    #e2e8f0;
-      --surface:   #ffffff;
-      --bg:        #f8fafc;
+      --indigo:      #6366f1;
+      --indigo-dark: #4f46e5;
+      --cyan:        #06b6d4;
+      --emerald:     #10b981;
+      --amber:       #f59e0b;
+      --rose:        #f43f5e;
+      --purple:      #a855f7;
+
+      --dark:        #060d1f;
+      --dark-2:      #0d1a35;
+      --dark-3:      #0f2044;
+      --card-bg:     rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --card-hover:  rgba(255,255,255,0.07);
+
+      --text:        #f1f5f9;
+      --text-sub:    #94a3b8;
+      --text-muted:  #64748b;
+
+      --light-bg:    #f8fafc;
+      --light-card:  #ffffff;
+      --light-border:#e2e8f0;
+      --light-text:  #0f172a;
+      --light-sub:   #475569;
     }
 
-    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--surface); line-height: 1.6; }
-
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text); line-height: 1.6; overflow-x: hidden; }
     a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; }
 
-    /* ── NAV ── */
+    /* ─── SCROLLBAR ─────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--dark); }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.4); border-radius: 3px; }
+
+    /* ─── UTILITY ───────────────────────────── */
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    .text-center { text-align: center; }
+    .gradient-text {
+      background: linear-gradient(135deg, #a5b4fc 0%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-text-gold {
+      background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─── ANIMATIONS ────────────────────────── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-12px); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50%       { opacity: 0.8; transform: scale(1.05); }
+    }
+    @keyframes gradient-shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    .animate-float   { animation: float 6s ease-in-out infinite; }
+    .animate-float-2 { animation: float 8s ease-in-out infinite 1s; }
+    .animate-float-3 { animation: float 7s ease-in-out infinite 2s; }
+
+    /* ─── NAV ───────────────────────────────── */
     nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(6, 13, 31, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      transition: background 0.3s;
     }
     .nav-inner {
-      max-width: 1100px; margin: 0 auto; padding: 0 24px;
-      display: flex; align-items: center; justify-content: space-between; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px; max-width: 1140px; margin: 0 auto; padding: 0 24px;
     }
     .nav-logo { display: flex; align-items: center; gap: 10px; }
-    .nav-logo svg { color: var(--blue); }
-    .nav-logo span { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.3px; }
-    .nav-logo span em { color: var(--blue); font-style: normal; }
+    .nav-logo-mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(99,102,241,0.4);
+    }
+    .nav-logo-mark svg { width: 20px; height: 20px; }
+    .nav-brand { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-brand em { font-style: normal; color: #a5b4fc; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { font-size: 0.875rem; color: var(--text-sub); font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text); }
     .nav-cta {
-      background: var(--blue); color: #fff; padding: 9px 22px;
-      border-radius: 8px; font-size: 0.875rem; font-weight: 600;
-      transition: background 0.15s;
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      color: #fff; padding: 9px 22px;
+      border-radius: 9px; font-size: 0.875rem; font-weight: 600;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.35);
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      white-space: nowrap;
     }
-    .nav-cta:hover { background: var(--blue-dark); }
+    .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
+    .nav-menu-btn { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+    .nav-menu-btn span { display: block; width: 22px; height: 2px; background: var(--text-sub); border-radius: 2px; transition: 0.3s; }
+    .nav-mobile { display: none; }
 
-    /* ── HERO ── */
+    /* ─── HERO ──────────────────────────────── */
     .hero {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0d4f6e 100%);
-      color: #fff; text-align: center; padding: 100px 24px 90px;
-      position: relative; overflow: hidden;
+      position: relative; min-height: 100vh;
+      display: flex; align-items: center; padding-top: 68px;
+      overflow: hidden;
     }
-    .hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(37,99,235,0.35) 0%, transparent 70%);
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.25) 0%, transparent 60%),
+                  radial-gradient(ellipse 50% 40% at 80% 50%, rgba(6,182,212,0.12) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 50% at 10% 80%, rgba(168,85,247,0.08) 0%, transparent 60%);
     }
-    .hero-inner { position: relative; max-width: 780px; margin: 0 auto; }
+    .hero-grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 70%);
+    }
+    /* floating orbs */
+    .orb {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      filter: blur(60px);
+    }
+    .orb-1 { width: 400px; height: 400px; background: rgba(99,102,241,0.12); top: 10%; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: rgba(6,182,212,0.1); top: 30%; right: -80px; }
+    .orb-3 { width: 250px; height: 250px; background: rgba(168,85,247,0.08); bottom: 10%; left: 30%; }
+
+    .hero-inner {
+      position: relative; z-index: 2;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
     .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+      padding: 6px 16px; border-radius: 100px; font-size: 0.78rem; font-weight: 600;
+      color: #a5b4fc; margin-bottom: 24px; letter-spacing: 0.5px;
+    }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    .hero-title {
+      font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+    .hero-title .line-2 {
+      background: linear-gradient(135deg, #a5b4fc 0%, #67e8f9 60%, #4ade80 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 4s ease infinite;
+    }
+    .hero-sub {
+      font-size: 1.05rem; color: var(--text-sub);
+      max-width: 480px; margin-bottom: 36px; line-height: 1.75;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-hero-primary {
+      background: linear-gradient(135deg, var(--indigo) 0%, #7c3aed 100%);
+      color: #fff; padding: 14px 32px; border-radius: 12px;
+      font-weight: 700; font-size: 0.95rem;
+      box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(99,102,241,0.5); }
+    .btn-hero-secondary {
+      background: rgba(255,255,255,0.06); color: var(--text);
+      padding: 14px 32px; border-radius: 12px;
+      font-weight: 600; font-size: 0.95rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: background 0.15s, border-color 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-hero-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+    .hero-stats { display: flex; gap: 28px; margin-top: 44px; flex-wrap: wrap; }
+    .hero-stat { }
+    .hero-stat .num { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+    .hero-stat .label { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; }
+
+    /* hero visual */
+    .hero-visual { position: relative; }
+    .hero-card-main {
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 28px;
+      backdrop-filter: blur(10px);
+    }
+    .hero-card-main .card-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+    }
+    .card-title-row { display: flex; align-items: center; gap: 10px; }
+    .card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .card-label { font-weight: 700; font-size: 0.9rem; }
+    .card-sub { font-size: 0.75rem; color: var(--text-sub); }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+      color: #6ee7b7; font-size: 0.72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 100px;
+    }
+    .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: #4ade80; }
+    .queue-list { display: flex; flex-direction: column; gap: 10px; }
+    .queue-row {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .q-token {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .q-token.emergency { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    .q-info { flex: 1; min-width: 0; }
+    .q-name { font-size: 0.82rem; font-weight: 600; }
+    .q-detail { font-size: 0.72rem; color: var(--text-sub); }
+    .q-badge {
+      font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    }
+    .q-badge.arrived { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+    .q-badge.waiting { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .q-badge.done    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .q-badge.emerg   { background: rgba(239,68,68,0.2);  color: #fca5a5; }
+
+    /* floating cards */
+    .float-card {
+      position: absolute;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px; padding: 14px 18px;
+      backdrop-filter: blur(12px);
+      white-space: nowrap;
+    }
+    .float-card-1 { top: -28px; right: -20px; }
+    .float-card-2 { bottom: -28px; left: -20px; }
+    .float-card .fc-num { font-size: 1.4rem; font-weight: 800; }
+    .float-card .fc-label { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
+    .fc-green { color: #4ade80; }
+    .fc-cyan  { color: #67e8f9; }
+
+    /* ─── TRUST BAR ─────────────────────────── */
+    .trust-bar {
+      background: rgba(255,255,255,0.02);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 20px 0;
+    }
+    .trust-inner {
+      display: flex; align-items: center; justify-content: center;
+      gap: 48px; flex-wrap: wrap;
+    }
+    .trust-item { display: flex; align-items: center; gap: 10px; }
+    .trust-icon { font-size: 1.1rem; }
+    .trust-text { font-size: 0.82rem; color: var(--text-sub); font-weight: 500; }
+    .trust-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.08); }
+
+    /* ─── SECTION HEADERS ───────────────────── */
+    .section { padding: 96px 0; }
+    .section-alt { background: rgba(255,255,255,0.015); }
+    .section-light { background: var(--light-bg); }
+
+    .eyebrow {
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-      padding: 5px 14px; border-radius: 100px; font-size: 0.78rem; font-weight: 500;
-      margin-bottom: 28px; letter-spacing: 0.3px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 14px;
+      color: #a5b4fc;
     }
-    .hero-badge span { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block; }
-    h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
-    h1 em { font-style: normal; color: #60a5fa; }
-    .hero-sub { font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(255,255,255,0.75); max-width: 560px; margin: 0 auto 40px; }
-    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn-primary {
-      background: var(--blue); color: #fff; padding: 13px 30px;
-      border-radius: 10px; font-weight: 700; font-size: 0.95rem;
-      transition: background 0.15s, transform 0.1s; border: none; cursor: pointer;
+    .eyebrow::before, .eyebrow::after {
+      content: ''; display: block; height: 1px; width: 20px;
+      background: currentColor; opacity: 0.5;
     }
-    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); }
-    .btn-outline {
-      background: transparent; color: #fff; padding: 13px 30px;
-      border-radius: 10px; font-weight: 600; font-size: 0.95rem;
-      border: 1.5px solid rgba(255,255,255,0.35); cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+    h2.section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 900; letter-spacing: -1px;
+      line-height: 1.15; margin-bottom: 16px;
     }
-    .btn-outline:hover { border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.06); }
+    p.section-sub {
+      font-size: 1.05rem; color: var(--text-sub);
+      max-width: 520px; margin: 0 auto 60px; line-height: 1.75;
+    }
 
-    /* ── SECTION ── */
-    section { padding: 80px 24px; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .section-label {
-      display: inline-block; background: var(--blue-light); color: var(--blue);
-      font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-      padding: 4px 12px; border-radius: 100px; margin-bottom: 14px;
-    }
-    h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 14px; }
-    .section-sub { font-size: 1.05rem; color: var(--text-sub); max-width: 540px; margin-bottom: 56px; }
-
-    /* ── FEATURES ── */
-    .features-bg { background: var(--bg); }
+    /* ─── FEATURES ──────────────────────────── */
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.07);
     }
-    .feature-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 28px; transition: box-shadow 0.2s, transform 0.2s;
+    .feature-item {
+      background: var(--dark);
+      padding: 36px 32px;
+      transition: background 0.2s;
+      position: relative;
+      overflow: hidden;
     }
-    .feature-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); transform: translateY(-2px); }
-    .feature-icon {
-      width: 46px; height: 46px; border-radius: 12px;
+    .feature-item:hover { background: rgba(255,255,255,0.04); }
+    .feature-item::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(99,102,241,0.04) 100%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-item:hover::before { opacity: 1; }
+    .fi-icon {
+      width: 52px; height: 52px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px; font-size: 1.4rem;
+      font-size: 1.5rem; margin-bottom: 18px;
+      position: relative;
     }
-    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: 0.875rem; color: var(--text-sub); line-height: 1.6; }
+    .fi-icon::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 14px; opacity: 0.3;
+    }
+    .ic-blue    { background: rgba(99,102,241,0.15);  }
+    .ic-cyan    { background: rgba(6,182,212,0.15);   }
+    .ic-emerald { background: rgba(16,185,129,0.15);  }
+    .ic-amber   { background: rgba(245,158,11,0.15);  }
+    .ic-rose    { background: rgba(244,63,94,0.15);   }
+    .ic-purple  { background: rgba(168,85,247,0.15);  }
+    .ic-teal    { background: rgba(20,184,166,0.15);  }
+    .ic-orange  { background: rgba(249,115,22,0.15);  }
+    .ic-sky     { background: rgba(14,165,233,0.15);  }
+    .ic-lime    { background: rgba(132,204,22,0.15);  }
+    .ic-pink    { background: rgba(236,72,153,0.15);  }
+    .ic-indigo  { background: rgba(99,102,241,0.15);  }
 
-    /* ── HOW IT WORKS ── */
-    .steps { display: flex; gap: 24px; flex-wrap: wrap; }
-    .step { flex: 1; min-width: 200px; text-align: center; }
-    .step-num {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: var(--blue); color: #fff;
+    .feature-item h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-item p  { font-size: 0.83rem; color: var(--text-sub); line-height: 1.7; }
+    .fi-number {
+      position: absolute; top: 14px; right: 18px;
+      font-size: 2.5rem; font-weight: 900; color: rgba(255,255,255,0.03);
+      line-height: 1; letter-spacing: -2px;
+    }
+
+    /* ─── WORKFLOW ──────────────────────────── */
+    .workflow-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0; position: relative;
+    }
+    .workflow-grid::before {
+      content: '';
+      position: absolute; top: 52px; left: 12.5%; right: 12.5%; height: 2px;
+      background: linear-gradient(90deg, var(--indigo), var(--cyan));
+      z-index: 0;
+    }
+    .workflow-step { text-align: center; padding: 0 20px; position: relative; z-index: 1; }
+    .ws-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1.2rem; margin: 0 auto 16px;
+      font-weight: 900; font-size: 1.1rem; color: #fff;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 0 6px var(--dark), 0 0 0 8px rgba(99,102,241,0.2),
+                  0 8px 20px rgba(99,102,241,0.35);
     }
-    .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
-    .step p  { font-size: 0.85rem; color: var(--text-sub); }
-    .step-connector { flex: 0 0 32px; align-self: flex-start; margin-top: 26px; color: var(--border); font-size: 1.5rem; }
+    .workflow-step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .workflow-step p  { font-size: 0.82rem; color: var(--text-sub); line-height: 1.65; }
 
-    /* ── PRICING ── */
-    .pricing-bg { background: var(--bg); }
+    /* ─── ROLE TABS ─────────────────────────── */
+    .roles-section { padding: 96px 0; }
+    .role-tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+    .role-tab {
+      padding: 9px 22px; border-radius: 100px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: var(--text-sub);
+      transition: all 0.2s;
+    }
+    .role-tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .role-tab.active {
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      border-color: transparent; color: #fff;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.35);
+    }
+    .role-content { display: none; }
+    .role-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+    .role-visual {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 28px;
+    }
+    .role-info h3 { font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; }
+    .role-info p  { font-size: 0.9rem; color: var(--text-sub); line-height: 1.75; margin-bottom: 24px; }
+    .role-perms { display: flex; flex-direction: column; gap: 10px; }
+    .perm-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.85rem;
+    }
+    .perm-check {
+      width: 20px; height: 20px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.75rem;
+    }
+    .perm-yes  { background: rgba(16,185,129,0.2); color: #4ade80; }
+    .perm-no   { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+    /* mini dashboard preview inside role-visual */
+    .mini-dash { display: flex; flex-direction: column; gap: 12px; }
+    .mini-stat-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .mini-stat {
+      background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .mini-stat .ms-num { font-size: 1.4rem; font-weight: 800; }
+    .mini-stat .ms-label { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
+    .mini-queue-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .mini-queue-title { font-size: 0.8rem; font-weight: 700; }
+    .mini-queue-rows { display: flex; flex-direction: column; gap: 6px; }
+    .mqr {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 12px;
+      font-size: 0.78rem;
+    }
+    .mqr-token {
+      width: 26px; height: 26px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.72rem; flex-shrink: 0;
+    }
+    .mqr-name { flex: 1; font-weight: 600; }
+    .mqr-status { font-size: 0.68rem; padding: 2px 7px; border-radius: 5px; font-weight: 600; }
+
+    /* ─── PRICING ───────────────────────────── */
+    .pricing-section { padding: 96px 0; }
+    #pricing-loading {
+      text-align: center; color: var(--text-sub); padding: 48px;
+      font-size: 0.9rem;
+    }
+    .pricing-toggle {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 48px;
+    }
+    .pt-label { font-size: 0.875rem; font-weight: 500; }
+    .pt-label.active { color: var(--text); }
+    .pt-label:not(.active) { color: var(--text-sub); }
+    .toggle-switch {
+      position: relative; width: 48px; height: 26px; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; border-radius: 26px;
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; border-radius: 50%; background: #fff;
+      left: 3px; top: 3px; transition: 0.3s;
+    }
+    input:checked + .toggle-slider::before { transform: translateX(22px); }
+    .save-badge {
+      background: rgba(16,185,129,0.15); color: #4ade80;
+      border: 1px solid rgba(16,185,129,0.25);
+      font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 100px;
+    }
     #pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px; max-width: 900px; margin: 0 auto;
     }
     .plan-card {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 16px; padding: 32px; position: relative;
-      transition: box-shadow 0.2s, transform 0.2s;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 36px; position: relative;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
     }
-    .plan-card:hover { box-shadow: 0 10px 40px rgba(0,0,0,0.1); transform: translateY(-3px); }
-    .plan-card.featured { border-color: var(--blue); }
-    .plan-badge {
-      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-      background: var(--blue); color: #fff;
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;
-      padding: 3px 14px; border-radius: 100px; white-space: nowrap;
+    .plan-card:hover { transform: translateY(-4px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .plan-card.featured {
+      background: linear-gradient(145deg, rgba(99,102,241,0.12), rgba(6,182,212,0.06));
+      border-color: rgba(99,102,241,0.35);
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 20px 50px rgba(99,102,241,0.15);
     }
-    .plan-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
-    .plan-desc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 20px; min-height: 38px; }
-    .plan-price { margin-bottom: 24px; }
-    .plan-price .amount { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
-    .plan-price .period { font-size: 0.85rem; color: var(--text-sub); }
-    .plan-price .yearly { font-size: 0.78rem; color: var(--green); font-weight: 600; margin-top: 4px; }
-    .plan-cta {
-      display: block; text-align: center; padding: 11px;
-      border-radius: 9px; font-weight: 700; font-size: 0.875rem;
-      margin-bottom: 24px; transition: background 0.15s;
+    .plan-card.featured:hover { box-shadow: 0 0 0 1px rgba(99,102,241,0.3), 0 25px 60px rgba(99,102,241,0.25); }
+    .plan-popular {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--indigo), var(--cyan));
+      color: #fff; font-size: 0.7rem; font-weight: 700;
+      padding: 4px 16px; border-radius: 100px; white-space: nowrap;
+      letter-spacing: 0.5px;
     }
-    .plan-cta.primary { background: var(--blue); color: #fff; }
-    .plan-cta.primary:hover { background: var(--blue-dark); }
-    .plan-cta.outline { border: 1.5px solid var(--border); color: var(--text); }
-    .plan-cta.outline:hover { border-color: var(--blue); color: var(--blue); }
-    .plan-features { list-style: none; font-size: 0.85rem; }
-    .plan-features li { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; color: var(--text-sub); }
-    .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-    #pricing-loading { text-align: center; color: var(--text-sub); padding: 40px; }
-
-    /* ── TESTIMONIALS ── */
-    .testimonials { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-    .testimonial {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 28px;
+    .plan-name { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .plan-desc { font-size: 0.83rem; color: var(--text-sub); margin-bottom: 24px; min-height: 36px; }
+    .plan-price-block { margin-bottom: 28px; }
+    .plan-amount { font-size: 2.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+    .plan-period { font-size: 0.83rem; color: var(--text-sub); margin-left: 4px; }
+    .plan-saving { font-size: 0.78rem; color: #4ade80; font-weight: 600; margin-top: 6px; }
+    .plan-btn {
+      display: block; text-align: center; padding: 13px;
+      border-radius: 12px; font-weight: 700; font-size: 0.875rem;
+      margin-bottom: 28px; transition: all 0.2s;
     }
-    .testimonial p { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 20px; line-height: 1.7; font-style: italic; }
-    .testimonial-author { display: flex; align-items: center; gap: 12px; }
-    .avatar {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue), var(--teal));
+    .plan-btn.primary {
+      background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(99,102,241,0.35);
+    }
+    .plan-btn.primary:hover { box-shadow: 0 8px 25px rgba(99,102,241,0.5); transform: translateY(-1px); }
+    .plan-btn.outline {
+      border: 1px solid rgba(255,255,255,0.15); color: var(--text);
+    }
+    .plan-btn.outline:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .plan-features li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 0.83rem; color: var(--text-sub);
+    }
+    .plan-features li .pf-check {
+      width: 18px; height: 18px; border-radius: 5px;
+      background: rgba(16,185,129,0.2); color: #4ade80;
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+      font-size: 0.65rem; flex-shrink: 0; margin-top: 1px;
     }
-    .author-name  { font-size: 0.875rem; font-weight: 700; }
-    .author-title { font-size: 0.78rem; color: var(--text-sub); }
 
-    /* ── CTA BANNER ── */
-    .cta-banner {
-      background: linear-gradient(135deg, #1e3a5f 0%, #0d4f6e 100%);
-      color: #fff; text-align: center; padding: 80px 24px;
+    /* ─── TESTIMONIALS ──────────────────────── */
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .testimonial-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px; padding: 28px;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
     }
-    .cta-banner h2 { color: #fff; margin-bottom: 14px; }
-    .cta-banner p  { color: rgba(255,255,255,0.75); margin-bottom: 36px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .testimonial-card:hover {
+      border-color: rgba(99,102,241,0.2);
+      background: rgba(255,255,255,0.04);
+    }
+    .quote-mark { font-size: 3rem; line-height: 0.5; color: rgba(99,102,241,0.3); margin-bottom: 16px; display: block; }
+    .testimonial-card p { font-size: 0.875rem; color: var(--text-sub); line-height: 1.75; margin-bottom: 20px; }
+    .stars { display: flex; gap: 2px; margin-bottom: 12px; }
+    .star { color: #fbbf24; font-size: 0.8rem; }
+    .t-author { display: flex; align-items: center; gap: 12px; }
+    .t-avatar {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9rem; color: #fff; flex-shrink: 0;
+    }
+    .av-1 { background: linear-gradient(135deg, var(--indigo), var(--purple)); }
+    .av-2 { background: linear-gradient(135deg, var(--cyan), var(--emerald)); }
+    .av-3 { background: linear-gradient(135deg, var(--amber), var(--rose)); }
+    .t-name  { font-size: 0.875rem; font-weight: 700; }
+    .t-title { font-size: 0.75rem; color: var(--text-sub); }
 
-    /* ── FOOTER ── */
+    /* ─── CTA ───────────────────────────────── */
+    .cta-section {
+      padding: 100px 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(99,102,241,0.12) 0%, transparent 70%);
+      text-align: center; position: relative;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.01'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .cta-inner { position: relative; z-index: 1; }
+    .cta-section h2 { font-size: clamp(1.8rem, 3vw, 2.8rem); font-weight: 900; margin-bottom: 16px; letter-spacing: -1px; }
+    .cta-section p { font-size: 1.05rem; color: var(--text-sub); max-width: 460px; margin: 0 auto 36px; }
+    .cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ─── FOOTER ────────────────────────────── */
     footer {
-      background: #0f172a; color: rgba(255,255,255,0.55);
-      text-align: center; padding: 32px 24px; font-size: 0.82rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 36px 0;
     }
-    footer a { color: rgba(255,255,255,0.7); }
-    footer a:hover { color: #fff; }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-brand { display: flex; align-items: center; gap: 10px; }
+    .footer-brand .brand-name { font-size: 0.9rem; font-weight: 700; }
+    .footer-brand .brand-name em { color: #a5b4fc; font-style: normal; }
+    .footer-copy { font-size: 0.8rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.8rem; color: var(--text-sub); transition: color 0.15s; }
+    .footer-links a:hover { color: var(--text); }
 
-    /* ── UTILS ── */
-    .text-center { text-align: center; }
-    .mx-auto { margin-left: auto; margin-right: auto; }
+    /* ─── RESPONSIVE ────────────────────────── */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .workflow-grid { grid-template-columns: repeat(2, 1fr); gap: 40px; }
+      .workflow-grid::before { display: none; }
+      .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-menu-btn { display: flex; }
+      .nav-mobile.open {
+        display: flex; flex-direction: column; gap: 0;
+        position: fixed; top: 68px; left: 0; right: 0; bottom: 0;
+        background: rgba(6,13,31,0.98); backdrop-filter: blur(20px);
+        padding: 24px; z-index: 999;
+      }
+      .nav-mobile a {
+        padding: 16px 0; font-size: 1.1rem; font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        color: var(--text-sub); transition: color 0.15s;
+      }
+      .nav-mobile a:hover { color: var(--text); }
+      .nav-cta-mobile {
+        margin-top: 24px;
+        background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+        color: #fff !important; text-align: center;
+        border-radius: 12px; padding: 14px !important;
+        border: none !important; font-weight: 700;
+      }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .hero-title { font-size: 2.2rem; }
+      .hero-stats { gap: 20px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .workflow-grid { grid-template-columns: 1fr; gap: 32px; }
+      .role-content.active { grid-template-columns: 1fr; }
+      .role-visual { order: -1; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .trust-inner { gap: 20px; }
+      .trust-divider { display: none; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 480px) {
+      .section { padding: 60px 0; }
+      .hero { padding-top: 80px; padding-bottom: 40px; min-height: auto; }
+      .hero-actions { flex-direction: column; }
+      .hero-actions a { text-align: center; justify-content: center; }
+      #pricing-grid { grid-template-columns: 1fr; }
+      .cta-actions { flex-direction: column; align-items: center; }
+      h2.section-title { font-size: 1.7rem; }
+    }
 
-    @media (max-width: 640px) {
-      .step-connector { display: none; }
-      .hero-actions { flex-direction: column; align-items: center; }
+    /* ─── MISC ──────────────────────────────── */
+    .divider-line {
+      height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      margin: 0;
     }
   </style>
 </head>
 <body>
 
-<!-- ── NAV ─────────────────────────────────────────────── -->
-<nav>
+<!-- ══ NAV ═══════════════════════════════════════════════════════ -->
+<nav id="navbar">
   <div class="nav-inner">
     <div class="nav-logo">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <rect width="28" height="28" rx="8" fill="#2563eb"/>
-        <path d="M14 6v16M6 14h16" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-      </svg>
-      <span>Health<em>Center</em>.lk</span>
+      <div class="nav-logo-mark">
+        <svg viewBox="0 0 20 20" fill="none">
+          <path d="M10 2v16M2 10h16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-brand">Health<em>Center</em>.lk</div>
     </div>
-    <a href="#contact" class="nav-cta">Get Started</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a href="#contact" class="nav-cta">Get Started →</a>
+    <button class="nav-menu-btn" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="#features" onclick="closeMenu()">Features</a>
+    <a href="#how-it-works" onclick="closeMenu()">How It Works</a>
+    <a href="#pricing" onclick="closeMenu()">Pricing</a>
+    <a href="#contact" class="nav-cta-mobile" onclick="closeMenu()">Get Started →</a>
   </div>
 </nav>
 
-<!-- ── HERO ─────────────────────────────────────────────── -->
+<!-- ══ HERO ══════════════════════════════════════════════════════ -->
 <section class="hero">
-  <div class="hero-inner">
-    <div class="hero-badge">
-      <span></span> Built for Sri Lankan Clinics
-    </div>
-    <h1>Modern Clinic Management <em>Made Simple</em></h1>
-    <p class="hero-sub">
-      Streamline your entire clinic — from patient registration to billing — with one powerful, easy-to-use platform designed for busy medical professionals.
-    </p>
-    <div class="hero-actions">
-      <a href="#pricing" class="btn-primary">View Pricing</a>
-      <a href="#features" class="btn-outline">See All Features</a>
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="orb orb-1 animate-float"></div>
+  <div class="orb orb-2 animate-float-2"></div>
+  <div class="orb orb-3 animate-float-3"></div>
+
+  <div class="container">
+    <div class="hero-inner">
+      <!-- LEFT -->
+      <div>
+        <div class="hero-badge">
+          <span class="dot"></span>
+          Now live across Sri Lanka
+        </div>
+        <h1 class="hero-title">
+          The smarter way to<br>
+          <span class="line-2">run your clinic</span>
+        </h1>
+        <p class="hero-sub">
+          Everything your clinic needs — patients, appointments, prescriptions, lab, pharmacy, and billing — unified in one beautiful, fast platform.
+        </p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn-hero-primary">
+            Start Free Trial
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="#features" class="btn-hero-secondary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 5.5L10 8l-3.5 2.5" fill="currentColor"/></svg>
+            See Features
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="num gradient-text">12+</div>
+            <div class="label">Modules included</div>
+          </div>
+          <div class="hero-stat">
+            <div class="num gradient-text">99.9%</div>
+            <div class="label">Uptime SLA</div>
+          </div>
+          <div class="hero-stat">
+            <div class="num gradient-text">5min</div>
+            <div class="label">Setup time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT VISUAL -->
+      <div class="hero-visual">
+        <div class="float-card float-card-1 animate-float-2">
+          <div class="fc-num fc-cyan">+24</div>
+          <div class="fc-label">Patients today</div>
+        </div>
+        <div class="hero-card-main">
+          <div class="card-top">
+            <div class="card-title-row">
+              <div class="card-icon">🏥</div>
+              <div>
+                <div class="card-label">Today's Queue</div>
+                <div class="card-sub">Demo Clinic · Dr. Perera</div>
+              </div>
+            </div>
+            <div class="status-pill"><span class="dot"></span> Live</div>
+          </div>
+          <div class="queue-list">
+            <div class="queue-row">
+              <div class="q-token q-token">3</div>
+              <div class="q-info">
+                <div class="q-name">Kasun Jayawardena</div>
+                <div class="q-detail">09:15 AM · Walk-in</div>
+              </div>
+              <div class="q-badge arrived">With Doctor</div>
+            </div>
+            <div class="queue-row">
+              <div class="q-token">4</div>
+              <div class="q-info">
+                <div class="q-name">Nimal Perera</div>
+                <div class="q-detail">09:30 AM · Online</div>
+              </div>
+              <div class="q-badge waiting">Waiting</div>
+            </div>
+            <div class="queue-row">
+              <div class="q-token emergency">!</div>
+              <div class="q-info">
+                <div class="q-name">Saman Fernando</div>
+                <div class="q-detail">Emergency · Priority</div>
+              </div>
+              <div class="q-badge emerg">Emergency</div>
+            </div>
+            <div class="queue-row">
+              <div class="q-token">2</div>
+              <div class="q-info">
+                <div class="q-name">Dilani Silva</div>
+                <div class="q-detail">09:00 AM · Walk-in</div>
+              </div>
+              <div class="q-badge done">Completed</div>
+            </div>
+          </div>
+        </div>
+        <div class="float-card float-card-2 animate-float">
+          <div class="fc-num fc-green">LKR 48,500</div>
+          <div class="fc-label">Collected today</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ── FEATURES ─────────────────────────────────────────── -->
-<section class="features-bg" id="features">
+<!-- ══ TRUST BAR ═════════════════════════════════════════════════ -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <span class="trust-icon">🔒</span>
+      <span class="trust-text">SSL Encrypted</span>
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <span class="trust-icon">☁️</span>
+      <span class="trust-text">Cloud Hosted</span>
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <span class="trust-icon">🇱🇰</span>
+      <span class="trust-text">Built for Sri Lanka</span>
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <span class="trust-icon">⚡</span>
+      <span class="trust-text">99.9% Uptime</span>
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <span class="trust-icon">💾</span>
+      <span class="trust-text">Daily Backups</span>
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <span class="trust-icon">🎯</span>
+      <span class="trust-text">Free Onboarding</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FEATURES ══════════════════════════════════════════════════ -->
+<section class="section" id="features">
   <div class="container">
-    <div class="text-center">
-      <span class="section-label">Features</span>
-      <h2>Everything your clinic needs</h2>
-      <p class="section-sub mx-auto">
-        A complete suite of tools so you spend less time on admin and more time with patients.
-      </p>
+    <div class="text-center" style="margin-bottom:56px">
+      <div class="eyebrow">Everything You Need</div>
+      <h2 class="section-title">One platform, <span class="gradient-text">complete clinic</span></h2>
+      <p class="section-sub">Every tool your clinic needs, beautifully integrated. No switching between systems, no double data entry.</p>
     </div>
     <div class="features-grid">
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#eff6ff">🏥</div>
+      <div class="feature-item">
+        <div class="fi-number">01</div>
+        <div class="fi-icon ic-blue">🏥</div>
         <h3>Patient Management</h3>
-        <p>Full patient profiles with medical history, visit records, and document uploads. Quick search and smart filters to find any patient in seconds.</p>
+        <p>Full patient profiles with medical history, visit records, allergies, and document uploads. Find any patient in seconds with smart search.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">📅</div>
+      <div class="feature-item">
+        <div class="fi-number">02</div>
+        <div class="fi-icon ic-cyan">📅</div>
         <h3>Appointment Scheduling</h3>
-        <p>Drag-and-drop calendar, online booking, SMS reminders, and doctor-wise queues. Eliminate waiting-room chaos with real-time queue management.</p>
+        <p>Smart queuing with token numbers, online booking via patient portal, doctor-wise schedules, and holiday management. Eliminate waiting-room chaos.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fefce8">💊</div>
-        <h3>Prescription Management</h3>
-        <p>Digital prescriptions with your clinic's letterhead. Auto-suggest medicines, set dosage and frequency, and print or share instantly.</p>
+      <div class="feature-item">
+        <div class="fi-number">03</div>
+        <div class="fi-icon ic-purple">💊</div>
+        <h3>Digital Prescriptions</h3>
+        <p>Write prescriptions with auto-suggest medicines, dosage chips, food instructions, and custom medicines — all in one combined consultation step.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">🧪</div>
+      <div class="feature-item">
+        <div class="fi-number">04</div>
+        <div class="fi-icon ic-emerald">🧪</div>
         <h3>Lab Management</h3>
-        <p>Order lab tests, track sample collection, enter results, and notify patients — all within the platform. Integrates seamlessly with billing.</p>
+        <p>Order tests, track sample collection, enter results with values or file uploads, and show results in the patient's consultation history automatically.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fff7ed">💉</div>
-        <h3>Pharmacy Module</h3>
-        <p>In-clinic dispensing with real-time stock levels, purchase orders, expiry alerts, and supplier management built right in.</p>
+      <div class="feature-item">
+        <div class="fi-number">05</div>
+        <div class="fi-icon ic-amber">💉</div>
+        <h3>In-Clinic Pharmacy</h3>
+        <p>Real-time stock tracking, dispense queue, purchase orders, supplier management, expiry alerts, and automatic stock deduction on dispensing.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fdf4ff">🧾</div>
+      <div class="feature-item">
+        <div class="fi-number">06</div>
+        <div class="fi-icon ic-rose">🧾</div>
         <h3>Billing & Invoicing</h3>
-        <p>Automatic invoice generation from consultations, labs, and pharmacy. Multiple payment modes, insurance claims, and end-of-day reports.</p>
+        <p>Auto-generate invoices from consultations. Split payments, insurance claims, custom services, and PDF export — with a live end-of-day report.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#eff6ff">🏢</div>
+      <div class="feature-item">
+        <div class="fi-number">07</div>
+        <div class="fi-icon ic-teal">🏢</div>
         <h3>Insurance & Corporate</h3>
-        <p>Manage corporate accounts, track insurance claims, handle co-payments, and generate claim summaries for insurers — all paperless.</p>
+        <p>Manage corporate accounts, process insurance claims with auto-numbered CLM-XXXXX references, and generate monthly billing summaries for insurers.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">👨‍⚕️</div>
+      <div class="feature-item">
+        <div class="fi-number">08</div>
+        <div class="fi-icon ic-indigo">👨‍⚕️</div>
         <h3>Multi-Doctor Support</h3>
-        <p>Add unlimited doctors with their own schedules, consultation fees, and dashboards. Role-based access for doctors, nurses, receptionists, and pharmacists.</p>
+        <p>Unlimited doctors, each with their own schedule, consultation fees, and signature. Role-based access for doctors, nurses, receptionists, and admins.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fff7ed">📊</div>
+      <div class="feature-item">
+        <div class="fi-number">09</div>
+        <div class="fi-icon ic-orange">📊</div>
         <h3>Reports & Analytics</h3>
-        <p>Daily revenue reports, patient flow analytics, doctor performance summaries, and custom date-range reports with one-click export.</p>
+        <p>7 report types: daily, monthly, doctor performance, medicines, patients, appointments, and EOD history — all with CSV export and live charts.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fdf4ff">📺</div>
+      <div class="feature-item">
+        <div class="fi-number">10</div>
+        <div class="fi-icon ic-sky">📺</div>
         <h3>Waiting Room Display</h3>
-        <p>A full-screen TV display shows the current queue so patients know their turn without crowding the reception desk.</p>
+        <p>A full-screen TV display shows the live queue so patients know their turn without crowding reception. Auto-refreshes every 10 seconds. Emergency alerts in red.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#eff6ff">🌐</div>
+      <div class="feature-item">
+        <div class="fi-number">11</div>
+        <div class="fi-icon ic-lime">🌐</div>
         <h3>Patient Portal</h3>
-        <p>Patients can log in to view their history, download prescriptions, and track upcoming appointments from any device.</p>
+        <p>Patients book appointments online, download prescriptions, and view their history — 24/7 from any device. Bookings sync instantly to the clinic queue.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">☁️</div>
-        <h3>Cloud-Based & Secure</h3>
-        <p>Hosted on enterprise-grade servers with daily backups, SSL encryption, and 99.9% uptime. Access your data from anywhere, securely.</p>
+      <div class="feature-item">
+        <div class="fi-number">12</div>
+        <div class="fi-icon ic-pink">☁️</div>
+        <h3>Cloud & Secure</h3>
+        <p>Hosted on enterprise servers with SSL encryption, daily backups, and 99.9% uptime. Access your clinic from any device, anywhere, securely.</p>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- ── HOW IT WORKS ──────────────────────────────────────── -->
-<section>
-  <div class="container text-center">
-    <span class="section-label">How It Works</span>
-    <h2>Up and running in minutes</h2>
-    <p class="section-sub mx-auto">No hardware to install. No complex setup. Just sign up and start managing your clinic.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
+<div class="divider-line"></div>
+
+<!-- ══ HOW IT WORKS ══════════════════════════════════════════════ -->
+<section class="section section-alt" id="how-it-works">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:64px">
+      <div class="eyebrow">Simple Setup</div>
+      <h2 class="section-title">Up and running <span class="gradient-text">in minutes</span></h2>
+      <p class="section-sub">No hardware. No complex IT. Just sign up and your clinic is live — we handle everything.</p>
+    </div>
+    <div class="workflow-grid">
+      <div class="workflow-step">
+        <div class="ws-num">1</div>
         <h3>Sign Up</h3>
-        <p>Create your clinic account. We set up your private workspace instantly.</p>
+        <p>Create your clinic account. We set up your private, isolated workspace on our secure cloud instantly.</p>
       </div>
-      <div class="step-connector">→</div>
-      <div class="step">
-        <div class="step-num">2</div>
+      <div class="workflow-step">
+        <div class="ws-num">2</div>
         <h3>Configure</h3>
-        <p>Add your doctors, services, fee structure, and branding in minutes.</p>
+        <p>Add your doctors, set schedules, configure fees, upload your logo and branding — done in under 10 minutes.</p>
       </div>
-      <div class="step-connector">→</div>
-      <div class="step">
-        <div class="step-num">3</div>
+      <div class="workflow-step">
+        <div class="ws-num">3</div>
         <h3>Go Live</h3>
-        <p>Start registering patients and taking appointments from day one.</p>
+        <p>Share your booking link with patients, open the waiting-room TV display, and start taking appointments.</p>
       </div>
-      <div class="step-connector">→</div>
-      <div class="step">
-        <div class="step-num">4</div>
+      <div class="workflow-step">
+        <div class="ws-num">4</div>
         <h3>Grow</h3>
-        <p>Unlock pharmacy, lab, and insurance modules as your practice expands.</p>
+        <p>Enable pharmacy, lab, and insurance modules as your practice expands — no technical work required.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── PRICING ──────────────────────────────────────────── -->
-<section class="pricing-bg" id="pricing">
-  <div class="container text-center">
-    <span class="section-label">Pricing</span>
-    <h2>Simple, transparent pricing</h2>
-    <p class="section-sub mx-auto">Choose the plan that fits your clinic. All plans include unlimited patients and free support.</p>
-    <div id="pricing-loading">Loading plans…</div>
+<div class="divider-line"></div>
+
+<!-- ══ ROLE BREAKDOWN ════════════════════════════════════════════ -->
+<section class="section roles-section">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:48px">
+      <div class="eyebrow">Role-Based Access</div>
+      <h2 class="section-title">Every role gets <span class="gradient-text">exactly what they need</span></h2>
+      <p class="section-sub">Fine-grained permissions ensure each staff member sees and does only what's relevant to their role.</p>
+    </div>
+
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="switchRole('receptionist', this)">Receptionist</button>
+      <button class="role-tab" onclick="switchRole('doctor', this)">Doctor</button>
+      <button class="role-tab" onclick="switchRole('nurse', this)">Nurse</button>
+      <button class="role-tab" onclick="switchRole('admin', this)">Admin</button>
+    </div>
+
+    <!-- Receptionist -->
+    <div class="role-content active" id="role-receptionist">
+      <div class="role-visual">
+        <div class="mini-dash">
+          <div class="mini-stat-row">
+            <div class="mini-stat">
+              <div class="ms-num gradient-text">24</div>
+              <div class="ms-label">Appointments Today</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#fbbf24">7</div>
+              <div class="ms-label">Currently Waiting</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#4ade80">LKR 48,500</div>
+              <div class="ms-label">Collected</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#f87171">LKR 12,000</div>
+              <div class="ms-label">Outstanding</div>
+            </div>
+          </div>
+          <div>
+            <div class="mini-queue-header">
+              <span class="mini-queue-title">Live Queue</span>
+              <span style="font-size:0.72rem;color:var(--text-sub)">All Doctors</span>
+            </div>
+            <div class="mini-queue-rows">
+              <div class="mqr">
+                <div class="mqr-token">3</div>
+                <span class="mqr-name">Kasun Jayawardena</span>
+                <span class="mqr-status" style="background:rgba(99,102,241,0.2);color:#a5b4fc">With Dr.</span>
+              </div>
+              <div class="mqr">
+                <div class="mqr-token">4</div>
+                <span class="mqr-name">Nimal Perera</span>
+                <span class="mqr-status" style="background:rgba(245,158,11,0.15);color:#fcd34d">Waiting</span>
+              </div>
+              <div class="mqr">
+                <div class="mqr-token">5</div>
+                <span class="mqr-name">Dilani Silva</span>
+                <span class="mqr-status" style="background:rgba(245,158,11,0.15);color:#fcd34d">Waiting</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="role-info">
+        <h3>Receptionist</h3>
+        <p>The front desk powerhouse. Manages the entire patient flow from registration to billing — keeping the clinic running smoothly through the day.</p>
+        <div class="role-perms">
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Register &amp; search patients</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Add to queue (Walk-in / Booked / Emergency)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Print token slips (80mm thermal printer)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Generate &amp; process invoices</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Record payments (Cash / Card / Insurance)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Dispense prescriptions (Pharmacy)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Enter lab results</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Write consultations or prescriptions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Doctor -->
+    <div class="role-content" id="role-doctor">
+      <div class="role-visual">
+        <div class="mini-dash">
+          <div class="mini-stat-row">
+            <div class="mini-stat">
+              <div class="ms-num gradient-text">12</div>
+              <div class="ms-label">My Patients Today</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#fbbf24">3</div>
+              <div class="ms-label">Waiting For Me</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#4ade80">8</div>
+              <div class="ms-label">Completed</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#67e8f9">2</div>
+              <div class="ms-label">Online Bookings</div>
+            </div>
+          </div>
+          <div>
+            <div class="mini-queue-header">
+              <span class="mini-queue-title">Now Seeing</span>
+              <span style="font-size:0.72rem;color:#4ade80">● Active</span>
+            </div>
+            <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:14px;margin-top:6px">
+              <div style="font-size:1rem;font-weight:800;margin-bottom:4px">Kasun Jayawardena</div>
+              <div style="font-size:0.78rem;color:var(--text-sub)">Token #3 · 09:15 AM · Walk-in</div>
+              <div style="font-size:0.75rem;color:#f87171;margin-top:6px">⚠ Allergy: Penicillin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="role-info">
+        <h3>Doctor</h3>
+        <p>Focused view showing only your own patients. Write consultations and prescriptions in one streamlined step with medicine auto-suggest and dosage chips.</p>
+        <div class="role-perms">
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> View own queue only (doctor isolation)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Write consultation + prescription in one step</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Custom medicines + food instruction chips</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Create &amp; view lab requests</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Read-only access to patient profiles</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> View consultation &amp; prescription history</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Add to queue or change appointment status</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Access billing or medicine store</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nurse -->
+    <div class="role-content" id="role-nurse">
+      <div class="role-visual">
+        <div class="mini-dash">
+          <div class="mini-stat-row">
+            <div class="mini-stat">
+              <div class="ms-num gradient-text">9</div>
+              <div class="ms-label">With Doctor</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#fbbf24">6</div>
+              <div class="ms-label">Still Waiting</div>
+            </div>
+          </div>
+          <div>
+            <div class="mini-queue-header">
+              <span class="mini-queue-title">All Patients Today</span>
+            </div>
+            <div class="mini-queue-rows">
+              <div class="mqr">
+                <div class="mqr-token">3</div>
+                <span class="mqr-name">Kasun Jayawardena</span>
+                <span class="mqr-status" style="background:rgba(99,102,241,0.2);color:#a5b4fc">With Dr.</span>
+              </div>
+              <div class="mqr">
+                <div class="mqr-token">2</div>
+                <span class="mqr-name">Dilani Silva</span>
+                <span class="mqr-status" style="background:rgba(16,185,129,0.2);color:#4ade80">Done</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="role-info">
+        <h3>Nurse</h3>
+        <p>Monitoring and support role. Full visibility over today's patients and lab results without access to clinical notes or billing data.</p>
+        <div class="role-perms">
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> View all patients and appointments</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Browse patient profiles (read-only)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> View &amp; print prescriptions</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Enter lab results</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Register or edit patients</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Write consultations or prescriptions</div>
+          <div class="perm-row"><span class="perm-check perm-no">✗</span> Access billing or medicine store</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin -->
+    <div class="role-content" id="role-admin">
+      <div class="role-visual">
+        <div class="mini-dash">
+          <div class="mini-stat-row">
+            <div class="mini-stat">
+              <div class="ms-num gradient-text">LKR 184,500</div>
+              <div class="ms-label">Billed This Month</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#4ade80">LKR 156,000</div>
+              <div class="ms-label">Collected</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#fbbf24">3</div>
+              <div class="ms-label">Low Stock Items</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-num" style="color:#67e8f9">2</div>
+              <div class="ms-label">Doctors Active</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.06)">
+            <div style="font-size:0.78rem;color:var(--text-sub);margin-bottom:10px;font-weight:600">MONTHLY REVENUE</div>
+            <div style="display:flex;gap:4px;align-items:flex-end;height:40px">
+              <div style="flex:1;background:rgba(99,102,241,0.3);border-radius:3px;height:60%"></div>
+              <div style="flex:1;background:rgba(99,102,241,0.3);border-radius:3px;height:80%"></div>
+              <div style="flex:1;background:rgba(99,102,241,0.3);border-radius:3px;height:50%"></div>
+              <div style="flex:1;background:rgba(99,102,241,0.5);border-radius:3px;height:90%"></div>
+              <div style="flex:1;background:linear-gradient(to top,var(--indigo),var(--cyan));border-radius:3px;height:100%"></div>
+              <div style="flex:1;background:rgba(99,102,241,0.3);border-radius:3px;height:70%"></div>
+              <div style="flex:1;background:rgba(99,102,241,0.3);border-radius:3px;height:85%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="role-info">
+        <h3>Admin</h3>
+        <p>Full control. Manages staff, settings, reports, medicine store, and everything else. The clinic owner's command centre.</p>
+        <div class="role-perms">
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> All receptionist + doctor capabilities</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Manage staff (add, edit, deactivate)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Medicine store (add / edit / stock)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Full 7-tab reports with CSV export</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Clinic settings (logo, fees, modules)</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Doctor schedules &amp; holidays</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> End-of-day closing &amp; history</div>
+          <div class="perm-row"><span class="perm-check perm-yes">✓</span> Pharmacy supplier management</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ══ PRICING ═══════════════════════════════════════════════════ -->
+<section class="section pricing-section section-alt" id="pricing">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:48px">
+      <div class="eyebrow">Transparent Pricing</div>
+      <h2 class="section-title">Plans that <span class="gradient-text">grow with you</span></h2>
+      <p class="section-sub">No hidden fees. No per-doctor charges. All plans include unlimited patients and free onboarding support.</p>
+    </div>
+    <div id="pricing-loading">
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center">
+        <div class="spinner"></div>
+        Loading pricing…
+      </div>
+    </div>
     <div id="pricing-grid" style="display:none"></div>
-    <p style="margin-top:28px; font-size:0.82rem; color:var(--text-sub)">
-      All prices in LKR. Yearly billing saves you up to 2 months free. Contact us to discuss custom enterprise plans.
+    <p style="text-align:center;margin-top:32px;font-size:0.82rem;color:var(--text-muted)">
+      All prices in LKR · Yearly billing saves up to 2 months · Enterprise plans available on request
     </p>
   </div>
 </section>
 
-<!-- ── TESTIMONIALS ─────────────────────────────────────── -->
-<section>
-  <div class="container text-center">
-    <span class="section-label">Testimonials</span>
-    <h2>Trusted by clinics across Sri Lanka</h2>
-    <p class="section-sub mx-auto">Here's what doctors and clinic managers say about HealthCenter.lk.</p>
-    <div class="testimonials">
-      <div class="testimonial">
-        <p>"Setting up was so easy. Within an hour we had all our doctors added and were taking appointments. The queue display TV screen alone has made our waiting area so much calmer."</p>
-        <div class="testimonial-author">
-          <div class="avatar">DK</div>
+<style>
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: #a5b4fc;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="divider-line"></div>
+
+<!-- ══ TESTIMONIALS ══════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:56px">
+      <div class="eyebrow">Testimonials</div>
+      <h2 class="section-title">Trusted by clinics <span class="gradient-text">across Sri Lanka</span></h2>
+    </div>
+    <div class="testimonials-grid">
+
+      <div class="testimonial-card">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <span class="quote-mark">"</span>
+        <p>Setting up was incredibly easy. Within an hour we had all our doctors configured and were taking appointments. The queue display TV screen alone has made our waiting area so much calmer — patients just watch the screen instead of crowding reception.</p>
+        <div class="t-author">
+          <div class="t-avatar av-1">DK</div>
           <div>
-            <div class="author-name">Dr. Kumara</div>
-            <div class="author-title">General Practitioner, Colombo</div>
+            <div class="t-name">Dr. Kumara</div>
+            <div class="t-title">General Practitioner, Colombo</div>
           </div>
         </div>
       </div>
-      <div class="testimonial">
-        <p>"The billing module saves us at least 2 hours every day. Insurance claims that used to take a week of paperwork now get done in minutes. Absolutely worth every rupee."</p>
-        <div class="testimonial-author">
-          <div class="avatar">NP</div>
+
+      <div class="testimonial-card">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <span class="quote-mark">"</span>
+        <p>The billing module saves us at least 2 hours every single day. Insurance claims that used to take a week of paperwork now get done in minutes. The end-of-day closing gives me a perfect summary without any manual counting. Absolutely worth every rupee.</p>
+        <div class="t-author">
+          <div class="t-avatar av-2">NP</div>
           <div>
-            <div class="author-name">Nisha Perera</div>
-            <div class="author-title">Clinic Manager, Kandy</div>
+            <div class="t-name">Nisha Perera</div>
+            <div class="t-title">Clinic Manager, Kandy</div>
           </div>
         </div>
       </div>
-      <div class="testimonial">
-        <p>"Our pharmacy stock used to be a nightmare. Now with real-time tracking and expiry alerts we've cut wastage by 40%. The reports help me order smarter every month."</p>
-        <div class="testimonial-author">
-          <div class="avatar">AS</div>
+
+      <div class="testimonial-card">
+        <div class="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <span class="quote-mark">"</span>
+        <p>Our pharmacy stock used to be a nightmare. With real-time tracking, expiry alerts, and the dispense queue we've cut wastage by 40%. The purchase order system with supplier management has completely transformed how we reorder medicines.</p>
+        <div class="t-author">
+          <div class="t-avatar av-3">AS</div>
           <div>
-            <div class="author-name">Ashan Silva</div>
-            <div class="author-title">Pharmacist, Gampaha</div>
+            <div class="t-name">Ashan Silva</div>
+            <div class="t-title">Pharmacist, Gampaha</div>
           </div>
         </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ══ CTA ════════════════════════════════════════════════════════ -->
+<section class="cta-section" id="contact">
+  <div class="container">
+    <div class="cta-inner">
+      <div class="eyebrow" style="justify-content:center">Ready to get started?</div>
+      <h2>Modernise your clinic <span class="gradient-text">today</span></h2>
+      <p>Join clinics across Sri Lanka already saving time and growing with HealthCenter.lk. Contact us for a free demo and setup.</p>
+      <div class="cta-actions">
+        <a href="mailto:info@healthcenter.lk" class="btn-hero-primary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5M2 4h12v8H2V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Email Us to Get Started
+        </a>
+        <a href="tel:+94XXXXXXXXX" class="btn-hero-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h3l1.5 3.5L6 7s1 2 3 3l1.5-1.5L14 10v3a1 1 0 0 1-1 1C5.5 14 2 7.5 2 3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Call Us
+        </a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── CTA BANNER ────────────────────────────────────────── -->
-<section class="cta-banner" id="contact">
-  <div class="container">
-    <h2>Ready to modernise your clinic?</h2>
-    <p>Join hundreds of clinics already saving time and growing with HealthCenter.lk. Start your free trial today — no credit card required.</p>
-    <a href="mailto:info@healthcenter.lk" class="btn-primary" style="display:inline-block">
-      Contact Us to Get Started
-    </a>
-  </div>
-</section>
-
-<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<!-- ══ FOOTER ═════════════════════════════════════════════════════ -->
 <footer>
-  <p>
-    &copy; 2026 HealthCenter.lk &nbsp;·&nbsp;
-    <a href="mailto:info@healthcenter.lk">info@healthcenter.lk</a> &nbsp;·&nbsp;
-    All rights reserved.
-  </p>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="nav-logo-mark" style="width:30px;height:30px;border-radius:8px">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2v16M2 10h16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="brand-name">Health<em>Center</em>.lk</div>
+      </div>
+      <div class="footer-copy">© 2026 HealthCenter.lk · All rights reserved</div>
+      <div class="footer-links">
+        <a href="mailto:info@healthcenter.lk">info@healthcenter.lk</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+    </div>
+  </div>
 </footer>
 
+<!-- ══ SCRIPTS ════════════════════════════════════════════════════ -->
 <script>
+/* ─── NAV SCROLL ─────────────────────────── */
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').style.background =
+    window.scrollY > 40
+      ? 'rgba(6,13,31,0.95)'
+      : 'rgba(6,13,31,0.8)';
+});
+
+/* ─── MOBILE MENU ────────────────────────── */
+function toggleMenu() {
+  const m = document.getElementById('navMobile');
+  m.classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('navMobile').classList.remove('open');
+}
+
+/* ─── ROLE TABS ──────────────────────────── */
+function switchRole(role, btn) {
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.role-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('role-' + role).classList.add('active');
+}
+
+/* ─── PRICING ────────────────────────────── */
 (async () => {
   const grid    = document.getElementById('pricing-grid');
   const loading = document.getElementById('pricing-loading');
 
-  // determine API base — same origin in production, backend port in dev
   const apiBase = window.location.hostname === 'localhost'
-    ? 'http://localhost:4000'
-    : '';
+    ? 'http://localhost:4000' : '';
 
   try {
     const res  = await fetch(`${apiBase}/api/v1/public/landing`);
@@ -459,13 +1402,15 @@
     loading.style.display = 'none';
 
     if (!json.data?.enabled || !json.data?.plans?.length) {
-      grid.innerHTML = '<p style="color:var(--text-sub);padding:30px">Pricing information coming soon.</p>';
+      grid.innerHTML = `
+        <div style="text-align:center;color:var(--text-sub);padding:40px;grid-column:1/-1">
+          Pricing information coming soon. <a href="#contact" style="color:#a5b4fc">Contact us</a> for details.
+        </div>`;
       grid.style.display = 'block';
       return;
     }
 
     const plans = json.data.plans;
-    // mark the middle plan as featured
     const midIdx = Math.floor(plans.length / 2);
 
     grid.innerHTML = plans.map((plan, i) => {
@@ -475,38 +1420,56 @@
       const monthly  = mPrice > 0 ? `LKR ${mPrice.toLocaleString()}` : null;
       const yearly   = yPrice > 0 ? `LKR ${yPrice.toLocaleString()}` : null;
       const saving   = (mPrice > 0 && yPrice > 0 && mPrice * 12 > yPrice)
-        ? Math.round(((mPrice * 12 - yPrice) / (mPrice * 12)) * 100)
-        : 0;
+        ? Math.round(((mPrice * 12 - yPrice) / (mPrice * 12)) * 100) : 0;
+
+      const priceHTML = monthly
+        ? `<span class="plan-amount">${monthly}</span><span class="plan-period">/ month</span>
+           ${saving > 0 ? `<div class="plan-saving">💚 Save ${saving}% yearly (${yearly}/yr)</div>`
+                        : (yearly ? `<div class="plan-saving">Also ${yearly}/yr</div>` : '')}`
+        : (yearly
+          ? `<span class="plan-amount">${yearly}</span><span class="plan-period">/ year</span>`
+          : `<span class="plan-amount" style="font-size:1.5rem">Contact Us</span>`);
 
       return `
         <div class="plan-card ${featured ? 'featured' : ''}">
-          ${featured ? '<div class="plan-badge">MOST POPULAR</div>' : ''}
+          ${featured ? '<div class="plan-popular">⭐ MOST POPULAR</div>' : ''}
           <div class="plan-name">${plan.name}</div>
-          <div class="plan-desc">${plan.description || ''}</div>
-          <div class="plan-price">
-            ${monthly
-              ? `<span class="amount">${monthly}</span> <span class="period">/ month</span>
-                 ${saving > 0 ? `<div class="yearly">Save ${saving}% with yearly (${yearly}/yr)</div>` : (yearly ? `<div class="yearly">Or ${yearly}/yr</div>` : '')}`
-              : (yearly ? `<span class="amount">${yearly}</span> <span class="period">/ year</span>` : '<span class="amount">Contact us</span>')}
-          </div>
-          <a href="#contact" class="plan-cta ${featured ? 'primary' : 'outline'}">Get Started</a>
+          <div class="plan-desc">${plan.description || 'Complete clinic management'}</div>
+          <div class="plan-price-block">${priceHTML}</div>
+          <a href="#contact" class="plan-btn ${featured ? 'primary' : 'outline'}">Get Started →</a>
           <ul class="plan-features">
-            <li>Unlimited patients &amp; doctors</li>
-            <li>Appointments &amp; queue management</li>
-            <li>Prescriptions &amp; billing</li>
-            <li>Reports &amp; analytics</li>
-            <li>Free onboarding support</li>
-            ${(plan.billing_cycle === 'yearly' || yPrice > 0) ? '<li>Priority support</li>' : ''}
+            <li><span class="pf-check">✓</span>Unlimited patients &amp; doctors</li>
+            <li><span class="pf-check">✓</span>Appointments &amp; token queue</li>
+            <li><span class="pf-check">✓</span>Prescriptions &amp; billing</li>
+            <li><span class="pf-check">✓</span>Reports &amp; analytics</li>
+            <li><span class="pf-check">✓</span>Free onboarding support</li>
+            ${(plan.billing_cycle === 'yearly' || yPrice > 0)
+              ? '<li><span class="pf-check">✓</span>Priority support</li>' : ''}
           </ul>
         </div>`;
     }).join('');
 
     grid.style.display = 'grid';
-  } catch (err) {
-    loading.textContent = 'Unable to load pricing. Please contact us directly.';
-    console.error(err);
+  } catch (e) {
+    loading.innerHTML = `<p style="color:var(--text-sub)">Unable to load pricing. <a href="#contact" style="color:#a5b4fc">Contact us</a> directly.</p>`;
+    console.error(e);
   }
 })();
+
+/* ─── FADE IN ON SCROLL ──────────────────── */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.animation = 'slide-up 0.5s ease forwards';
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feature-item, .workflow-step, .testimonial-card, .plan-card').forEach(el => {
+  el.style.opacity = '0';
+  observer.observe(el);
+});
 </script>
 
 </body>
