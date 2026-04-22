@@ -49,6 +49,9 @@ import DisplayPage from './pages/display/DisplayPage';
 // Staff Management (admin only)
 import StaffPage from './pages/staff/StaffPage';
 
+// Help & User Guide (all roles)
+import HelpPage from './pages/help/HelpPage';
+
 export default function App() {
   return (
     <Routes>
@@ -152,6 +155,9 @@ export default function App() {
           <InsurancePage />
         </ProtectedRoute>
       } />
+
+      {/* Help & User Guide — all roles */}
+      <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

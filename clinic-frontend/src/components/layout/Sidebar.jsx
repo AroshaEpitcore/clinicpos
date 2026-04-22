@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, Stethoscope, Shield, UserCog, CreditCard,
+  Settings, Stethoscope, Shield, UserCog, CreditCard, BookOpen,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'Reports',        icon: BarChart2,   href: '/reports',       roles: ['admin'] },
   { label: 'Settings',       icon: Settings,    href: '/settings',      roles: ['admin'] },
   { label: 'Subscription',   icon: CreditCard,  href: '/subscription',  roles: ['admin'] },
+  { label: 'Help & Guide',   icon: BookOpen,    href: '/help',          roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
 ];
 
 export function Sidebar({ collapsed }) {
