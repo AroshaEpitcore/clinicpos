@@ -96,20 +96,10 @@ export default function PlatformSettingsPage() {
     };
   }
 
-  async function save(keys) {
+  async function save() {
     setSaving(true);
     try {
-      const subset = {};
-      keys.forEach(k => {
-        const v = settings[k] ?? '';
-        if (v !== '') subset[k] = v;
-      });
-      if (Object.keys(subset).length === 0) {
-        toast.info('No values to save — fill in at least one field.');
-        setSaving(false);
-        return;
-      }
-      await adminPlatformApi.setBatch(subset);
+      await adminPlatformApi.setBatch(settings);
       toast.success('Settings saved.');
     } catch {
       toast.error('Failed to save settings.');
@@ -222,7 +212,7 @@ export default function PlatformSettingsPage() {
           </p>
         </div>
         <Button
-          onClick={() => save(active.keys)}
+          onClick={() => save()}
           loading={saving}
           disabled={loading}
         >
