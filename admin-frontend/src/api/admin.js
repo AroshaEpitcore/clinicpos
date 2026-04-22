@@ -61,4 +61,9 @@ export const adminSubscriptionsApi = {
   renew:      (tenantId)            => api.post(`/tenants/${tenantId}/renew`),
 };
 
+export const adminPlatformApi = {
+  get:    ()           => api.get('/platform'),
+  set:    (key, value) => api.put('/platform', { key, value }),
+};
+
 export default api;

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealthCenter.lk — Modern Clinic Management Software</title>
+  <meta name="description" content="Complete clinic management software for Sri Lanka. Manage patients, appointments, prescriptions, lab, pharmacy and more — all in one place." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:      #2563eb;
+      --blue-dark: #1d4ed8;
+      --blue-light:#eff6ff;
+      --teal:      #0d9488;
+      --green:     #16a34a;
+      --text:      #0f172a;
+      --text-sub:  #475569;
+      --border:    #e2e8f0;
+      --surface:   #ffffff;
+      --bg:        #f8fafc;
+    }
+
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--surface); line-height: 1.6; }
+
+    a { text-decoration: none; color: inherit; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between; height: 64px;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo svg { color: var(--blue); }
+    .nav-logo span { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-logo span em { color: var(--blue); font-style: normal; }
+    .nav-cta {
+      background: var(--blue); color: #fff; padding: 9px 22px;
+      border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: var(--blue-dark); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0d4f6e 100%);
+      color: #fff; text-align: center; padding: 100px 24px 90px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(37,99,235,0.35) 0%, transparent 70%);
+    }
+    .hero-inner { position: relative; max-width: 780px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      padding: 5px 14px; border-radius: 100px; font-size: 0.78rem; font-weight: 500;
+      margin-bottom: 28px; letter-spacing: 0.3px;
+    }
+    .hero-badge span { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block; }
+    h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
+    h1 em { font-style: normal; color: #60a5fa; }
+    .hero-sub { font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(255,255,255,0.75); max-width: 560px; margin: 0 auto 40px; }
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--blue); color: #fff; padding: 13px 30px;
+      border-radius: 10px; font-weight: 700; font-size: 0.95rem;
+      transition: background 0.15s, transform 0.1s; border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: #fff; padding: 13px 30px;
+      border-radius: 10px; font-weight: 600; font-size: 0.95rem;
+      border: 1.5px solid rgba(255,255,255,0.35); cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn-outline:hover { border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.06); }
+
+    /* ── SECTION ── */
+    section { padding: 80px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      display: inline-block; background: var(--blue-light); color: var(--blue);
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 14px;
+    }
+    h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 14px; }
+    .section-sub { font-size: 1.05rem; color: var(--text-sub); max-width: 540px; margin-bottom: 56px; }
+
+    /* ── FEATURES ── */
+    .features-bg { background: var(--bg); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px; transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .feature-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px; font-size: 1.4rem;
+    }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 0.875rem; color: var(--text-sub); line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: flex; gap: 24px; flex-wrap: wrap; }
+    .step { flex: 1; min-width: 200px; text-align: center; }
+    .step-num {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.2rem; margin: 0 auto 16px;
+    }
+    .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .step p  { font-size: 0.85rem; color: var(--text-sub); }
+    .step-connector { flex: 0 0 32px; align-self: flex-start; margin-top: 26px; color: var(--border); font-size: 1.5rem; }
+
+    /* ── PRICING ── */
+    .pricing-bg { background: var(--bg); }
+    #pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .plan-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 32px; position: relative;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .plan-card:hover { box-shadow: 0 10px 40px rgba(0,0,0,0.1); transform: translateY(-3px); }
+    .plan-card.featured { border-color: var(--blue); }
+    .plan-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: #fff;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;
+      padding: 3px 14px; border-radius: 100px; white-space: nowrap;
+    }
+    .plan-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
+    .plan-desc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 20px; min-height: 38px; }
+    .plan-price { margin-bottom: 24px; }
+    .plan-price .amount { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
+    .plan-price .period { font-size: 0.85rem; color: var(--text-sub); }
+    .plan-price .yearly { font-size: 0.78rem; color: var(--green); font-weight: 600; margin-top: 4px; }
+    .plan-cta {
+      display: block; text-align: center; padding: 11px;
+      border-radius: 9px; font-weight: 700; font-size: 0.875rem;
+      margin-bottom: 24px; transition: background 0.15s;
+    }
+    .plan-cta.primary { background: var(--blue); color: #fff; }
+    .plan-cta.primary:hover { background: var(--blue-dark); }
+    .plan-cta.outline { border: 1.5px solid var(--border); color: var(--text); }
+    .plan-cta.outline:hover { border-color: var(--blue); color: var(--blue); }
+    .plan-features { list-style: none; font-size: 0.85rem; }
+    .plan-features li { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; color: var(--text-sub); }
+    .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    #pricing-loading { text-align: center; color: var(--text-sub); padding: 40px; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+    .testimonial {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px;
+    }
+    .testimonial p { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 20px; line-height: 1.7; font-style: italic; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--teal));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .author-name  { font-size: 0.875rem; font-weight: 700; }
+    .author-title { font-size: 0.78rem; color: var(--text-sub); }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d4f6e 100%);
+      color: #fff; text-align: center; padding: 80px 24px;
+    }
+    .cta-banner h2 { color: #fff; margin-bottom: 14px; }
+    .cta-banner p  { color: rgba(255,255,255,0.75); margin-bottom: 36px; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f172a; color: rgba(255,255,255,0.55);
+      text-align: center; padding: 32px 24px; font-size: 0.82rem;
+    }
+    footer a { color: rgba(255,255,255,0.7); }
+    footer a:hover { color: #fff; }
+
+    /* ── UTILS ── */
+    .text-center { text-align: center; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+
+    @media (max-width: 640px) {
+      .step-connector { display: none; }
+      .hero-actions { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="#2563eb"/>
+        <path d="M14 6v16M6 14h16" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span>Health<em>Center</em>.lk</span>
+    </div>
+    <a href="#contact" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span></span> Built for Sri Lankan Clinics
+    </div>
+    <h1>Modern Clinic Management <em>Made Simple</em></h1>
+    <p class="hero-sub">
+      Streamline your entire clinic — from patient registration to billing — with one powerful, easy-to-use platform designed for busy medical professionals.
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary">View Pricing</a>
+      <a href="#features" class="btn-outline">See All Features</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ─────────────────────────────────────────── -->
+<section class="features-bg" id="features">
+  <div class="container">
+    <div class="text-center">
+      <span class="section-label">Features</span>
+      <h2>Everything your clinic needs</h2>
+      <p class="section-sub mx-auto">
+        A complete suite of tools so you spend less time on admin and more time with patients.
+      </p>
+    </div>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eff6ff">🏥</div>
+        <h3>Patient Management</h3>
+        <p>Full patient profiles with medical history, visit records, and document uploads. Quick search and smart filters to find any patient in seconds.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">📅</div>
+        <h3>Appointment Scheduling</h3>
+        <p>Drag-and-drop calendar, online booking, SMS reminders, and doctor-wise queues. Eliminate waiting-room chaos with real-time queue management.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fefce8">💊</div>
+        <h3>Prescription Management</h3>
+        <p>Digital prescriptions with your clinic's letterhead. Auto-suggest medicines, set dosage and frequency, and print or share instantly.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">🧪</div>
+        <h3>Lab Management</h3>
+        <p>Order lab tests, track sample collection, enter results, and notify patients — all within the platform. Integrates seamlessly with billing.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fff7ed">💉</div>
+        <h3>Pharmacy Module</h3>
+        <p>In-clinic dispensing with real-time stock levels, purchase orders, expiry alerts, and supplier management built right in.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fdf4ff">🧾</div>
+        <h3>Billing & Invoicing</h3>
+        <p>Automatic invoice generation from consultations, labs, and pharmacy. Multiple payment modes, insurance claims, and end-of-day reports.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eff6ff">🏢</div>
+        <h3>Insurance & Corporate</h3>
+        <p>Manage corporate accounts, track insurance claims, handle co-payments, and generate claim summaries for insurers — all paperless.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">👨‍⚕️</div>
+        <h3>Multi-Doctor Support</h3>
+        <p>Add unlimited doctors with their own schedules, consultation fees, and dashboards. Role-based access for doctors, nurses, receptionists, and pharmacists.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fff7ed">📊</div>
+        <h3>Reports & Analytics</h3>
+        <p>Daily revenue reports, patient flow analytics, doctor performance summaries, and custom date-range reports with one-click export.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fdf4ff">📺</div>
+        <h3>Waiting Room Display</h3>
+        <p>A full-screen TV display shows the current queue so patients know their turn without crowding the reception desk.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eff6ff">🌐</div>
+        <h3>Patient Portal</h3>
+        <p>Patients can log in to view their history, download prescriptions, and track upcoming appointments from any device.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">☁️</div>
+        <h3>Cloud-Based & Secure</h3>
+        <p>Hosted on enterprise-grade servers with daily backups, SSL encryption, and 99.9% uptime. Access your data from anywhere, securely.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ──────────────────────────────────────── -->
+<section>
+  <div class="container text-center">
+    <span class="section-label">How It Works</span>
+    <h2>Up and running in minutes</h2>
+    <p class="section-sub mx-auto">No hardware to install. No complex setup. Just sign up and start managing your clinic.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Sign Up</h3>
+        <p>Create your clinic account. We set up your private workspace instantly.</p>
+      </div>
+      <div class="step-connector">→</div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Configure</h3>
+        <p>Add your doctors, services, fee structure, and branding in minutes.</p>
+      </div>
+      <div class="step-connector">→</div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Go Live</h3>
+        <p>Start registering patients and taking appointments from day one.</p>
+      </div>
+      <div class="step-connector">→</div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Grow</h3>
+        <p>Unlock pharmacy, lab, and insurance modules as your practice expands.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ──────────────────────────────────────────── -->
+<section class="pricing-bg" id="pricing">
+  <div class="container text-center">
+    <span class="section-label">Pricing</span>
+    <h2>Simple, transparent pricing</h2>
+    <p class="section-sub mx-auto">Choose the plan that fits your clinic. All plans include unlimited patients and free support.</p>
+    <div id="pricing-loading">Loading plans…</div>
+    <div id="pricing-grid" style="display:none"></div>
+    <p style="margin-top:28px; font-size:0.82rem; color:var(--text-sub)">
+      All prices in LKR. Yearly billing saves you up to 2 months free. Contact us to discuss custom enterprise plans.
+    </p>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ─────────────────────────────────────── -->
+<section>
+  <div class="container text-center">
+    <span class="section-label">Testimonials</span>
+    <h2>Trusted by clinics across Sri Lanka</h2>
+    <p class="section-sub mx-auto">Here's what doctors and clinic managers say about HealthCenter.lk.</p>
+    <div class="testimonials">
+      <div class="testimonial">
+        <p>"Setting up was so easy. Within an hour we had all our doctors added and were taking appointments. The queue display TV screen alone has made our waiting area so much calmer."</p>
+        <div class="testimonial-author">
+          <div class="avatar">DK</div>
+          <div>
+            <div class="author-name">Dr. Kumara</div>
+            <div class="author-title">General Practitioner, Colombo</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p>"The billing module saves us at least 2 hours every day. Insurance claims that used to take a week of paperwork now get done in minutes. Absolutely worth every rupee."</p>
+        <div class="testimonial-author">
+          <div class="avatar">NP</div>
+          <div>
+            <div class="author-name">Nisha Perera</div>
+            <div class="author-title">Clinic Manager, Kandy</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p>"Our pharmacy stock used to be a nightmare. Now with real-time tracking and expiry alerts we've cut wastage by 40%. The reports help me order smarter every month."</p>
+        <div class="testimonial-author">
+          <div class="avatar">AS</div>
+          <div>
+            <div class="author-name">Ashan Silva</div>
+            <div class="author-title">Pharmacist, Gampaha</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BANNER ────────────────────────────────────────── -->
+<section class="cta-banner" id="contact">
+  <div class="container">
+    <h2>Ready to modernise your clinic?</h2>
+    <p>Join hundreds of clinics already saving time and growing with HealthCenter.lk. Start your free trial today — no credit card required.</p>
+    <a href="mailto:info@healthcenter.lk" class="btn-primary" style="display:inline-block">
+      Contact Us to Get Started
+    </a>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <p>
+    &copy; 2026 HealthCenter.lk &nbsp;·&nbsp;
+    <a href="mailto:info@healthcenter.lk">info@healthcenter.lk</a> &nbsp;·&nbsp;
+    All rights reserved.
+  </p>
+</footer>
+
+<script>
+(async () => {
+  const grid    = document.getElementById('pricing-grid');
+  const loading = document.getElementById('pricing-loading');
+
+  // determine API base — same origin in production, backend port in dev
+  const apiBase = window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : '';
+
+  try {
+    const res  = await fetch(`${apiBase}/api/v1/public/landing`);
+    const json = await res.json();
+
+    loading.style.display = 'none';
+
+    if (!json.data?.enabled || !json.data?.plans?.length) {
+      grid.innerHTML = '<p style="color:var(--text-sub);padding:30px">Pricing information coming soon.</p>';
+      grid.style.display = 'block';
+      return;
+    }
+
+    const plans = json.data.plans;
+    // mark the middle plan as featured
+    const midIdx = Math.floor(plans.length / 2);
+
+    grid.innerHTML = plans.map((plan, i) => {
+      const featured = plans.length > 1 && i === midIdx;
+      const monthly  = plan.monthly_price ? `LKR ${Number(plan.monthly_price).toLocaleString()}` : null;
+      const yearly   = plan.yearly_price  ? `LKR ${Number(plan.yearly_price).toLocaleString()}`  : null;
+      const saving   = (plan.monthly_price && plan.yearly_price)
+        ? Math.round(((plan.monthly_price * 12 - plan.yearly_price) / (plan.monthly_price * 12)) * 100)
+        : 0;
+
+      return `
+        <div class="plan-card ${featured ? 'featured' : ''}">
+          ${featured ? '<div class="plan-badge">MOST POPULAR</div>' : ''}
+          <div class="plan-name">${plan.name}</div>
+          <div class="plan-desc">${plan.description || ''}</div>
+          <div class="plan-price">
+            ${monthly
+              ? `<span class="amount">${monthly}</span> <span class="period">/ month</span>
+                 ${saving > 0 ? `<div class="yearly">Save ${saving}% with yearly (${yearly}/yr)</div>` : (yearly ? `<div class="yearly">Or ${yearly}/yr</div>` : '')}`
+              : (yearly ? `<span class="amount">${yearly}</span> <span class="period">/ year</span>` : '<span class="amount">Contact us</span>')}
+          </div>
+          <a href="#contact" class="plan-cta ${featured ? 'primary' : 'outline'}">Get Started</a>
+          <ul class="plan-features">
+            <li>Unlimited patients &amp; doctors</li>
+            <li>Appointments &amp; queue management</li>
+            <li>Prescriptions &amp; billing</li>
+            <li>Reports &amp; analytics</li>
+            <li>Free onboarding support</li>
+            ${plan.billing_cycle === 'yearly' || plan.yearly_price ? '<li>Priority support</li>' : ''}
+          </ul>
+        </div>`;
+    }).join('');
+
+    grid.style.display = 'grid';
+  } catch (err) {
+    loading.textContent = 'Unable to load pricing. Please contact us directly.';
+    console.error(err);
+  }
+})();
+</script>
+
+</body>
+</html>

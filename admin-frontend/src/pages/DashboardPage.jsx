@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, CheckCircle, Ban, RefreshCw } from 'lucide-react';
+import { Building2, CheckCircle, Ban, RefreshCw, Globe } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminDashboardApi, adminTenantsApi } from '../api/admin';
+import { adminDashboardApi, adminTenantsApi, adminPlatformApi } from '../api/admin';
 import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -11,25 +11,44 @@ import { EmptyState } from '../components/ui/EmptyState';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [stats,   setStats]   = useState(null);
-  const [clinics, setClinics] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats,           setStats]           = useState(null);
+  const [clinics,         setClinics]         = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [landingEnabled,  setLandingEnabled]  = useState(true);
+  const [landingToggling, setLandingToggling] = useState(false);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
     try {
-      const [dashRes, clinicRes] = await Promise.all([
+      const [dashRes, clinicRes, platformRes] = await Promise.all([
         adminDashboardApi.get(),
         adminTenantsApi.list(),
+        adminPlatformApi.get(),
       ]);
       setStats(dashRes.data.data);
       setClinics(clinicRes.data.data.slice(0, 8));
+      const settings = platformRes.data.data ?? {};
+      setLandingEnabled(settings.landing_page_enabled !== 'false');
     } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleLanding() {
+    setLandingToggling(true);
+    try {
+      const next = !landingEnabled;
+      await adminPlatformApi.set('landing_page_enabled', String(next));
+      setLandingEnabled(next);
+      toast.success(`Landing page ${next ? 'enabled' : 'disabled'}`);
+    } catch {
+      toast.error('Failed to update landing page setting.');
+    } finally {
+      setLandingToggling(false);
     }
   }
 
@@ -80,6 +99,36 @@ export default function DashboardPage() {
           sub={suspended > 0 ? 'require attention' : 'all clear'}
         />
       </div>
+
+      {/* Platform Settings */}
+      <Card title="Platform Settings" subtitle="Control global platform behaviour">
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[var(--radius)] bg-[var(--color-primary-light)] text-[var(--color-primary)] flex items-center justify-center">
+              <Globe className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-[var(--color-text)]">Landing Page</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                Show the public marketing page at healthcenter.lk
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={toggleLanding}
+            disabled={landingToggling || loading}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+              landingEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                landingEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </Card>
 
       {/* Recent Clinics */}
       <Card

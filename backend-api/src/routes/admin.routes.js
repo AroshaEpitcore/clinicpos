@@ -646,4 +646,38 @@ router.get('/subscriptions', async (req, res) => {
   }
 });
 
+// ── GET /api/v1/admin/platform ────────────────────────────────────────────────
+router.get('/platform', async (req, res) => {
+  try {
+    const result = await queryPublic(`SELECT key, value FROM public.platform_settings`);
+    const settings = {};
+    result.rows.forEach(r => { settings[r.key] = r.value; });
+    res.json({ status: 'success', data: settings });
+  } catch (err) {
+    console.error('GET /admin/platform', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PUT /api/v1/admin/platform ────────────────────────────────────────────────
+// Body: { key: 'landing_page_enabled', value: 'true' | 'false' }
+router.put('/platform', async (req, res) => {
+  const { key, value } = req.body;
+  if (!key || value === undefined) {
+    return res.status(400).json({ status: 'error', message: 'key and value required' });
+  }
+  try {
+    await queryPublic(
+      `INSERT INTO public.platform_settings (key, value, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+      [key, String(value)]
+    );
+    res.json({ status: 'success', message: 'Setting updated' });
+  } catch (err) {
+    console.error('PUT /admin/platform', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 module.exports = router;
