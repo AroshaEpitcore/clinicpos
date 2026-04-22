@@ -100,7 +100,15 @@ export default function PlatformSettingsPage() {
     setSaving(true);
     try {
       const subset = {};
-      keys.forEach(k => { subset[k] = settings[k] ?? ''; });
+      keys.forEach(k => {
+        const v = settings[k] ?? '';
+        if (v !== '') subset[k] = v;
+      });
+      if (Object.keys(subset).length === 0) {
+        toast.info('No values to save — fill in at least one field.');
+        setSaving(false);
+        return;
+      }
       await adminPlatformApi.setBatch(subset);
       toast.success('Settings saved.');
     } catch {
