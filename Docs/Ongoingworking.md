@@ -17,7 +17,7 @@
 
 ## Current Status
 
-**Currently working on:** Production live — landing page deployed, bugs fixed, polling added
+**Currently working on:** Production live — platform settings, landing page, polling all deployed and working
 **Last updated:** 2026-04-22
 **Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
 
@@ -74,6 +74,10 @@
 | **Landing Page — healthcenter.lk** | ✅ `landing-frontend/index.html` — standalone marketing page with features, How It Works, dynamic pricing from `/api/v1/public/landing`, testimonials, CTA. Nginx root domain block serves it. (2026-04-22) |
 | **Platform Settings (Super Admin)** | ✅ `public.platform_settings` table. `GET/PUT /api/v1/admin/platform` endpoints. `GET /api/v1/public/landing` public endpoint. Admin Dashboard → Platform Settings card with landing page toggle. `migrate_platform_settings.js` run on server. (2026-04-22) |
 | **Nginx Root Domain Fix** | ✅ Added dedicated nginx server block for `healthcenter.lk` apex domain → `landing-frontend/`. Wildcard `*.healthcenter.lk` only covered subdomains, not root. (2026-04-22) |
+| **Platform Settings Page — Full Implementation** | ✅ New 4-tab admin page at `/platform-settings`: Company Info (name, tagline, reg no), Contact Details (support/sales email, primary/WhatsApp phone, address), Payment Details (bank name, account name/number, branch, SWIFT, payment instructions), System (landing page toggle). Live Preview card on Contact + Payment tabs. Save button sends all settings at once via `PUT /api/v1/admin/platform/batch`. `GET /api/v1/public/platform-info` public endpoint returns all non-sensitive platform fields. `migrate_platform_info.js` seeds 17 default keys. Sidebar nav item added. (2026-04-22) |
+| **Clinic Subscription Page — Contact + Payment Cards** | ✅ `SubscriptionPage.jsx` now fetches `/api/v1/public/platform-info` and shows two dynamic cards: "Contact & Support" (phone with WhatsApp link, support email, address) and "Payment Details" (bank info grid + payment instructions). Both cards are conditional — hidden when data is not set. (2026-04-22) |
+| **Landing Page Redesign** | ✅ Complete dark-themed redesign: gradient headline, animated hero with queue mockup + floating stat cards, 6-item trust bar, 12 numbered features grid, 4-step How It Works with gradient line, role tabs (Receptionist/Doctor/Nurse/Admin) with permissions checklist, dynamic pricing cards, testimonials, scroll-triggered fade-in animations. Contact section dynamically populated from `/api/v1/public/platform-info`. (2026-04-22) |
+| **Platform Settings Save Bug Fix** | ✅ Save button was only sending current tab's keys — phone/bank fields entered on other tabs were silently lost. Fixed: save() now sends entire settings state for all tabs in one batch request. (2026-04-22) |
 
 ### What is NOT yet started
 - Phase 7 — Electron desktop version

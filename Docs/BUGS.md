@@ -211,6 +211,35 @@ Uses `window.location.origin` (e.g. `https://familycare.healthcenter.lk`) so the
 
 ---
 
+---
+
+## Bug #12 — Platform Settings save only sent current tab's fields
+
+**File:** `admin-frontend/src/pages/PlatformSettingsPage.jsx`  
+**Severity:** High  
+**Found:** 2026-04-22
+
+**Problem:**  
+The Save button on the Platform Settings page only saved the keys belonging to the currently active tab. So if the user filled in phone/address/bank details on Contact or Payment tabs but clicked Save while on the Company Info tab, only `company_name`, `company_tagline`, `company_reg_no` were sent. All other fields were silently discarded. Toast showed "Settings saved" regardless — misleading the user.
+
+**Fix:**  
+Changed `save(keys)` to `save()` — the function now sends the entire `settings` state object to `PUT /api/v1/admin/platform/batch` regardless of which tab is active. All fields across all tabs are saved in one request.
+
+---
+
+## Bug #13 — Platform Settings empty fields overwrote existing DB values
+
+**File:** `admin-frontend/src/pages/PlatformSettingsPage.jsx`  
+**Severity:** Medium  
+**Found:** 2026-04-22
+
+**Problem:**  
+The original save function built the subset as `keys.forEach(k => { subset[k] = settings[k] ?? '' })`. If a field was empty (not yet filled), an empty string was sent and saved to DB — overwriting any previously stored value. Saving the Contact tab with only the email filled in would blank out city, country, phone, and address.
+
+**Fix (interim):** Skip empty-string values when building the batch payload. Superseded by Bug #12 fix — saving all settings at once means the user fills everything in before saving, so empty fields are intentional clears.
+
+---
+
 ## Fix Status
 
 | # | Bug | Severity | Status |
@@ -226,3 +255,5 @@ Uses `window.location.origin` (e.g. `https://familycare.healthcenter.lk`) so the
 | 9 | Settings server error on new clinics (missing schema columns/tables) | High | ✅ Fixed |
 | 10 | Basic plan auto-suspends — Date object `.split('T')` returns empty string | High | ✅ Fixed |
 | 11 | Logo not displaying in production — `mediaUrl.js` localhost fallback | Medium | ✅ Fixed |
+| 12 | Platform Settings save only sent current tab's keys — other tabs lost | High | ✅ Fixed |
+| 13 | Platform Settings empty fields overwrote existing DB values | Medium | ✅ Fixed |

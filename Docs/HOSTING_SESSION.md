@@ -294,6 +294,11 @@ node -r dotenv/config src/db/migrate_platform_settings.js
 
 # Patch new-clinic schema gaps — added 2026-04-22
 node -r dotenv/config src/db/migrate_fix_new_clinics.js
+
+# Platform info keys (company, contact, payment details) — added 2026-04-22
+# Run from inside backend-api directory (dotenv must resolve)
+cd /var/www/clinicpos/backend-api
+node -r dotenv/config src/db/migrate_platform_info.js
 ```
 
 > **Note:** `migrate_subscription_plans.js` must be run with `-r dotenv/config` or it runs silently without error and creates nothing.
@@ -405,6 +410,22 @@ node -r dotenv/config src/db/migrate_fix_new_clinics.js
 **Root cause:** Nginx wildcard `*.healthcenter.lk` only covers subdomains — the apex domain fell through to the admin block (first `server {}` in config).
 
 **Fix:** Added `/etc/nginx/sites-available/healthcenter.lk` dedicated block (see Nginx section below).
+
+---
+
+### Bug 5 — Platform Settings save only sent current tab's keys ✅ FIXED
+
+**Root cause:** The Save button called `save(active.keys)` — only the active tab's field keys were included in the batch payload. Entering phone/address/bank on other tabs and clicking Save while on the Company tab silently discarded all data. Toast showed "Settings saved" regardless.
+
+**Fix:** Changed to `save()` — sends entire `settings` state for all tabs at once via `PUT /api/v1/admin/platform/batch`.
+
+---
+
+### Bug 6 — Platform Settings empty fields overwrote existing DB values ✅ FIXED
+
+**Root cause:** Save function built subset with `settings[k] ?? ''` — empty fields saved as empty strings, overwriting previously stored values.
+
+**Fix:** Initially added skip-empty logic, then superseded by Bug 5 fix (save-all approach makes the user fill everything at once, so empty fields represent intentional clears).
 
 ---
 

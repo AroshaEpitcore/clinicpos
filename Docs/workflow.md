@@ -7,7 +7,7 @@
 ---
 
 ## Last updated: 2026-04-22
-## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management + Production deployment (healthcenter.lk) + Schema completeness fix + Date comparison bug fix + Logo display fix + Auto-polling dashboards + Landing page + Platform settings.
+## Covers: Phases 1–4 complete + Phase 5.1 Pharmacy + Phase 5.2 Lab + Phase 5.3 Insurance + Phase 5.4 Patient Portal + Phase 5.5 Queue Display + SaaS onboarding flow + Staff Management + Token Slip Printing + Phone Formatting + Queue redesign + Doctor ownership enforcement + Billing invoice fixes + Slot double-booking fix + Booking portal UI redesign + Consult+Rx combined modal + Custom medicines + Food chips + Token for all booking types + Queue badge fixes + TopBar redesign + Token slip logo + Auto-arrive on print + Consultations/Prescriptions detail modals + Search/filter on all list pages + Dispense confirmation modal + InvoiceModal dispense quick action + Low stock dashboard badge + Post-dispense low stock toast + DispenseModal reorder_level threshold + Queue Display bug fix + Admin-frontend DESIGN.md UI rebuild + Medicine Store test automation + Lab page patient search fix + Token numbers on Billing/Consultations/Prescriptions + Lab requests in consultation and prescription modals + Subscription billing management + Production deployment (healthcenter.lk) + Schema completeness fix + Date comparison bug fix + Logo display fix + Auto-polling dashboards + Landing page redesign (dark UI, role tabs, animated hero) + Platform Settings full page (company/contact/payment/system) + Clinic subscription contact+payment cards + Platform info public API.
 ## API standard: all routes return `{ status: 'success'|'error', message?, data? }`
 
 ---
@@ -441,8 +441,8 @@ Patient (PT-XXXXX)
 | 4 Super Admin UI Rebuild | ✅ Complete | Full DESIGN.md-compliant UI — CSS variables, dark mode, Radix Dialog modals, matching sidebar/TopBar layout, Inter font, ConfirmDialog, EmptyState (2026-04-18) |
 | Subscription Billing | ✅ Complete | Plans CRUD (PlansPage), all-clinics subscription view (SubscriptionsPage), assign/renew from ClinicDetailPage, clinic admin view (SubscriptionPage), auto-suspend on expiry (2026-04-20) |
 | **Auto-Polling** | ✅ Complete | All 4 role dashboards + AppointmentsPage: 30s silent background poll. DisplayPage: 10s. `useCallback(load, silent)` pattern — background polls skip loading spinner. (2026-04-22) |
-| **Landing Page** | ✅ Complete | `landing-frontend/index.html` standalone marketing page at healthcenter.lk. Features, pricing from API, testimonials, CTA. Public `GET /api/v1/public/landing` endpoint. Super admin toggle in Dashboard. (2026-04-22) |
-| **Platform Settings** | ✅ Complete | `public.platform_settings` key-value table. `GET/PUT /api/v1/admin/platform` (super admin). Admin Dashboard → Platform Settings card with landing page toggle switch. (2026-04-22) |
+| **Landing Page** | ✅ Complete | `landing-frontend/index.html` — full dark redesign: animated hero with queue mockup, role tabs (Receptionist/Doctor/Nurse/Admin) with permission checklists, 12 features grid, 4-step How It Works, dynamic pricing, testimonials, scroll-triggered animations. Contact/footer populated dynamically from `/api/v1/public/platform-info`. (2026-04-22) |
+| **Platform Settings** | ✅ Complete | 4-tab super admin page: Company Info, Contact Details, Payment Details, System controls. `public.platform_settings` key-value table (17 keys). `GET/PUT /api/v1/admin/platform` + `PUT /api/v1/admin/platform/batch` endpoints. `GET /api/v1/public/platform-info` public endpoint. Data shows on: landing page contact section + footer, clinic admin Subscription page (Contact & Support card + Payment Details card). `migrate_platform_info.js` seeds defaults. (2026-04-22) |
 | UI Polish | ✅ Complete | Dark mode, DatePicker, Inter font, improved Select, bg-white audit |
 | 5.1 Pharmacy | ✅ Complete | Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments; receptionist + admin |
 | 5.2 Lab | ✅ Complete | Test Catalog (12 seeded), Lab Queue, result entry + file upload, Patient Lab tab; all roles |
@@ -661,8 +661,20 @@ Public route (no JWT). Returns:
 ### Dashboard
 - Stat cards: Total Clinics, Active, Suspended (clickable → filtered clinic list)
 - Recent clinics list (last 8) → click to open clinic detail
+- **Platform Settings card** — landing page enable/disable toggle switch (saves instantly)
 - **No trial/plan system** — access managed entirely via feature flags
 - Refresh button with loading state
+
+### Platform Settings (`/platform-settings`)
+- **Company Info tab** — company name, tagline, registration/business number
+- **Contact Details tab** — support email, sales email, primary phone, WhatsApp number, address (line 1, line 2, city, country). Live Preview card shows how it renders on website and subscription page.
+- **Payment Details tab** — bank name, account holder name, account number, branch, SWIFT/branch code, payment instructions textarea. Live Preview card shows bank transfer block.
+- **System tab** — landing page enable/disable toggle
+- **Save Changes** button saves **all tabs at once** in one batch request — no need to switch tabs before saving
+- Data from Contact + Payment tabs appears automatically on:
+  - `healthcenter.lk` landing page — contact strip (phone, email, address) + footer brand name
+  - Clinic admin **Subscription page** — "Contact & Support" card + "Payment Details" card
+- Backend: `PUT /api/v1/admin/platform/batch` (bulk upsert), `GET /api/v1/admin/platform` (load all), `GET /api/v1/public/platform-info` (public, used by landing + subscription page)
 
 ### Clinic List (`/clinics`)
 - Search by name, subdomain, or email (debounced 300ms, X clear button)
