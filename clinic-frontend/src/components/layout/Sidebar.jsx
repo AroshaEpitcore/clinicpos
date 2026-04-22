@@ -11,7 +11,7 @@ import { mediaUrl }  from '../../utils/mediaUrl';
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard',     roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
   { label: 'Patients',      icon: Users,            href: '/patients',      roles: ['receptionist', 'doctor', 'nurse', 'admin'] },
-  { label: 'Appointments',  icon: Calendar,         href: '/appointments',  roles: ['receptionist', 'doctor', 'admin'] },
+  { label: 'Appointments',  icon: Calendar,         href: '/appointments',  roles: ['receptionist', 'doctor', 'nurse', 'admin'] },
   { label: 'Consultations', icon: Stethoscope,      href: '/consultations', roles: ['doctor', 'admin'] },
   { label: 'Prescriptions', icon: Pill,             href: '/prescriptions', roles: ['doctor', 'nurse', 'receptionist', 'admin'] },
   { label: 'Medicine Store',icon: Package,          href: '/medicines',     roles: ['admin'] },

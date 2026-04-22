@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { AlertTriangle, Clock, User, Search, Trash2, Plus, Printer, FlaskConical, X } from 'lucide-react';
+import { AlertTriangle, Clock, User, Search, Trash2, Plus, Printer, FlaskConical, X, Activity } from 'lucide-react';
 import { Modal }        from '../../components/ui/Modal';
 import { Button }       from '../../components/ui/Button';
 import { Input }        from '../../components/ui/Input';
 import { DatePicker }   from '../../components/ui/DatePicker';
 import { consultationsApi } from '../../api/consultations';
+import { vitalsApi }        from '../../api/vitals';
 import { prescriptionsApi } from '../../api/prescriptions';
 import { medicinesApi }     from '../../api/medicines';
 import { labApi }           from '../../api/lab';
@@ -83,6 +84,9 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
   const [showDropdown,  setShowDropdown]  = useState([false]);
   const searchTimers = useRef([]);
 
+  // ── Nurse vitals ─────────────────────────────────────────────────────────
+  const [nurseVitals, setNurseVitals] = useState(null);
+
   // ── Lab tests state ───────────────────────────────────────────────────────
   const [labTests,      setLabTests]      = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -110,8 +114,23 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
       setSelectedTests([]);
       setLabSearch('');
       setLabNotes('');
+      setNurseVitals(null);
+
+      // Fetch nurse-recorded vitals and pre-populate the form
+      vitalsApi.getByAppointment(appointment.id)
+        .then(res => {
+          const v = res.data.data;
+          if (!v) return;
+          setNurseVitals(v);
+          if (v.bp_systolic)  setValue('bp_systolic',  String(v.bp_systolic));
+          if (v.bp_diastolic) setValue('bp_diastolic', String(v.bp_diastolic));
+          if (v.temperature)  setValue('temperature',  String(v.temperature));
+          if (v.weight)       setValue('weight',       String(v.weight));
+          if (v.pulse)        setValue('pulse',        String(v.pulse));
+        })
+        .catch(() => {});
     }
-  }, [open, appointment, reset]);
+  }, [open, appointment, reset, setValue]);
 
   // ── Rx helpers ────────────────────────────────────────────────────────────
   function updateRxItem(index, field, value) {
@@ -402,6 +421,36 @@ export function ConsultationModal({ open, onClose, onSuccess, appointment }) {
         {/* ── Vitals ─────────────────────────────────────────────────── */}
         <section>
           <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-3">Vitals</p>
+
+          {/* Nurse-recorded vitals banner */}
+          {nurseVitals && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 rounded-[var(--radius)] bg-[var(--color-primary-light)] border border-[var(--color-primary)] mb-3 text-xs">
+              <span className="flex items-center gap-1 font-semibold text-[var(--color-primary)]">
+                <Activity className="w-3.5 h-3.5" /> Nurse vitals
+              </span>
+              {nurseVitals.bp_systolic && nurseVitals.bp_diastolic && (
+                <span className="text-[var(--color-text)]">BP: <strong>{nurseVitals.bp_systolic}/{nurseVitals.bp_diastolic}</strong> mmHg</span>
+              )}
+              {nurseVitals.pulse && (
+                <span className="text-[var(--color-text)]">Pulse: <strong>{nurseVitals.pulse}</strong> bpm</span>
+              )}
+              {nurseVitals.spo2 && (
+                <span className="text-[var(--color-text)]">SpO2: <strong>{nurseVitals.spo2}%</strong></span>
+              )}
+              {nurseVitals.temperature && (
+                <span className="text-[var(--color-text)]">Temp: <strong>{nurseVitals.temperature}°C</strong></span>
+              )}
+              {nurseVitals.weight && (
+                <span className="text-[var(--color-text)]">Weight: <strong>{nurseVitals.weight} kg</strong></span>
+              )}
+              {nurseVitals.height && (
+                <span className="text-[var(--color-text)]">Height: <strong>{nurseVitals.height} cm</strong></span>
+              )}
+              {nurseVitals.recorded_by_name && (
+                <span className="text-[var(--color-text-secondary)] ml-auto">by {nurseVitals.recorded_by_name}</span>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-3">
             <div className="col-span-2 flex flex-col gap-1">
               <label className="text-xs font-medium text-[var(--color-text)]">Blood Pressure (mmHg)</label>

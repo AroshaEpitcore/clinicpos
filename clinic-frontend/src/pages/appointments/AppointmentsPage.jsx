@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar, Globe, Ticket, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Zap, Clock, Printer, Receipt, Calendar, Globe, Ticket, Search, X, Activity } from 'lucide-react';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { PageLayout }    from '../../components/layout/PageLayout';
 import { PageHeader }    from '../../components/ui/PageHeader';
@@ -10,6 +10,7 @@ import { EmptyState }    from '../../components/ui/EmptyState';
 import { LoadingState }  from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AppointmentModal }    from './components/AppointmentModal';
+import { VitalsModal }         from './components/VitalsModal';
 import { ManageScheduleModal } from './admin/ManageScheduleModal';
 import { HolidaysModal }       from './admin/HolidaysModal';
 import { ConsultationModal }   from '../consultations/ConsultationModal';
@@ -78,6 +79,9 @@ export default function AppointmentsPage() {
   // Status change confirm
   const [pendingAction, setPendingAction] = useState(null); // { appointment, newStatus }
   const [actioning,     setActioning]     = useState(false);
+
+  // Vitals
+  const [vitalsTarget, setVitalsTarget] = useState(null);
 
   // Emergency confirm
   const [emergencyTarget, setEmergencyTarget] = useState(null);
@@ -400,6 +404,7 @@ export default function AppointmentsPage() {
               isAdmin={isAdmin}
               onStatusChange={(newStatus) => setPendingAction({ appointment: appt, newStatus })}
               onMakeEmergency={() => setEmergencyTarget(appt)}
+              onVitals={() => setVitalsTarget(appt)}
               onConsult={() => setConsultTarget(appt)}
               onWriteRx={() => setRxTarget(appt)}
               onBill={() => handleBill(appt)}
@@ -431,6 +436,12 @@ export default function AppointmentsPage() {
       )}
 
       {/* Modals */}
+      <VitalsModal
+        open={!!vitalsTarget}
+        onClose={() => setVitalsTarget(null)}
+        appointment={vitalsTarget}
+      />
+
       <AppointmentModal
         open={apptModalOpen}
         onClose={() => setApptModalOpen(false)}
@@ -508,16 +519,18 @@ export default function AppointmentsPage() {
   );
 }
 
-function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onConsult, onWriteRx, onBill, onPrint }) {
+function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onVitals, onConsult, onWriteRx, onBill, onPrint }) {
   const actions        = STATUS_ACTIONS[appt.status] || [];
   const isEmergency    = appt.type === 'emergency';
   const isDoctor       = user?.role === 'doctor' || user?.role === 'admin';
+  const isNurse        = user?.role === 'nurse';
   const isReceptionist = user?.role === 'receptionist' || user?.role === 'admin';
   // Doctors can only act on their own appointments; admins can act on any
   const isOwnAppt      = user?.role === 'admin' || String(appt.doctor_id) === String(user?.id);
   const canConsult     = isDoctor       && appt.status === 'arrived'   && isOwnAppt;
   const canWriteRx     = isDoctor       && appt.status === 'completed' && !!appt.consultation_id && !appt.prescription_id && isOwnAppt;
   const canBill        = isReceptionist && appt.status === 'completed' && !!appt.consultation_id;
+  const canVitals      = (isNurse || isDoctor) && appt.status === 'arrived';
   const hasToken       = appt.token_number != null;
 
   return (
@@ -606,6 +619,11 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onCons
 
         {/* ── Actions column ── */}
         <div className="flex items-center justify-end gap-1.5 px-3 py-3 bg-[var(--color-surface)] shrink-0 border-t sm:border-t-0 sm:border-l border-[var(--color-border)] sm:w-[300px]">
+          {canVitals && (
+            <Button size="sm" variant="secondary" onClick={onVitals}>
+              <Activity className="w-3.5 h-3.5 mr-1" /> Vitals
+            </Button>
+          )}
           {canConsult && (
             <Button size="sm" onClick={onConsult}>Consult</Button>
           )}
