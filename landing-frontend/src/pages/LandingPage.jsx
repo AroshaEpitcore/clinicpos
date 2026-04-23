@@ -1,5 +1,4 @@
-import Navbar             from '../components/layout/Navbar';
-import Footer             from '../components/layout/Footer';
+import Layout             from '../components/layout/Layout';
 import HeroSection        from '../sections/HeroSection';
 import TrustBar           from '../sections/TrustBar';
 import FeaturesSection    from '../sections/FeaturesSection';
@@ -11,8 +10,7 @@ import CtaSection         from '../sections/CtaSection';
 
 export default function LandingPage() {
   return (
-    <>
-      <Navbar />
+    <Layout>
       <HeroSection />
       <TrustBar />
       <div className="divider-line" />
@@ -21,13 +19,9 @@ export default function LandingPage() {
       <WorkflowSection />
       <div className="divider-line" />
       <RolesSection />
-      <div className="divider-line" />
       <PricingSection />
-      <div className="divider-line" />
       <TestimonialsSection />
-      <div className="divider-line" />
       <CtaSection />
-      <Footer />
-    </>
+    </Layout>
   );
 }

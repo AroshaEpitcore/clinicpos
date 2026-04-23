@@ -1,60 +1,47 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from '../components/layout/Navbar';
-import Footer from '../components/layout/Footer';
+import Layout from '../components/layout/Layout';
 import FadeIn from '../components/ui/FadeIn';
 
-/* ── helpers ─────────────────────────────────────────────────────── */
 function Badge({ role }) {
-  const map = {
-    receptionist: { bg:'rgba(59,130,246,.2)',  color:'#93c5fd' },
-    doctor:       { bg:'rgba(16,185,129,.2)',  color:'#6ee7b7' },
-    nurse:        { bg:'rgba(168,85,247,.2)',  color:'#d8b4fe' },
-    admin:        { bg:'rgba(245,158,11,.2)',  color:'#fcd34d' },
-  };
-  const s = map[role] || { bg:'rgba(255,255,255,0.1)', color:'var(--text-sub)' };
+  const cls = {
+    receptionist: 'bg-blue-400/20 text-blue-300',
+    doctor:       'bg-emerald-500/20 text-emerald-300',
+    nurse:        'bg-purple-500/20 text-purple-300',
+    admin:        'bg-amber-500/20 text-amber-300',
+  }[role] || 'bg-white/10 text-white/60';
+
   return (
-    <span style={{
-      display:'inline-block', fontSize:11, fontWeight:700,
-      padding:'2px 8px', borderRadius:100,
-      background:s.bg, color:s.color,
-    }}>
+    <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${cls}`}>
       {role.charAt(0).toUpperCase() + role.slice(1)}
     </span>
   );
 }
 
-function Step({ number, title, who=[], desc, tip, next }) {
+function Step({ number, title, who = [], desc, tip, next }) {
   return (
-    <div style={{ display:'flex', gap:16, position:'relative' }}>
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
-        <div style={{
-          width:32, height:32, borderRadius:'50%',
-          background:'linear-gradient(135deg,#6366f1,#06b6d4)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontWeight:700, fontSize:13, color:'#fff', flexShrink:0,
-        }}>{number}</div>
-        {next && <div style={{ width:2, flex:1, background:'var(--card-border)', marginTop:6, minHeight:20 }} />}
+    <div className="flex gap-4 relative">
+      <div className="flex flex-col items-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-sm text-white shrink-0">
+          {number}
+        </div>
+        {next && <div className="w-0.5 flex-1 bg-white/[0.08] mt-1.5 min-h-5" />}
       </div>
-      <div style={{ paddingBottom:24, flex:1 }}>
-        <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:8, marginBottom:4 }}>
-          <span style={{ fontSize:14, fontWeight:700 }}>{title}</span>
+      <div className="pb-6 flex-1">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className="text-sm font-bold">{title}</span>
           {who.map(r => <Badge key={r} role={r} />)}
         </div>
-        <p style={{ fontSize:13, color:'var(--text-sub)', lineHeight:1.65 }}>{desc}</p>
+        <p className="text-sm text-white/60 leading-relaxed">{desc}</p>
         {tip && (
-          <div style={{
-            display:'flex', alignItems:'flex-start', gap:8,
-            background:'rgba(99,102,241,.1)', border:'1px solid rgba(99,102,241,.2)',
-            borderRadius:8, padding:'10px 12px', marginTop:10,
-          }}>
-            <span style={{ fontSize:12 }}>⭐</span>
-            <span style={{ fontSize:12, color:'#a5b4fc', lineHeight:1.5 }}>{tip}</span>
+          <div className="flex items-start gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2.5 mt-2.5">
+            <span className="text-xs shrink-0">⭐</span>
+            <span className="text-xs text-indigo-300 leading-relaxed">{tip}</span>
           </div>
         )}
         {next && (
-          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-muted)', marginTop:8 }}>
-            → <strong style={{ color:'var(--text-sub)' }}>{next}</strong>
+          <div className="flex items-center gap-1.5 text-xs text-white/40 mt-2">
+            → <strong className="text-white/60">{next}</strong>
           </div>
         )}
       </div>
@@ -64,43 +51,32 @@ function Step({ number, title, who=[], desc, tip, next }) {
 
 function Section({ icon, title, children }) {
   return (
-    <div style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, overflow:'hidden', marginBottom:20 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'18px 24px', borderBottom:'1px solid var(--card-border)' }}>
-        <div style={{
-          width:36, height:36, borderRadius:10, fontSize:16, flexShrink:0,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          background:'rgba(99,102,241,0.15)',
-        }}>{icon}</div>
-        <span style={{ fontSize:15, fontWeight:700 }}>{title}</span>
+    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden mb-5">
+      <div className="flex items-center gap-3 px-6 py-[18px] border-b border-white/[0.08]">
+        <div className="w-9 h-9 rounded-[10px] text-base shrink-0 flex items-center justify-center bg-indigo-500/[0.15]">
+          {icon}
+        </div>
+        <span className="text-sm font-bold">{title}</span>
       </div>
-      <div style={{ padding:24 }}>{children}</div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }
 
 function Note({ children }) {
   return (
-    <div style={{
-      display:'flex', alignItems:'flex-start', gap:10,
-      background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.25)',
-      borderRadius:10, padding:'12px 14px', marginTop:16,
-    }}>
-      <span>⚠️</span>
-      <span style={{ fontSize:12, color:'#fcd34d', lineHeight:1.6 }}>{children}</span>
+    <div className="flex items-start gap-2.5 bg-amber-500/[0.08] border border-amber-500/25 rounded-xl px-3.5 py-3 mt-4">
+      <span className="shrink-0">⚠️</span>
+      <span className="text-xs text-amber-300 leading-relaxed">{children}</span>
     </div>
   );
 }
 
-/* ── Tab panels ──────────────────────────────────────────────────── */
 function OverviewPanel() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-      {/* Journey */}
-      <div style={{
-        background:'linear-gradient(135deg,rgba(99,102,241,.08),rgba(6,182,212,.06))',
-        border:'1px solid rgba(99,102,241,.2)', borderRadius:20, padding:28,
-      }}>
-        <h3 style={{ fontSize:15, fontWeight:700, marginBottom:20, textAlign:'center' }}>Complete Patient Journey</h3>
+    <div className="flex flex-col gap-5">
+      <div className="bg-gradient-to-br from-indigo-500/[0.08] to-cyan-500/[0.06] border border-indigo-500/20 rounded-2xl p-7">
+        <h3 className="text-sm font-bold mb-5 text-center">Complete Patient Journey</h3>
         <Step number={1} title="Patient Arrives or Books Online" who={['receptionist']}
           desc="Patient walks in or books online via the /book portal. Receptionist opens Appointments, clicks Add to Queue, and searches by phone. If new, enter name + phone — patient is auto-registered instantly."
           tip="After 5 digits, phone search auto-suggests matching patients. No need to press Enter."
@@ -130,23 +106,22 @@ function OverviewPanel() {
           desc="Click End of Day on Billing page header. Count physical cash and enter it. System compares against total collected — green (match), amber (surplus), red (short). Add notes → Close Day & Lock. Cannot be undone." />
       </div>
 
-      {/* Role cards */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
         {[
           { icon:'👩‍💼', role:'receptionist', items:['Register & search patients','Add patients to queue & print token slips','Generate invoices & collect payments','End of Day closing','Pharmacy dispense queue','Lab requests & results'] },
           { icon:'👨‍⚕️', role:'doctor',       items:['View own patient queue only','Write consultations & prescriptions','Prescribe with food instruction chips','Order & view lab results','Full patient history (read)'] },
           { icon:'🩺',   role:'nurse',        items:['Record patient vitals (BP, pulse, SpO2, temp, weight, height)','View appointments queue','Browse & print prescriptions','Enter lab test results','View patient profile & history'] },
           { icon:'⚙️',   role:'admin',        items:['All receptionist + doctor access','Manage staff (add/edit/deactivate)','Medicine Store management','7-tab reports with CSV export','Clinic settings, fees, branding','Working hours & holidays'] },
         ].map(({ icon, role, items }) => (
-          <div key={role} style={{ background:'var(--card-bg)', border:'1px solid var(--card-border)', borderRadius:16, padding:22 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-              <span style={{ fontSize:20 }}>{icon}</span>
+          <div key={role} className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-[22px]">
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="text-xl">{icon}</span>
               <Badge role={role} />
             </div>
-            <ul style={{ listStyle:'none' }}>
+            <ul className="list-none">
               {items.map(item => (
-                <li key={item} style={{ display:'flex', alignItems:'flex-start', gap:8, fontSize:13, color:'var(--text-sub)', marginBottom:8 }}>
-                  <span style={{ color:'#10b981', flexShrink:0, marginTop:1 }}>✓</span>
+                <li key={item} className="flex items-start gap-2 text-sm text-white/60 mb-2">
+                  <span className="text-emerald-400 shrink-0 mt-0.5">✓</span>
                   {item}
                 </li>
               ))}
@@ -160,7 +135,7 @@ function OverviewPanel() {
 
 function ReceptionistPanel() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+    <div className="flex flex-col gap-0">
       <Section icon="👥" title="Patient Registration">
         <Step number={1} title="Search Before Registering" who={['receptionist']}
           desc="Always search by phone first. Type at least 5 digits — suggestions appear automatically. If patient exists, click Use Existing Patient." next="Patient found → add to queue" />
@@ -199,7 +174,7 @@ function ReceptionistPanel() {
 
 function DoctorPanel() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+    <div className="flex flex-col gap-0">
       <Section icon="🏠" title="Your Dashboard">
         <Step number={1} title="Understanding Your Dashboard" who={['doctor']}
           desc="Shows only your patients. Stat cards: Total Today, Waiting, Completed, Online Booked. Now Seeing card highlights the current Arrived patient with allergies and last complaint. Next Up shows the first waiting patient."
@@ -234,7 +209,7 @@ function DoctorPanel() {
 
 function NursePanel() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+    <div className="flex flex-col gap-0">
       <Section icon="📊" title="Patient Vitals">
         <Step number={1} title="Open Appointments Page" who={['nurse']}
           desc="Go to the Appointments page. You have full access to the queue for all doctors today. Find the patient whose vitals you need to record — they must have Arrived status for the Vitals button to appear."
@@ -266,7 +241,7 @@ function NursePanel() {
 
 function AdminPanel() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+    <div className="flex flex-col gap-0">
       <Section icon="👥" title="Staff Management">
         <Step number={1} title="Add New Staff" who={['admin']}
           desc="Staff page → Add Staff. Enter name, email, password, role (doctor/nurse/receptionist/admin), and optionally phone, specialization, registration number. Staff can log in immediately."
@@ -309,62 +284,50 @@ function AdminPanel() {
   );
 }
 
-/* ── Main ────────────────────────────────────────────────────────── */
 const TABS = [
-  { id:'overview',      label:'🗺️ Overview',          panel: <OverviewPanel /> },
-  { id:'receptionist',  label:'👩‍💼 Receptionist',      panel: <ReceptionistPanel /> },
-  { id:'doctor',        label:'👨‍⚕️ Doctor',             panel: <DoctorPanel /> },
-  { id:'nurse',         label:'🩺 Nurse',              panel: <NursePanel /> },
-  { id:'admin',         label:'⚙️ Admin',              panel: <AdminPanel /> },
+  { id:'overview',      label:'🗺️ Overview',     panel: <OverviewPanel /> },
+  { id:'receptionist',  label:'👩‍💼 Receptionist', panel: <ReceptionistPanel /> },
+  { id:'doctor',        label:'👨‍⚕️ Doctor',        panel: <DoctorPanel /> },
+  { id:'nurse',         label:'🩺 Nurse',         panel: <NursePanel /> },
+  { id:'admin',         label:'⚙️ Admin',         panel: <AdminPanel /> },
 ];
 
 export default function GuidePage() {
   const [active, setActive] = useState('overview');
 
   return (
-    <>
-      <Navbar />
-      <div style={{ paddingTop:68 }}>
-        {/* Hero */}
+    <Layout>
+      <div className="bg-ink text-white min-h-screen pt-[68px]">
+
         <FadeIn>
-          <div style={{ textAlign:'center', padding:'64px 24px 40px' }}>
-            <div style={{
-              display:'inline-flex', alignItems:'center', gap:8,
-              background:'rgba(99,102,241,.15)', border:'1px solid rgba(99,102,241,.3)',
-              color:'#a5b4fc', borderRadius:100, padding:'6px 16px', fontSize:13, fontWeight:600, marginBottom:20,
-            }}>📖 User Guide</div>
-            <h1 style={{
-              fontSize:'clamp(28px,5vw,48px)', fontWeight:800, lineHeight:1.15, marginBottom:16,
-              background:'linear-gradient(135deg,#fff 30%,#94a3b8)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
-            }}>Step-by-Step Guide for Every Role</h1>
-            <p style={{ fontSize:16, color:'var(--text-sub)', maxWidth:560, margin:'0 auto' }}>
+          <div className="text-center py-16 px-6">
+            <div className="inline-flex items-center gap-2 bg-indigo-500/[0.15] border border-indigo-500/30 text-indigo-300 rounded-full px-4 py-1.5 text-sm font-semibold mb-5">
+              📖 User Guide
+            </div>
+            <h1 className="guide-hero-text font-extrabold leading-tight mb-4 gradient-text-light">
+              Step-by-Step Guide for Every Role
+            </h1>
+            <p className="text-base text-white/60 max-w-[560px] mx-auto">
               Learn how each part of the system works and how every step connects to the next — from patient arrival to invoice payment.
             </p>
           </div>
         </FadeIn>
 
-        {/* Tabs */}
-        <div style={{ maxWidth:900, margin:'0 auto', padding:'0 24px' }}>
-          <div style={{
-            display:'flex', gap:4,
-            background:'var(--card-bg)', border:'1px solid var(--card-border)',
-            borderRadius:12, padding:6, flexWrap:'wrap', marginBottom:32,
-          }}>
+        <div className="max-w-[900px] mx-auto px-6">
+          <div className="flex gap-1 bg-white/[0.04] border border-white/[0.08] rounded-xl p-1.5 flex-wrap mb-8">
             {TABS.map(t => (
               <motion.button
                 key={t.id}
                 onClick={() => setActive(t.id)}
                 whileTap={{ scale: 0.97 }}
-                style={{
-                  flex:1, minWidth:100, padding:'10px 14px', borderRadius:8, border:'none',
-                  background: active === t.id ? 'var(--indigo)' : 'transparent',
-                  color: active === t.id ? '#fff' : 'var(--text-sub)',
-                  fontSize:13, fontWeight:600, cursor:'pointer',
-                  transition:'all .2s', fontFamily:'inherit',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-                }}
-              >{t.label}</motion.button>
+                className={`flex-1 min-w-[100px] py-2.5 px-3.5 rounded-lg text-sm font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                  active === t.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-transparent text-white/60 hover:text-white/80'
+                }`}
+              >
+                {t.label}
+              </motion.button>
             ))}
           </div>
 
@@ -375,14 +338,14 @@ export default function GuidePage() {
               animate={{ opacity:1, y:0 }}
               exit={{ opacity:0, y:-8 }}
               transition={{ duration:0.3, ease:[0.22,1,0.36,1] }}
-              style={{ paddingBottom:80 }}
+              className="pb-20"
             >
               {TABS.find(t => t.id === active)?.panel}
             </motion.div>
           </AnimatePresence>
         </div>
+
       </div>
-      <Footer />
-    </>
+    </Layout>
   );
 }

@@ -7,64 +7,57 @@ const testimonials = [
     name: 'Dr. Kumara',
     title: 'General Practitioner, Colombo',
     initials: 'DK',
-    gradient: 'linear-gradient(135deg,#6366f1,#a855f7)',
+    avatarCls: 'bg-gradient-to-br from-indigo-500 to-purple-500',
   },
   {
     quote: "The billing module saves us at least 2 hours every single day. Insurance claims that used to take a week of paperwork now get done in minutes. The end-of-day closing gives me a perfect summary without any manual counting. Absolutely worth every rupee.",
     name: 'Nisha Perera',
     title: 'Clinic Manager, Kandy',
     initials: 'NP',
-    gradient: 'linear-gradient(135deg,#06b6d4,#10b981)',
+    avatarCls: 'bg-gradient-to-br from-cyan-500 to-emerald-500',
   },
   {
     quote: "Our pharmacy stock used to be a nightmare. With real-time tracking, expiry alerts, and the dispense queue we've cut wastage by 40%. The purchase order system with supplier management has completely transformed how we reorder medicines.",
     name: 'Ashan Silva',
     title: 'Pharmacist, Gampaha',
     initials: 'AS',
-    gradient: 'linear-gradient(135deg,#f59e0b,#f43f5e)',
+    avatarCls: 'bg-gradient-to-br from-amber-500 to-rose-500',
   },
 ];
 
 export default function TestimonialsSection() {
   return (
-    <section style={{ padding:'96px 0' }}>
-      <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 24px' }}>
-        <FadeIn className="text-center mb-14">
+    <section className="py-16 md:py-20 lg:py-24 bg-ink text-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <FadeIn className="text-center mb-12 md:mb-14">
           <div className="eyebrow mb-3.5">Testimonials</div>
-          <h2 style={{ fontSize:'clamp(1.8rem,3.5vw,2.6rem)', fontWeight:900, letterSpacing:'-1px', lineHeight:1.15 }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
             Trusted by clinics <span className="gradient-text">across Sri Lanka</span>
           </h2>
         </FadeIn>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}
-             className="testimonials-grid-responsive">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {testimonials.map((t, i) => (
             <FadeIn key={t.name} delay={0.1 * i}>
               <motion.div
                 whileHover={{ borderColor:'rgba(99,102,241,0.25)', y: -4 }}
                 transition={{ duration:0.2 }}
-                style={{
-                  background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
-                  borderRadius:18, padding:28, position:'relative', height:'100%',
-                }}
+                className="rounded-[18px] p-6 md:p-7 h-full border bg-white/[0.03] border-white/[0.07]"
               >
-                <div style={{ display:'flex', gap:2, marginBottom:12 }}>
+                <div className="flex gap-0.5 mb-3">
                   {[...Array(5)].map((_, si) => (
-                    <span key={si} style={{ color:'#fbbf24', fontSize:'0.8rem' }}>★</span>
+                    <span key={si} className="text-[0.8rem] text-amber-400">★</span>
                   ))}
                 </div>
-                <span style={{ fontSize:'3rem', lineHeight:0.5, color:'rgba(99,102,241,0.3)', marginBottom:16, display:'block' }}>"</span>
-                <p style={{ fontSize:'0.875rem', color:'var(--text-sub)', lineHeight:1.75, marginBottom:20 }}>{t.quote}</p>
-                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <div style={{
-                    width:42, height:42, borderRadius:12, flexShrink:0,
-                    background:t.gradient,
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontWeight:800, fontSize:'0.9rem', color:'#fff',
-                  }}>{t.initials}</div>
+                <span className="block text-5xl leading-none mb-4 text-indigo-500/30">"</span>
+                <p className="text-sm leading-relaxed mb-5 text-white/60">{t.quote}</p>
+                <div className="flex items-center gap-3">
+                  <div className={`w-[42px] h-[42px] rounded-xl shrink-0 flex items-center justify-center font-black text-sm text-white ${t.avatarCls}`}>
+                    {t.initials}
+                  </div>
                   <div>
-                    <div style={{ fontSize:'0.875rem', fontWeight:700 }}>{t.name}</div>
-                    <div style={{ fontSize:'0.75rem', color:'var(--text-sub)' }}>{t.title}</div>
+                    <div className="text-sm font-bold">{t.name}</div>
+                    <div className="text-xs text-white/60">{t.title}</div>
                   </div>
                 </div>
               </motion.div>
@@ -72,10 +65,6 @@ export default function TestimonialsSection() {
           ))}
         </div>
       </div>
-      <style>{`
-        @media (max-width: 1024px) { .testimonials-grid-responsive { grid-template-columns: repeat(2,1fr) !important; } }
-        @media (max-width: 640px)  { .testimonials-grid-responsive { grid-template-columns: 1fr !important; } }
-      `}</style>
     </section>
   );
 }

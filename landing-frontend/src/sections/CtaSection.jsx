@@ -13,24 +13,23 @@ export default function CtaSection() {
       .catch(() => {});
   }, []);
 
-  const email      = info?.sales_email || info?.support_email || 'info@healthcenter.lk';
-  const phone      = info?.phone_primary || null;
-  const whatsapp   = info?.phone_whatsapp || null;
-  const addr       = [info?.address_line1, info?.address_line2, info?.city, info?.country].filter(Boolean).join(', ');
-  const suppEmail  = info?.support_email || null;
+  const email     = info?.sales_email || info?.support_email || 'info@healthcenter.lk';
+  const phone     = info?.phone_primary || null;
+  const whatsapp  = info?.phone_whatsapp || null;
+  const addr      = [info?.address_line1, info?.address_line2, info?.city, info?.country].filter(Boolean).join(', ');
+  const suppEmail = info?.support_email || null;
 
   return (
-    <section id="contact" style={{
-      padding:'100px 0', textAlign:'center', position:'relative',
-      background:'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(99,102,241,0.12) 0%, transparent 70%)',
-    }}>
-      <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 24px', position:'relative', zIndex:1 }}>
+    <section id="contact" className="py-16 md:py-20 lg:py-24 bg-ink text-white text-center relative">
+      <div className="absolute inset-0 pointer-events-none cta-radial" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         <FadeIn>
           <div className="eyebrow justify-center mb-3">Ready to get started?</div>
-          <h2 style={{ fontSize:'clamp(1.8rem,3vw,2.8rem)', fontWeight:900, marginBottom:16, letterSpacing:'-1px' }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight mb-4">
             Modernise your clinic <span className="gradient-text">today</span>
           </h2>
-          <p style={{ fontSize:'1.05rem', color:'var(--text-sub)', maxWidth:460, margin:'0 auto 36px', lineHeight:1.75 }}>
+          <p className="text-base max-w-[460px] mx-auto mb-9 leading-relaxed text-white/60">
             Join clinics across Sri Lanka already saving time and growing with HealthCenter.lk. Contact us for a free demo and personalised setup.
           </p>
 
@@ -38,13 +37,7 @@ export default function CtaSection() {
             <motion.a
               href={`mailto:${email}`}
               whileHover={{ translateY: -2, boxShadow:'0 12px 30px rgba(99,102,241,0.5)' }}
-              style={{
-                background:'linear-gradient(135deg,#6366f1 0%,#7c3aed 100%)',
-                color:'#fff', padding:'14px 32px', borderRadius:12,
-                fontWeight:700, fontSize:'0.95rem',
-                boxShadow:'0 8px 25px rgba(99,102,241,0.4)',
-                display:'inline-flex', alignItems:'center', gap:8,
-              }}
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-br from-indigo-500 to-violet-700 shadow-[0_8px_25px_rgba(99,102,241,0.4)]"
             >
               <Mail size={16} /> {email}
             </motion.a>
@@ -52,48 +45,41 @@ export default function CtaSection() {
               <motion.a
                 href={`tel:${phone}`}
                 whileHover={{ translateY: -2 }}
-                style={{
-                  background:'rgba(255,255,255,0.06)', color:'var(--text)',
-                  padding:'14px 32px', borderRadius:12,
-                  fontWeight:600, fontSize:'0.95rem',
-                  border:'1px solid rgba(255,255,255,0.12)',
-                  display:'inline-flex', alignItems:'center', gap:8,
-                }}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold text-sm border bg-white/[0.06] text-white border-white/[0.12] hover:bg-white/10 transition-colors"
               >
                 <Phone size={16} /> {phone}
               </motion.a>
             )}
           </div>
 
-          {/* Contact cards strip */}
           {(phone || suppEmail || addr) && (
-            <div style={{ borderTop:'1px solid rgba(255,255,255,0.08)', paddingTop:32 }}>
-              <div className="flex justify-center flex-wrap gap-5">
+            <div className="border-t border-white/[0.08] pt-8">
+              <div className="flex justify-center flex-wrap gap-4 sm:gap-5">
                 {(phone || whatsapp) && (
-                  <div style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, padding:'18px 24px', textAlign:'left', minWidth:180 }}>
-                    <div style={{ fontSize:'0.72rem', textTransform:'uppercase', letterSpacing:1, color:'var(--text-sub)', marginBottom:8 }}>Phone</div>
-                    {phone && <a href={`tel:${phone}`} style={{ display:'block', fontWeight:700 }}>{phone}</a>}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl py-4.5 px-6 text-left min-w-[180px]">
+                    <div className="text-[0.72rem] uppercase tracking-widest mb-2 text-white/60">Phone</div>
+                    {phone && <a href={`tel:${phone}`} className="block font-bold hover:text-white/80 transition-colors">{phone}</a>}
                     {whatsapp && whatsapp !== phone && (
                       <a href={`https://wa.me/${whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                         style={{ display:'block', fontSize:'0.82rem', color:'var(--text-sub)', marginTop:4 }}>
+                         className="block text-sm mt-1 text-white/60 hover:text-white/80 transition-colors">
                         WhatsApp: {whatsapp}
                       </a>
                     )}
                   </div>
                 )}
                 {(suppEmail || email) && (
-                  <div style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, padding:'18px 24px', textAlign:'left', minWidth:220 }}>
-                    <div style={{ fontSize:'0.72rem', textTransform:'uppercase', letterSpacing:1, color:'var(--text-sub)', marginBottom:8 }}>Email</div>
-                    <a href={`mailto:${suppEmail || email}`} style={{ display:'block', fontWeight:700 }}>{suppEmail || email}</a>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl py-4.5 px-6 text-left min-w-[220px]">
+                    <div className="text-[0.72rem] uppercase tracking-widest mb-2 text-white/60">Email</div>
+                    <a href={`mailto:${suppEmail || email}`} className="block font-bold hover:text-white/80 transition-colors">{suppEmail || email}</a>
                     {info?.sales_email && info?.sales_email !== suppEmail && (
-                      <a href={`mailto:${info.sales_email}`} style={{ display:'block', fontSize:'0.82rem', color:'var(--text-sub)', marginTop:4 }}>{info.sales_email}</a>
+                      <a href={`mailto:${info.sales_email}`} className="block text-sm mt-1 text-white/60 hover:text-white/80 transition-colors">{info.sales_email}</a>
                     )}
                   </div>
                 )}
                 {addr && (
-                  <div style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, padding:'18px 24px', textAlign:'left', maxWidth:260 }}>
-                    <div style={{ fontSize:'0.72rem', textTransform:'uppercase', letterSpacing:1, color:'var(--text-sub)', marginBottom:8 }}>Address</div>
-                    <p style={{ fontSize:'0.875rem', color:'var(--text-sub)', lineHeight:1.5 }}>{addr}</p>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl py-4.5 px-6 text-left max-w-[260px]">
+                    <div className="text-[0.72rem] uppercase tracking-widest mb-2 text-white/60">Address</div>
+                    <p className="text-sm leading-relaxed text-white/60">{addr}</p>
                   </div>
                 )}
               </div>
