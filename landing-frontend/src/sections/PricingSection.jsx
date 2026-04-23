@@ -82,11 +82,12 @@ export default function PricingSection() {
             gap:24, maxWidth:900, margin:'0 auto',
           }} className="pricing-grid-responsive">
             {plans.map((plan, i) => {
-              const featured = plans.length > 1 && i === midIdx;
-              const mPrice   = Number(plan.monthly_price) || 0;
-              const yPrice   = Number(plan.yearly_price)  || 0;
-              const price    = yearly && yPrice > 0 ? yPrice : mPrice;
-              const period   = yearly ? '/yr' : '/mo';
+              const featured   = plans.length > 1 && i === midIdx;
+              const mPrice     = Number(plan.monthly_price) || 0;
+              const yPrice     = Number(plan.yearly_price)  || 0;
+              const isYearly   = plan.billing_cycle === 'yearly';
+              const price      = isYearly ? yPrice : (yearly && yPrice > 0 ? yPrice : mPrice);
+              const period     = isYearly ? '/yr' : (yearly ? '/yr' : '/mo');
 
               return (
                 <motion.div
@@ -117,6 +118,9 @@ export default function PricingSection() {
                           LKR {price.toLocaleString()}
                         </span>
                         <span style={{ fontSize:'0.83rem', color:'var(--text-sub)', marginLeft:4 }}>{period}</span>
+                        {isYearly && (
+                          <div style={{ fontSize:'0.75rem', color:'#a5b4fc', marginTop:6 }}>Billed annually</div>
+                        )}
                       </>
                     ) : (
                       <span style={{ fontSize:'1.6rem', fontWeight:900 }}>Contact Us</span>
