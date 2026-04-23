@@ -439,6 +439,7 @@ export default function AppointmentsPage() {
       <VitalsModal
         open={!!vitalsTarget}
         onClose={() => setVitalsTarget(null)}
+        onSaved={() => load(true)}
         appointment={vitalsTarget}
       />
 

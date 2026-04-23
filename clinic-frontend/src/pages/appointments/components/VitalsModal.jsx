@@ -18,7 +18,7 @@ function Field({ label, unit, children }) {
 
 const inputCls = 'w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]';
 
-export function VitalsModal({ open, onClose, appointment }) {
+export function VitalsModal({ open, onClose, onSaved, appointment }) {
   const [loading, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [existing, setExisting] = useState(null);
@@ -81,6 +81,7 @@ export function VitalsModal({ open, onClose, appointment }) {
       });
       toast.success(existing ? 'Vitals updated' : 'Vitals recorded');
       onClose();
+      onSaved?.();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
