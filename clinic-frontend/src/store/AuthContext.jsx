@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api/index';
 
 const AuthContext = createContext(null);
 
@@ -8,10 +9,11 @@ export function AuthProvider({ children }) {
   const [clinic, setClinic]           = useState(null);   // { name, logo_url, currency }
   const [loading, setLoading]         = useState(true);   // restoring session from localStorage
 
-  // Restore session from localStorage on first load
+  // Restore session from localStorage on first load, then refresh clinic info from API
+  // so all browsers immediately see the latest logo/name without clearing cache.
   useEffect(() => {
-    const token     = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const token       = localStorage.getItem('token');
+    const savedUser   = localStorage.getItem('user');
     const savedFlags  = localStorage.getItem('flags');
     const savedClinic = localStorage.getItem('clinic');
 
@@ -19,6 +21,21 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(savedUser));
       setTenantFlags(savedFlags  ? JSON.parse(savedFlags)  : {});
       setClinic(savedClinic ? JSON.parse(savedClinic) : null);
+
+      // Background refresh — keeps logo/name in sync across all browsers
+      api.get('/settings')
+        .then(res => {
+          const s = res.data?.data;
+          if (!s) return;
+          const fresh = {
+            name:     s.clinic_name     || null,
+            logo_url: s.clinic_logo_url || null,
+            currency: s.currency_code   || 'LKR',
+          };
+          localStorage.setItem('clinic', JSON.stringify(fresh));
+          setClinic(fresh);
+        })
+        .catch(() => {});
     }
     setLoading(false);
   }, []);
