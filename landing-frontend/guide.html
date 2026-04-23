@@ -233,22 +233,31 @@
         <div class="step">
           <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
           <div class="step-body">
-            <div class="step-title">Doctor Sees Patient <span class="badge badge-doctor">Doctor</span></div>
-            <div class="step-desc">Doctor opens Dashboard — Now Seeing card shows the current arrived patient, Next Up shows who is waiting. Dashboard auto-refreshes every 30 seconds. Click Consult on an arrived appointment row.</div>
-            <div class="step-next">→ <strong>Next: Consultation modal opens</strong></div>
+            <div class="step-title">Nurse Records Vitals <span class="badge badge-nurse">Nurse</span></div>
+            <div class="step-desc">On the Appointments page, the nurse finds the arrived patient and clicks the Vitals button. A modal opens to record BP (systolic/diastolic), pulse, SpO2, temperature, weight, and height. If vitals were already recorded, the form pre-fills for updating.</div>
+            <div class="step-tip"><span>⭐</span><span class="step-tip-text">Vitals are passed directly to the doctor's consultation form — BP, pulse, temperature, and weight pre-fill automatically when the doctor opens the consultation modal.</span></div>
+            <div class="step-next">→ <strong>Next: Doctor opens consultation with nurse vitals pre-filled</strong></div>
           </div>
         </div>
         <div class="step">
           <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
           <div class="step-body">
+            <div class="step-title">Doctor Sees Patient <span class="badge badge-doctor">Doctor</span></div>
+            <div class="step-desc">Doctor opens Dashboard — Now Seeing card shows the current arrived patient, Next Up shows who is waiting. Dashboard auto-refreshes every 30 seconds. Click Consult on an arrived appointment row.</div>
+            <div class="step-next">→ <strong>Next: Consultation modal opens with nurse vitals pre-filled</strong></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+          <div class="step-body">
             <div class="step-title">Write Consultation + Prescription <span class="badge badge-doctor">Doctor</span></div>
-            <div class="step-desc">Enter Chief Complaint (required), vitals, clinical notes, ICD-10 code, optional follow-up. To prescribe, search medicines → select dosage/frequency/duration chips → quantity auto-calculates. Click Save & Complete.</div>
+            <div class="step-desc">A blue Nurse Vitals banner shows recorded values at the top of the Vitals section. BP, pulse, temperature, and weight are pre-filled. Enter Chief Complaint (required), review/adjust vitals, add clinical notes, ICD-10 code, optional follow-up. To prescribe, search medicines → select dosage/frequency/duration chips → quantity auto-calculates. Click Save & Complete.</div>
             <div class="step-tip"><span>⭐</span><span class="step-tip-text">Consultation and prescription are saved together in one click. Appointment auto-flips to Completed.</span></div>
             <div class="step-next">→ <strong>Next: Appointment marked Completed → Receptionist can bill</strong></div>
           </div>
         </div>
         <div class="step">
-          <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+          <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
           <div class="step-body">
             <div class="step-title">Dispense Medicines (if Pharmacy ON) <span class="badge badge-receptionist">Receptionist</span><span class="badge badge-admin">Admin</span></div>
             <div class="step-desc">Go to Pharmacy → Dispense Queue. Find the prescription, click Dispense. Review allergy warning and stock levels. Confirm → stock deducted automatically.</div>
@@ -256,7 +265,7 @@
           </div>
         </div>
         <div class="step">
-          <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
+          <div class="step-left"><div class="step-num">7</div><div class="step-line"></div></div>
           <div class="step-body">
             <div class="step-title">Generate Invoice & Collect Payment <span class="badge badge-receptionist">Receptionist</span><span class="badge badge-admin">Admin</span></div>
             <div class="step-desc">On Billing page, click Bill on a completed appointment. Invoice auto-created with doctor fee + medicines. Add extra services with + Add Item. Click Record Payment → choose Cash / Card / Online / Insurance. Partial payments supported.</div>
@@ -264,7 +273,7 @@
           </div>
         </div>
         <div class="step">
-          <div class="step-left"><div class="step-num">7</div></div>
+          <div class="step-left"><div class="step-num">8</div></div>
           <div class="step-body">
             <div class="step-title">End of Day Closing <span class="badge badge-receptionist">Receptionist</span><span class="badge badge-admin">Admin</span></div>
             <div class="step-desc">Click End of Day on Billing page header. Count physical cash and enter it. System compares against total collected — green (matched), amber (surplus), red (short). Add notes and click Close Day & Lock.</div>
@@ -299,7 +308,8 @@
       <div class="role-card">
         <div class="role-card-head"><span class="role-card-icon">🩺</span><span class="badge badge-nurse">Nurse</span></div>
         <ul>
-          <li><span class="check">✓</span> View all patients in clinic today</li>
+          <li><span class="check">✓</span> Record patient vitals (BP, pulse, SpO2, temp, weight, height)</li>
+          <li><span class="check">✓</span> View appointments queue</li>
           <li><span class="check">✓</span> Browse & print prescriptions</li>
           <li><span class="check">✓</span> Enter lab test results</li>
           <li><span class="check">✓</span> View patient profile & history</li>
@@ -422,7 +432,8 @@
         </div></div>
         <div class="step"><div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body">
           <div class="step-title">Enter Vitals & Clinical Notes (optional) <span class="badge badge-doctor">Doctor</span></div>
-          <div class="step-desc">Vitals: BP (systolic/diastolic), pulse, temperature, weight. Clinical notes: symptoms, diagnosis, ICD-10 code, doctor notes, follow-up date.</div>
+          <div class="step-desc">If the nurse recorded vitals before you opened the consultation, a blue Nurse Vitals banner appears at the top of the Vitals section showing BP, pulse, SpO2, temperature, weight, height, and who recorded them. BP, pulse, temperature, and weight are pre-filled in the form — adjust only if values have changed. Clinical notes: symptoms, diagnosis, ICD-10 code, doctor notes, follow-up date.</div>
+          <div class="step-tip"><span>⭐</span><span class="step-tip-text">Nurse vitals are pre-populated automatically — you only need to update a value if it has changed since the nurse recorded it.</span></div>
           <div class="step-next">→ <strong>Add medicines (optional)</strong></div>
         </div></div>
         <div class="step"><div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div><div class="step-body">
@@ -458,10 +469,25 @@
   <!-- NURSE TAB -->
   <div id="panel-nurse" class="tab-panel">
     <div class="section">
-      <div class="section-head"><div class="section-icon" style="background:rgba(168,85,247,.15)">📋</div><div class="section-title">Your Role Overview</div></div>
-      <div class="section-body">
-        <p style="font-size:14px;color:var(--text-muted);line-height:1.7">Nurses have read-only access to most clinical data. You can view patient information, prescriptions, and lab results. You can enter lab results. You cannot register patients, write consultations, or manage billing.</p>
-      </div>
+      <div class="section-head"><div class="section-icon" style="background:rgba(168,85,247,.15)">📊</div><div class="section-title">Patient Vitals</div></div>
+      <div class="section-body"><div class="steps">
+        <div class="step"><div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body">
+          <div class="step-title">Open Appointments Page <span class="badge badge-nurse">Nurse</span></div>
+          <div class="step-desc">Go to the Appointments page. You have full access to the queue for all doctors today. Find the patient whose vitals you need to record — they must have Arrived status for the Vitals button to appear.</div>
+          <div class="step-next">→ <strong>Click Vitals button on the arrived row</strong></div>
+        </div></div>
+        <div class="step"><div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body">
+          <div class="step-title">Record Vitals <span class="badge badge-nurse">Nurse</span></div>
+          <div class="step-desc">Click the Vitals button on the arrived patient's row. A modal opens with fields for BP Systolic, BP Diastolic, Pulse (bpm), SpO2 (%), Temperature (°C), Weight (kg), Height (cm), and Notes. All fields are optional — fill what is relevant.</div>
+          <div class="step-tip"><span>⭐</span><span class="step-tip-text">If vitals were already recorded for this appointment, all fields pre-fill automatically so you can review and update them.</span></div>
+          <div class="step-next">→ <strong>Click Save Vitals</strong></div>
+        </div></div>
+        <div class="step"><div class="step-left"><div class="step-num">3</div></div><div class="step-body">
+          <div class="step-title">Doctor Sees Your Vitals <span class="badge badge-nurse">Nurse</span></div>
+          <div class="step-desc">When the doctor opens the consultation modal, a blue Nurse Vitals banner shows all the values you recorded — BP, pulse, SpO2, temperature, weight, height, and your name. BP, pulse, temperature, and weight are also pre-filled in the consultation form automatically.</div>
+          <div class="note"><span>⚠️</span><span class="note-text">Both nurses and doctors can record vitals for arrived patients. The nurse vitals record is preserved even if the doctor adjusts values during the consultation.</span></div>
+        </div></div>
+      </div></div>
     </div>
 
     <div class="section">

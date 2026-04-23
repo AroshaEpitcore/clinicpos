@@ -3,7 +3,7 @@ import {
   BookOpen, Users, Calendar, Stethoscope, Pill, Receipt,
   Package, FlaskConical, Shield, UserCog, BarChart2,
   CheckCircle, ArrowRight, AlertCircle, ClipboardList, Star,
-  LayoutDashboard, Settings,
+  LayoutDashboard, Settings, Activity,
 } from 'lucide-react';
 import { PageLayout } from '../../components/layout/PageLayout';
 import { PageHeader }  from '../../components/ui/PageHeader';
@@ -94,24 +94,28 @@ function OverviewTab() {
           <Step number={2} title="Print Token Slip" who={['receptionist']}
             description="After adding to queue, the confirmation screen shows inside the same drawer. Click Print Slip to print an 80mm thermal token slip with the patient's token number, doctor, and time. Printing automatically marks the patient as Arrived."
             tip="Token slip shows the clinic logo, patient name, doctor, and appointment type badge."
-            next="Patient status becomes Arrived → Doctor can see them" />
-          <Step number={3} title="Doctor Sees Patient" who={['doctor']}
+            next="Patient status becomes Arrived" />
+          <Step number={3} title="Nurse Records Vitals" who={['nurse']}
+            description="On the Appointments page, find the arrived patient and click the Vitals button. A modal opens to record BP (systolic/diastolic), pulse, SpO2, temperature, weight, and height. If vitals were already recorded, the form pre-fills for updating."
+            tip="If vitals were recorded previously for this appointment, the form pre-loads with those values so the nurse can update them."
+            next="Vitals saved → Doctor opens consultation" />
+          <Step number={4} title="Doctor Sees Patient" who={['doctor']}
             description="Doctor opens their Dashboard — the Now Seeing card shows the current arrived patient, Next Up shows who is waiting. On the Appointments page, click Consult on an arrived patient row to open the consultation modal."
             tip="The Doctor dashboard auto-refreshes every 30 seconds — no manual refresh needed."
-            next="Consultation modal opens" />
-          <Step number={4} title="Write Consultation + Prescription" who={['doctor']}
-            description="In the Consult modal: enter Chief Complaint (required), then Vitals, Clinical Notes, ICD-10 code, and optional Follow-up date. To prescribe medicines, scroll down and search the medicine store. Select dosage preset chips, frequency, and duration — quantity auto-calculates. Click Save & Complete."
+            next="Consultation modal opens with nurse vitals pre-filled" />
+          <Step number={5} title="Write Consultation + Prescription" who={['doctor']}
+            description="The Consult modal shows a blue banner at the top of the Vitals section with all nurse-recorded values. BP, pulse, temperature, and weight are pre-populated in the form. Enter Chief Complaint (required), review/adjust vitals, add Clinical Notes, ICD-10 code, and optional follow-up date. To prescribe medicines, search the medicine store — select dosage/frequency/duration chips and quantity auto-calculates. Click Save & Complete."
             tip="Prescription is saved at the same time as the consultation in one click. Appointment automatically flips to Completed."
             next="Appointment marked Completed → Receptionist can bill" />
-          <Step number={5} title="Dispense Medicines (optional)" who={['receptionist', 'admin']}
+          <Step number={6} title="Dispense Medicines (optional)" who={['receptionist', 'admin']}
             description="If the Pharmacy module is ON, go to Pharmacy → Dispense Queue. Find the prescription and click Dispense. Review the allergy warning and stock levels, then confirm. Stock is automatically deducted."
             tip="Low stock is shown in red inside the Dispense modal. A warning toast appears after dispensing if any medicine falls below its reorder level."
             next="Prescription marked Dispensed → Stock updated" />
-          <Step number={6} title="Generate Invoice & Collect Payment" who={['receptionist', 'admin']}
+          <Step number={7} title="Generate Invoice & Collect Payment" who={['receptionist', 'admin']}
             description="On the Billing page, find the completed appointment and click Bill. An invoice is auto-created with the doctor fee and prescribed medicines. Add extra services if needed using the + Add Item button. Click Record Payment and select Cash / Card / Online / Insurance. Enter the amount — partial payments are supported."
             tip="The invoice auto-pulls ALL prescribed medicines including those with price 0 (you can edit the price after)."
             next="Payment recorded → Invoice marked Paid" />
-          <Step number={7} title="End of Day Closing" who={['receptionist', 'admin']}
+          <Step number={8} title="End of Day Closing" who={['receptionist', 'admin']}
             description="At the end of the day, click End of Day on the Billing page header. Count your physical cash and enter it. The system compares it against the total collected — green means matched, amber means surplus, red means short. Add notes if needed and click Close Day & Lock."
             next="Day is locked — cannot re-open from the UI" />
         </div>
@@ -122,7 +126,7 @@ function OverviewTab() {
         {[
           { role: 'receptionist', color: 'blue', icon: Users, items: ['Register & search patients', 'Add patients to queue', 'Print token slips', 'Manage prescriptions view', 'Generate invoices & collect payments', 'End of Day closing', 'Pharmacy dispense queue', 'Lab requests & results'] },
           { role: 'doctor',       color: 'green', icon: Stethoscope, items: ['View own patient queue', 'Write consultations', 'Prescribe medicines (with food chips)', 'Write standalone prescriptions', 'Order lab tests', 'View patient history', 'Enter lab results'] },
-          { role: 'nurse',        color: 'purple', icon: ClipboardList, items: ['View all patients (read-only)', 'Browse prescriptions', 'Print prescriptions', 'View & enter lab results', 'View patient profile & history'] },
+          { role: 'nurse',        color: 'purple', icon: ClipboardList, items: ['Record patient vitals (BP, pulse, SpO2, temp, weight, height)', 'View appointments queue', 'Browse prescriptions & print', 'Enter lab test results', 'View patient profile & history'] },
           { role: 'admin',        color: 'amber', icon: UserCog, items: ['All receptionist + doctor access', 'Manage staff (add/edit/reset password)', 'Medicine Store management', 'View full reports (7 report types)', 'Clinic settings & branding', 'Doctor fees & custom services', 'Set working hours & holidays', 'Subscription page'] },
         ].map(({ role, color, icon: Icon, items }) => (
           <div key={role} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
@@ -208,7 +212,9 @@ function DoctorTab() {
         <Step number={2} title="Fill Chief Complaint" who={['doctor']}
           description="Chief Complaint is the only required field. Fill this first — it's at the top of the form. Red allergy banner appears at the top if the patient has allergies on record." next="Proceed to vitals" />
         <Step number={3} title="Enter Vitals (optional)" who={['doctor']}
-          description="Enter BP (systolic/diastolic), pulse (bpm), temperature (°C), and weight (kg). All are optional." next="Enter clinical notes" />
+          description="If the nurse recorded vitals before you opened the consultation, a blue Nurse Vitals banner appears at the top of the Vitals section showing BP, pulse, SpO2, temperature, weight, height, and who recorded them. BP, pulse, temperature, and weight are also pre-filled in the form. You can adjust any value before saving."
+          tip="Nurse vitals are pre-populated automatically — you only need to change a value if it has changed since the nurse recorded it."
+          next="Enter clinical notes" />
         <Step number={4} title="Clinical Notes" who={['doctor']}
           description="Enter Symptoms, Diagnosis, ICD-10 code, and doctor notes. Set a follow-up date if needed using the date picker." next="Add medicines (optional)" />
         <Step number={5} title="Prescribe Medicines (optional)" who={['doctor']}
@@ -237,10 +243,17 @@ function DoctorTab() {
 function NurseTab() {
   return (
     <div className="space-y-6">
-      <Section icon={ClipboardList} title="Your Role Overview">
-        <div className="p-4 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          Nurses have read-only access to most clinical data. You can view patient information, prescriptions, and lab results. You can enter lab results and view the full queue. You cannot register patients, write consultations, or manage billing.
-        </div>
+      <Section icon={Activity} title="Patient Vitals">
+        <Step number={1} title="Open Appointments Page" who={['nurse']}
+          description="Go to the Appointments page. You have full access to the queue for all doctors today. Find the patient whose vitals you need to record — they must have Arrived status for the Vitals button to appear."
+          next="Click Vitals button on the arrived row" />
+        <Step number={2} title="Record Vitals" who={['nurse']}
+          description="Click the Vitals button (purple, with activity icon) on the arrived patient's row. A modal opens with fields for BP Systolic, BP Diastolic, Pulse (bpm), SpO2 (%), Temperature (°C), Weight (kg), Height (cm), and Notes."
+          tip="If vitals were already recorded for this appointment, all fields pre-fill automatically so you can review and update them."
+          next="Click Save Vitals" />
+        <Step number={3} title="Vitals Saved — Doctor Sees Them" who={['nurse']}
+          description="After saving, a success toast confirms 'Vitals recorded' (or 'Vitals updated' if updating). The doctor will see a blue Nurse Vitals banner at the top of the Vitals section when they open the consultation modal. BP, pulse, temperature, and weight are also pre-filled in the consultation form." />
+        <Note>Both nurses and doctors can record vitals for arrived patients. If the doctor updates the vitals during consultation, those values are saved as part of the consultation record separately — the nurse vitals record is preserved.</Note>
       </Section>
 
       <Section icon={LayoutDashboard} title="Dashboard">
