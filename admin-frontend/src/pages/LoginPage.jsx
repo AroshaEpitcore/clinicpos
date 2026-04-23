@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAuthApi } from '../api/admin';
 import { useAdminAuth } from '../store/AdminAuthContext';
@@ -37,9 +37,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-[var(--color-primary)] rounded-[var(--radius-lg)] flex items-center justify-center mb-4 shadow-lg">
-            <Shield className="w-7 h-7 text-white" />
-          </div>
+          <img src="/logosmall.png" alt="HealthCenter.lk" className="w-14 h-14 object-contain mb-4" />
           <h1 className="text-2xl font-bold text-white">ClinicPOS</h1>
           <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Super Admin Portal</p>
         </div>

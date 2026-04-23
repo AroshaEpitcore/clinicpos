@@ -5,11 +5,7 @@ import { Menu, X } from 'lucide-react';
 function Logo() {
   return (
     <Link to="/" className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-primary to-teal shadow-md">
-        <svg viewBox="0 0 20 20" fill="none" width={20} height={20}>
-          <path d="M10 2v16M2 10h16" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      </div>
+      <img src="/logosmall.png" alt="HealthCenter.lk" className="w-9 h-9 object-contain shrink-0" />
       <span className="text-base font-bold tracking-tight text-ink">
         Health<em className="not-italic text-primary">Center</em>.lk
       </span>

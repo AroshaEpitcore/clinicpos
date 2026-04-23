@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Shield, LogOut, Menu, Sun, Moon, CreditCard, RefreshCw, Settings,
+  LayoutDashboard, Building2, LogOut, Menu, Sun, Moon, CreditCard, RefreshCw, Settings,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuth } from '../../store/AdminAuthContext';
@@ -31,9 +31,7 @@ function Sidebar({ collapsed }) {
         className="flex items-center gap-3 px-4 border-b border-[var(--color-border)] shrink-0"
         style={{ height: 'var(--topbar-height)' }}
       >
-        <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--color-primary)] flex items-center justify-center shrink-0">
-          <Shield className="w-4 h-4 text-white" />
-        </div>
+        <img src="/logosmall.png" alt="HealthCenter.lk" className="w-8 h-8 object-contain shrink-0" />
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-sm font-semibold text-[var(--color-text)] truncate leading-tight">ClinicPOS</p>

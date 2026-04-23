@@ -22,11 +22,7 @@ export default function Footer() {
     <footer className="border-t border-primary/10 py-9 bg-surface">
       <div className="flex items-center justify-between flex-wrap gap-4 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center bg-gradient-to-br from-primary to-teal">
-            <svg viewBox="0 0 20 20" fill="none" width={16} height={16}>
-              <path d="M10 2v16M2 10h16" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </div>
+          <img src="/logosmall.png" alt="HealthCenter.lk" className="w-[30px] h-[30px] object-contain shrink-0" />
           <span className="text-sm font-bold text-ink">{brand}</span>
         </div>
 
