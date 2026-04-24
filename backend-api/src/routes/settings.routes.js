@@ -21,7 +21,7 @@ function makeStorage(subdir) {
       // subdir '' → logo file; subdir 'signatures' → staffId.ext
       const base = subdir === 'signatures'
         ? (req.params.staffId || Date.now())
-        : 'logo';
+        : `logo_${Date.now()}`;
       cb(null, `${base}${ext}`);
     },
   });
@@ -130,10 +130,21 @@ router.post('/logo', requireRole('admin'), (req, res, next) => {
     const url = `/uploads/tenants/${tenantId}/${req.file.filename}`;
 
     try {
+      // Fetch old filename so we can delete it after the update
+      const old = await queryTenant(tenantId, `SELECT clinic_logo_filename FROM clinic_settings LIMIT 1`);
+      const oldFilename = old.rows[0]?.clinic_logo_filename;
+
       await queryTenant(tenantId, `
         UPDATE clinic_settings
         SET clinic_logo_url = $1, clinic_logo_filename = $2, updated_at = NOW()
       `, [url, req.file.filename]);
+
+      // Delete the old file so disk doesn't accumulate stale logos
+      if (oldFilename && oldFilename !== req.file.filename) {
+        const oldPath = path.join('uploads', 'tenants', tenantId, oldFilename);
+        try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
+      }
+
       res.json({ status: 'success', message: 'Logo uploaded', data: { url } });
     } catch (dbErr) {
       console.error('POST /settings/logo', dbErr);

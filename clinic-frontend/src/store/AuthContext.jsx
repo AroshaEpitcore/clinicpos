@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
           const fresh = {
             name:     s.clinic_name     || null,
             logo_url: s.clinic_logo_url || null,
-            currency: s.currency_code   || 'LKR',
+            currency: s.currency        || 'LKR',
           };
           localStorage.setItem('clinic', JSON.stringify(fresh));
           setClinic(fresh);
