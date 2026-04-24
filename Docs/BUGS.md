@@ -240,6 +240,72 @@ The original save function built the subset as `keys.forEach(k => { subset[k] = 
 
 ---
 
+---
+
+## Bug #14 — Logo update not visible in other browsers / after re-login (Browser Caching)
+
+**File:** `backend-api/src/routes/settings.routes.js`  
+**Severity:** Medium  
+**Found:** 2026-04-24 — demo clinic logo updated correctly, but other clinics showed the old logo after upload; login screen didn't show new logo after logout
+
+**Problem:**  
+The logo upload handler in `makeStorage()` always generated the same filename: `logo.ext` (e.g. `logo.png`). Every clinic's logo was saved at the same URL path each time. Because the URL never changed, browsers served the previously cached version indefinitely — even after a new file was uploaded to disk.
+
+Additionally, `AuthContext.jsx` performed a background refresh on session restore to keep clinic data in sync across browsers. That refresh fetched the plain URL from `/api/v1/settings` (which had no cache-busting query string), so even after the Settings page temporarily added `?v=timestamp` to the URL locally, the background refresh overwrote it with the bare URL — browsers then served the cached version again on the next load.
+
+The old logo file was also never deleted from disk, so stale files accumulated in `uploads/tenants/{schema}/`.
+
+**Fix:**
+
+1. **Timestamp-based filename on every upload** — `makeStorage()` now generates `logo_${Date.now()}.ext` so each upload produces a unique URL. Browsers treat the new URL as a new resource and fetch it fresh.
+
+2. **Delete old file after successful DB update** — the `POST /settings/logo` handler fetches `clinic_logo_filename` before the update, then deletes the old file from disk once the DB has been updated successfully.
+
+```javascript
+// settings.routes.js — makeStorage filename (before → after)
+// Before: 'logo'  (always the same)
+// After:
+const base = subdir === 'signatures'
+  ? (req.params.staffId || Date.now())
+  : `logo_${Date.now()}`;  // unique per upload
+
+// POST /logo handler — delete old file after DB update
+const old = await queryTenant(tenantId, `SELECT clinic_logo_filename FROM clinic_settings LIMIT 1`);
+const oldFilename = old.rows[0]?.clinic_logo_filename;
+// ... update DB ...
+if (oldFilename && oldFilename !== req.file.filename) {
+  const oldPath = path.join('uploads', 'tenants', tenantId, oldFilename);
+  try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
+}
+```
+
+---
+
+## Bug #15 — Currency always resets to 'LKR' after session restore
+
+**File:** `clinic-frontend/src/store/AuthContext.jsx`  
+**Severity:** Low  
+**Found:** 2026-04-24 — clinics that set a non-LKR currency saw it reset to LKR after every page reload
+
+**Problem:**  
+`AuthContext.jsx` performs a background refresh on session restore to keep clinic name and logo in sync across browsers. The refresh mapped the DB response incorrectly:
+
+```javascript
+// Before — wrong field name
+currency: s.currency_code || 'LKR',
+```
+
+The `clinic_settings` table column is `currency`, not `currency_code`. Since `s.currency_code` was always `undefined`, the `|| 'LKR'` fallback always triggered, silently resetting any other currency to LKR on every page load.
+
+**Fix:**
+
+```javascript
+// After — correct field name
+currency: s.currency || 'LKR',
+```
+
+---
+
 ## Fix Status
 
 | # | Bug | Severity | Status |
@@ -257,3 +323,5 @@ The original save function built the subset as `keys.forEach(k => { subset[k] = 
 | 11 | Logo not displaying in production — `mediaUrl.js` localhost fallback | Medium | ✅ Fixed |
 | 12 | Platform Settings save only sent current tab's keys — other tabs lost | High | ✅ Fixed |
 | 13 | Platform Settings empty fields overwrote existing DB values | Medium | ✅ Fixed |
+| 14 | Logo update not visible in other browsers — fixed filename caused browser caching | Medium | ✅ Fixed |
+| 15 | Currency always resets to 'LKR' after session restore — wrong field name `currency_code` | Low | ✅ Fixed |

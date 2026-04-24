@@ -335,8 +335,17 @@ Every file a clinic uploads (logo, doctor signature) must follow these rules:
 2. **Validate file size** — reject files over 2MB with a clear error message
 3. **Save to tenant-isolated path** — always save to `/uploads/tenants/{tenant_id}/filename`  
    Never save to a shared folder — clinic A must never be able to see clinic B's files
-4. **Save the URL** — after successful upload, save the file path to the correct DB column (`clinic_settings.clinic_logo_url` or `staff.signature_url`)
-5. **Serve securely** — file URLs must go through the backend, not be publicly guessable
+4. **Use a unique timestamp-based filename on every upload** — never use a fixed filename like `logo.jpg`. Fixed filenames mean the URL never changes, so browsers serve the cached old image indefinitely even after the file on disk is replaced. Always generate a unique name per upload:
+   ```javascript
+   // WRONG — fixed filename, causes browser caching forever
+   filename: 'logo.png'
+
+   // CORRECT — timestamp makes every upload a new URL
+   filename: `logo_${Date.now()}.png`
+   ```
+   After a successful DB update, **delete the old file from disk** so stale uploads don't accumulate.
+5. **Save the URL** — after successful upload, save the file path to the correct DB column (`clinic_settings.clinic_logo_url` or `staff.signature_url`)
+6. **Serve securely** — file URLs must go through the backend, not be publicly guessable
 
 ```javascript
 // WRONG — shared uploads folder

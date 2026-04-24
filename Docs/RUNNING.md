@@ -418,7 +418,7 @@ clinicpos/
     │   │   ├── Footer.jsx          — Footer with logosmall.png + dynamic platform info from API
     │   │   └── Layout.jsx          — Wraps Navbar + <main> + Footer (used by all pages)
     │   ├── styles/
-    │   │   └── globals.css         — CSS utilities: hero-radial-bg, dot-grid, step-ring, cta-radial, pricing-featured-bg, gradient-text-light, guide-hero-text
+    │   │   └── globals.css         — CSS utilities: hero-radial-bg, dot-grid, step-ring, cta-radial, pricing-featured-bg, guide-hero-text
     │   ├── App.jsx                 — Routes: / (LandingPage), /guide (GuidePage)
     │   └── main.jsx                — Entry point
     ├── public/
