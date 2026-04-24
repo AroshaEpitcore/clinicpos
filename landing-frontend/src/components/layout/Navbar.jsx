@@ -74,8 +74,8 @@ export default function Navbar() {
           Get Started →
         </a>
 
-        <button className="md:hidden p-1 bg-transparent border-none cursor-pointer" onClick={() => setOpen(v => !v)} aria-label="Menu">
-          {open ? <X size={22} className="text-ink-light" /> : <Menu size={22} className="text-ink-light" />}
+        <button className="md:hidden p-2 bg-transparent border-none cursor-pointer flex items-center justify-center" onClick={() => setOpen(v => !v)} aria-label="Menu">
+          {open ? <X size={24} className="text-ink" /> : <Menu size={24} className="text-ink" />}
         </button>
       </div>
 
