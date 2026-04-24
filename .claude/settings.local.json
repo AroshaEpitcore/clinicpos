@@ -29,7 +29,13 @@
       "Bash(taskkill *)",
       "Bash(powershell *)",
       "Bash(grep *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(git checkout *)",
+      "WebFetch(domain:claude.ai)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git rm *)"
     ]
   }
 }
