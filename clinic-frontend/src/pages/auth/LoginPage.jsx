@@ -1,12 +1,13 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Users, Calendar, Receipt, Activity } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../api';
+import { mediaUrl } from '../../utils/mediaUrl';
 
 const FEATURES = [
   { icon: Users,    label: 'Patient Queue',  desc: 'Real-time queue tracking'    },
@@ -18,6 +19,18 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate  = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [clinic, setClinic] = useState({ name: 'ClinicPOS', logo_url: null });
+
+  useEffect(() => {
+    api.get('/portal/info')
+      .then(r => {
+        const d = r.data?.data || {};
+        if (d.clinic_name || d.logo_url) {
+          setClinic({ name: d.clinic_name || 'ClinicPOS', logo_url: d.logo_url || null });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const {
     register,
@@ -72,8 +85,11 @@ export default function LoginPage() {
 
           {/* Logo + brand */}
           <div className="flex items-center gap-3">
-            <img src="/logosmall.png" alt="ClinicPOS" className="w-10 h-10 object-contain shrink-0" />
-            <span className="text-white text-lg font-bold tracking-tight">ClinicPOS</span>
+            {clinic.logo_url
+              ? <img src={mediaUrl(clinic.logo_url)} alt={clinic.name} className="w-10 h-10 object-contain shrink-0 rounded-lg" />
+              : <img src="/logosmall.png" alt={clinic.name} className="w-10 h-10 object-contain shrink-0" />
+            }
+            <span className="text-white text-lg font-bold tracking-tight">{clinic.name}</span>
           </div>
 
           {/* Headline */}
@@ -116,8 +132,11 @@ export default function LoginPage() {
 
         {/* Mobile logo — hidden on desktop */}
         <div className="flex flex-col items-center mb-8 lg:hidden">
-          <img src="/logosmall.png" alt="ClinicPOS" className="w-12 h-12 object-contain mb-3" />
-          <h1 className="text-xl font-semibold text-[var(--color-text)]">ClinicPOS</h1>
+          {clinic.logo_url
+            ? <img src={mediaUrl(clinic.logo_url)} alt={clinic.name} className="w-12 h-12 object-contain mb-3 rounded-lg" />
+            : <img src="/logosmall.png" alt={clinic.name} className="w-12 h-12 object-contain mb-3" />
+          }
+          <h1 className="text-xl font-semibold text-[var(--color-text)]">{clinic.name}</h1>
           <p className="text-sm text-[var(--color-text-secondary)] mt-1">Sign in to your account</p>
         </div>
 
