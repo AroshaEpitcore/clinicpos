@@ -1156,5 +1156,21 @@ if (!resolvedPatient) {
 
 ---
 
-*DESIGN.md — Doctor POS*
+## Landing Frontend — Separate Design System
+
+`landing-frontend` is a separate marketing website with its own design system. The rules in this document apply to `clinic-frontend` and `admin-frontend` only.
+
+Landing frontend rules:
+- Uses Tailwind v3 with a custom brand palette (no CSS variables)
+- Brand colors: `primary: #07548E`, `teal: #07A39A`, `surface: #FBFCFD`, `ink: #0D2136`, `ink-light: #456B84`, `ink-faint: #7AABB8`
+- Complex backgrounds/gradients that can't be expressed cleanly in Tailwind go in `globals.css` as named utility classes (e.g. `.hero-radial-bg`, `.dot-grid`, `.step-ring`)
+- No inline `style={{}}` — use Tailwind arbitrary values or named CSS utilities
+- All pages must use the `<Layout>` component (`Navbar + main + Footer`)
+- No `.html` files inside `src/` — all pages are React components
+- Logo is `<img src="/logosmall.png" />` served from `public/` — never an SVG placeholder
+- `index.html` in the project root is Vite's required entry point — do not delete it
+
+---
+
+*ClinicPOS / HealthCenter.lk — DESIGN.md*
 *Build components once. Use them everywhere. Consistency is the product.*

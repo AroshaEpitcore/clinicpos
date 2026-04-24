@@ -13,17 +13,21 @@ Read it at the start of every coding session. Read it before every feature. Read
 
 ---
 
-## The Three Projects
+## The Four Projects
 
 ```
 clinicpos/
-├── clinic-frontend/      React app — what clinic staff use
+├── clinic-frontend/      React app — what clinic staff use (daily work)
 ├── backend-api/          Node.js — all business logic and API
-└── admin-frontend/       React app — your super admin panel
+├── admin-frontend/       React app — your super admin panel
+└── landing-frontend/     React + Vite — public marketing site (healthcenter.lk)
 ```
 
-Every change you make belongs to one of these three projects.  
+Every change you make belongs to one of these four projects.  
 Never mix logic between them. Never put backend logic in the frontend.
+
+> **landing-frontend** uses its own Tailwind design system (custom brand palette, no CSS variables).
+> Do not apply clinic-frontend or admin-frontend UI patterns to the landing site — it is a separate product.
 
 ---
 
@@ -86,11 +90,13 @@ Never assume a module is enabled. Always check the flag. Always enforce in both 
 Before writing a single line of code, pull the latest changes from GitHub.
 
 ```bash
-git pull origin main
+git pull origin development
 ```
 
 Do this for every project folder you are about to work in.  
 If you skip this, you risk overwriting your own previous work.
+
+> **Branch strategy:** daily development happens on the `development` branch. The `main` branch is used for stable release snapshots only. The production server pulls from `development`.
 
 ---
 
@@ -134,17 +140,19 @@ Never commit with messages like "update", "fix", "done", or "changes". These are
 
 ## Rule 4 — Never Work Directly on Main Branch
 
-Always create a branch for each feature.
+Work on the `development` branch for all daily changes. Create feature branches off `development` for larger features.
 
 ```bash
+git checkout development
 git checkout -b feature/patient-registration
 # work, commit, test
-git checkout main
+git checkout development
 git merge feature/patient-registration
-git push origin main
+git push origin development
 ```
 
-If something breaks on a feature branch, main is still safe.
+If something breaks on a feature branch, development is still safe.  
+Only merge `development` → `main` when cutting a stable release snapshot.
 
 ---
 
@@ -507,7 +515,9 @@ When building routes that must be accessible without JWT (e.g. the patient booki
 Docs/
 ├── INSTRUCTION.md              ← This file — read before everything
 ├── Plan.md                     ← Build order, phases, task checklists
-├── RUNNING.md                  ← How to run and deploy all three projects
+├── RUNNING.md                  ← How to run and deploy all four projects
+├── HOSTING.md                  ← Step-by-step production deployment guide
+├── HOSTING_SESSION.md          ← Full record of the actual production deployment (healthcenter.lk)
 ├── DESIGN.md                   ← UI design rules, components, NPM packages
 ├── workflow.md                 ← Role-by-role access, data flow, module status
 ├── databasequeries.md          ← Every table definition, query, and relationship
@@ -515,10 +525,10 @@ Docs/
 └── Doctor pos core features.md ← Full product feature descriptions per module
 ```
 
-All eight files must always be up to date.  
+All files must always be up to date.  
 They are your memory. Treat them as seriously as the code itself.
 
 ---
 
-*Doctor POS — Instruction Manual v1.0*  
+*ClinicPOS / HealthCenter.lk — Instruction Manual v1.1*  
 *Solo developer project — discipline is your only safety net*

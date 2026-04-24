@@ -1,6 +1,6 @@
-# RUNNING.md — Doctor POS
+# RUNNING.md — ClinicPOS / HealthCenter.lk
 
-How to run all three projects locally and in production.
+How to run all four projects locally and in production.
 
 ---
 
@@ -11,8 +11,9 @@ How to run all three projects locally and in production.
 | `backend-api` | Node.js · Express · PostgreSQL | 4000 | `http://localhost:4000` |
 | `clinic-frontend` | React · Vite | 5173 | `http://localhost:5173` |
 | `admin-frontend` | React · Vite | 5174 | `http://localhost:5174` |
+| `landing-frontend` | React · Vite · Tailwind | 5175 | `http://localhost:5175` |
 
-Run all three at the same time — each in its own terminal.
+Run all four at the same time — each in its own terminal. The landing-frontend is optional for daily clinic development.
 
 ---
 
@@ -36,10 +37,12 @@ Install these once on your machine:
 cd backend-api      && npm install
 cd clinic-frontend  && npm install
 cd admin-frontend   && npm install
+cd landing-frontend && npm install
 ```
 
 > `clinic-frontend` includes Tailwind CSS, Radix UI, Sonner, Lucide, React Hook Form, Recharts, `date-fns`, `react-day-picker`, `clsx`, and `@fontsource/inter`.
 > `admin-frontend` includes Tailwind CSS, Radix UI (`@radix-ui/react-dialog`), Sonner, Lucide, `clsx`, and `@fontsource/inter`.
+> `landing-frontend` includes Tailwind CSS v3 (custom brand config), Lucide, React Router DOM. Uses a separate design system (custom Tailwind palette, no CSS variables). Logo served from `public/logosmall.png`.
 > Running `npm install` in each project installs all of these at once — no extra steps needed.
 
 ### Step 2 — Create .env files
@@ -75,6 +78,12 @@ VITE_CLINIC_URL=http://localhost:5173
 ```
 
 > `VITE_CLINIC_URL` — used by the "Login as Clinic" impersonation button to open the correct clinic-frontend URL. Set this to wherever your clinic-frontend runs.
+
+**landing-frontend/.env** *(usually empty for local dev — landing fetches from relative /api paths)*
+```env
+# No variables required for local dev.
+# In production the landing page fetches /api/v1/public/* via nginx proxy — no VITE_API_URL needed.
+```
 
 ### Step 3 — Create the PostgreSQL database
 
@@ -138,6 +147,9 @@ node -r dotenv/config src/db/migrate_platform_info.js
 
 # Nurse vitals — adds patient_vitals table to all tenant schemas
 node -r dotenv/config src/db/migrate_vitals.js
+
+# Fix clinic schemas created before addon modules existed (queue_display + pharmacy/lab/insurance tables)
+node -r dotenv/config src/db/migrate_fix_new_clinics.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -181,7 +193,14 @@ cd admin-frontend
 npm run dev
 ```
 Runs on `http://localhost:5174`
-Build this only when you reach Phase 4 in `PLAN.md`.
+
+**Terminal 4 — Landing Frontend** *(optional — only needed for landing page work)*
+```bash
+cd landing-frontend
+npm run dev
+```
+Runs on `http://localhost:5175`
+This is the public marketing site (healthcenter.lk). No API proxy — it fetches from the backend directly on `/api/*`.
 
 ---
 
@@ -215,11 +234,13 @@ This is automatically picked up by `src/api/index.js` — no code changes needed
 # Frontend apps — generate static files
 cd clinic-frontend  && npm run build   # output: clinic-frontend/dist/
 cd admin-frontend   && npm run build   # output: admin-frontend/dist/
+cd landing-frontend && npm run build   # output: landing-frontend/dist/
 ```
 
 **Backend — keep running with PM2**
 ```bash
-pm2 start backend-api/src/index.js --name clinicpos-api
+# IMPORTANT: --node-args="-r dotenv/config" is required so .env is loaded
+pm2 start backend-api/src/index.js --name clinicpos-api --node-args="-r dotenv/config"
 pm2 save
 pm2 logs clinicpos-api
 ```
@@ -254,12 +275,14 @@ clinicpos/
 ├── Docs/
 │   ├── RUNNING.md          ← This file (local dev)
 │   ├── HOSTING.md          ← Step-by-step production deployment guide
+│   ├── HOSTING_SESSION.md  ← Full record of the actual production deployment
 │   ├── PLAN.md             ← Build order and phases
 │   ├── DESIGN.md           ← UI design rules and component system
 │   ├── INSTRUCTION.md      ← Development rules
 │   ├── BUGS.md             ← Automated test results + known bugs
 │   ├── databasequeries.md  ← All DB tables and queries
-│   └── ongoingworking.md   ← Feature progress tracker
+│   ├── workflow.md         ← Role-by-role access, data flow, module status
+│   └── ongoingworking.md   ← Feature progress tracker, session log
 │
 ├── backend-api/
 │   ├── src/
@@ -295,7 +318,11 @@ clinicpos/
 │   │   │   ├── migrate_queue_display.js                — queue_display_enabled column
 │   │   │   ├── migrate_subscription_plans.js           — subscription_plans table + tenant subscription columns
 │   │   │   ├── migrate_update_plans.js                 — updates plan prices to LKR, deactivates Premium
-│   │   │   └── migrate_plan_billing_cycle.js           — adds billing_cycle column to subscription_plans
+│   │   │   ├── migrate_plan_billing_cycle.js           — adds billing_cycle column to subscription_plans
+│   │   │   ├── migrate_platform_settings.js            — public.platform_settings table (landing page toggle)
+│   │   │   ├── migrate_platform_info.js                — seeds 17 company/contact/payment/system keys
+│   │   │   ├── migrate_vitals.js                       — patient_vitals table in all tenant schemas
+│   │   │   └── migrate_fix_new_clinics.js              — backport addon tables to all existing schemas
 │   │   ├── utils/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
 │   │   │   └── bookingReference.js — shared BK-XXXXXX generator
@@ -311,7 +338,7 @@ clinicpos/
 │   │   │   ├── auth/             — Login, Impersonate
 │   │   │   ├── dashboard/        — Role-based dashboards (Admin, Doctor, Receptionist, Nurse)
 │   │   │   ├── patients/         — List, Profile, Register, Edit
-│   │   │   ├── appointments/     — Queue, modals, schedule, holidays
+│   │   │   ├── appointments/     — Queue, modals, schedule, holidays, VitalsModal
 │   │   │   ├── consultations/    — Consultation list + detail modal
 │   │   │   ├── prescriptions/    — Rx list + detail modal
 │   │   │   ├── medicines/        — Medicine Store (admin)
@@ -324,7 +351,8 @@ clinicpos/
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
 │   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
 │   │   │   ├── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
-│   │   │   └── subscription/     — SubscriptionPage.jsx — clinic admin views own subscription status
+│   │   │   ├── subscription/     — SubscriptionPage.jsx — clinic admin views own subscription status
+│   │   │   └── help/             — HelpPage.jsx — step-by-step guide per role (Overview/Receptionist/Doctor/Nurse/Admin tabs)
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar (collapsible), TopBar (live clock + dark toggle), PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Drawer, Badge, Card, DatePicker, Spinner, EmptyState, OfflineBanner, ConfirmDialog, DispenseModal
@@ -339,43 +367,68 @@ clinicpos/
 │   ├── .env.example
 │   └── package.json
 │
-└── admin-frontend/
+├── admin-frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── LoginPage.jsx         — Super admin login (logosmall.png branding)
+│   │   │   ├── DashboardPage.jsx     — Stat cards + recent clinics
+│   │   │   ├── ClinicsPage.jsx       — Clinic list + search + create
+│   │   │   ├── ClinicDetailPage.jsx  — Clinic detail + feature flags + suspend/activate + set plan/renew
+│   │   │   ├── PlansPage.jsx         — CRUD for subscription plans (name, billing cycle, price)
+│   │   │   ├── SubscriptionsPage.jsx — All clinics subscription status + assign/renew plan
+│   │   │   └── PlatformSettingsPage.jsx — 4-tab: Company Info, Contact Details, Payment Details, System
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   │   └── AdminLayout.jsx — Collapsible sidebar (logosmall.png) + TopBar (live clock, dark/light toggle, logout)
+│   │   │   └── ui/
+│   │   │       ├── Button.jsx      — CSS variable variants (primary, secondary, danger, success, ghost)
+│   │   │       ├── Input.jsx       — CSS variables, forwardRef
+│   │   │       ├── Badge.jsx       — statusMap (active→success, suspended→danger, etc.)
+│   │   │       ├── Card.jsx        — Card + StatCard with CSS variables
+│   │   │       ├── Modal.jsx       — Radix Dialog (@radix-ui/react-dialog) — proper overlay
+│   │   │       ├── Spinner.jsx     — CSS variable spinner + LoadingState
+│   │   │       ├── ConfirmDialog.jsx — Wraps Modal for all destructive confirmations
+│   │   │       └── EmptyState.jsx  — Consistent empty list state component
+│   │   ├── api/
+│   │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi, adminPlansApi, adminSubscriptionsApi
+│   │   ├── store/
+│   │   │   ├── AdminAuthContext.jsx — Admin JWT + login/logout
+│   │   │   └── ThemeContext.jsx     — Dark/light mode toggle (persisted in localStorage)
+│   │   ├── styles/
+│   │   │   └── variables.css       — CSS variables + .dark {} overrides (matches clinic-frontend)
+│   │   ├── App.jsx                 — Routes (login + protected admin routes)
+│   │   └── main.jsx                — Entry point + ThemeProvider + @fontsource/inter
+│   ├── public/
+│   │   └── logosmall.png           — Brand logo served at /logosmall.png
+│   ├── tailwind.config.js          — darkMode: 'class' + theme extensions
+│   ├── vite.config.js              — Port 5174, /api proxy
+│   ├── .env                        — VITE_API_URL + VITE_CLINIC_URL
+│   ├── .env.example
+│   └── package.json
+│
+└── landing-frontend/
     ├── src/
     │   ├── pages/
-    │   │   ├── LoginPage.jsx       — Super admin login
-    │   │   ├── DashboardPage.jsx   — Stat cards + recent clinics
-    │   │   ├── ClinicsPage.jsx     — Clinic list + search + create
-    │   │   ├── ClinicDetailPage.jsx — Clinic detail + feature flags + suspend/activate + set plan/renew
-    │   │   ├── PlansPage.jsx       — CRUD for subscription plans (name, billing cycle, price)
-    │   │   └── SubscriptionsPage.jsx — All clinics subscription status + assign/renew plan
-    │   ├── components/
-    │   │   ├── layout/
-    │   │   │   └── AdminLayout.jsx — Collapsible sidebar + TopBar (live clock, dark/light toggle, logout)
-    │   │   └── ui/
-    │   │       ├── Button.jsx      — CSS variable variants (primary, secondary, danger, success, ghost)
-    │   │       ├── Input.jsx       — CSS variables, forwardRef
-    │   │       ├── Badge.jsx       — statusMap (active→success, suspended→danger, etc.)
-    │   │       ├── Card.jsx        — Card + StatCard with CSS variables
-    │   │       ├── Modal.jsx       — Radix Dialog (@radix-ui/react-dialog) — proper overlay
-    │   │       ├── Spinner.jsx     — CSS variable spinner + LoadingState
-    │   │       ├── ConfirmDialog.jsx — Wraps Modal for all destructive confirmations
-    │   │       └── EmptyState.jsx  — Consistent empty list state component
-    │   ├── api/
-    │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi, adminPlansApi, adminSubscriptionsApi
-    │   ├── store/
-    │   │   ├── AdminAuthContext.jsx — Admin JWT + login/logout
-    │   │   └── ThemeContext.jsx     — Dark/light mode toggle (persisted in localStorage)
+    │   │   ├── LandingPage.jsx     — Marketing homepage (hero, features, pricing, testimonials, CTA)
+    │   │   └── GuidePage.jsx       — Public user guide (tabs: Overview, Receptionist, Doctor, Nurse, Admin)
+    │   ├── sections/               — HeroSection, FeaturesSection, WorkflowSection, RolesSection,
+    │   │                             PricingSection, TestimonialsSection, CtaSection, TrustBar
+    │   ├── components/layout/
+    │   │   ├── Navbar.jsx          — Sticky nav with logosmall.png + mobile drawer
+    │   │   ├── Footer.jsx          — Footer with logosmall.png + dynamic platform info from API
+    │   │   └── Layout.jsx          — Wraps Navbar + <main> + Footer (used by all pages)
     │   ├── styles/
-    │   │   └── variables.css       — CSS variables + .dark {} overrides (matches clinic-frontend)
-    │   ├── App.jsx                 — Routes (login + protected admin routes)
-    │   └── main.jsx                — Entry point + ThemeProvider + @fontsource/inter
-    ├── tailwind.config.js          — darkMode: 'class' + theme extensions
-    ├── vite.config.js              — Port 5174, /api proxy
-    ├── .env                        — VITE_API_URL + VITE_CLINIC_URL
-    ├── .env.example
+    │   │   └── globals.css         — CSS utilities: hero-radial-bg, dot-grid, step-ring, cta-radial, pricing-featured-bg, gradient-text-light, guide-hero-text
+    │   ├── App.jsx                 — Routes: / (LandingPage), /guide (GuidePage)
+    │   └── main.jsx                — Entry point
+    ├── public/
+    │   └── logosmall.png           — Brand logo (blue/teal clinic cross) served at /logosmall.png
+    ├── tailwind.config.js          — Custom brand palette: primary #07548E, teal #07A39A, surface, ink, ink-light, ink-faint
+    ├── vite.config.js              — Port 5175
+    ├── index.html                  — Vite entry point (required — do not delete)
     └── package.json
 ```
 
 ---
 
-*Doctor POS — Read PLAN.md for build order. Read INSTRUCTION.md for rules.*
+*ClinicPOS / HealthCenter.lk — Read PLAN.md for build order. Read INSTRUCTION.md for rules.*

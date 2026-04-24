@@ -17,8 +17,8 @@
 
 ## Current Status
 
-**Currently working on:** Production live — platform settings, landing page, polling all deployed and working
-**Last updated:** 2026-04-22
+**Currently working on:** Docs update — all docs refreshed to reflect Vite landing-frontend, logo changes, vitals polling fix
+**Last updated:** 2026-04-24
 **Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
 
 ### What is fully complete right now
@@ -78,6 +78,10 @@
 | **Clinic Subscription Page — Contact + Payment Cards** | ✅ `SubscriptionPage.jsx` now fetches `/api/v1/public/platform-info` and shows two dynamic cards: "Contact & Support" (phone with WhatsApp link, support email, address) and "Payment Details" (bank info grid + payment instructions). Both cards are conditional — hidden when data is not set. (2026-04-22) |
 | **Landing Page Redesign** | ✅ Complete dark-themed redesign: gradient headline, animated hero with queue mockup + floating stat cards, 6-item trust bar, 12 numbered features grid, 4-step How It Works with gradient line, role tabs (Receptionist/Doctor/Nurse/Admin) with permissions checklist, dynamic pricing cards, testimonials, scroll-triggered fade-in animations. Contact section dynamically populated from `/api/v1/public/platform-info`. (2026-04-22) |
 | **Platform Settings Save Bug Fix** | ✅ Save button was only sending current tab's keys — phone/bank fields entered on other tabs were silently lost. Fixed: save() now sends entire settings state for all tabs in one batch request. (2026-04-22) |
+| **landing-frontend → Vite/React Conversion** | ✅ Converted from plain HTML to React + Vite project. All sections are React components. Layout component (Navbar + main + Footer) wraps all pages. No inline `style={{}}` anywhere — all styles use Tailwind arbitrary values or named CSS utilities in `globals.css`. GuidePage converted from HTML to React route. Old `guide.html` deleted. (2026-04-23) |
+| **Logo Replacement (All Frontends)** | ✅ Replaced placeholder SVG cross icons with `logosmall.png` (brand logo) in: landing Navbar, landing Footer, admin Sidebar, admin Login page. Logo placed in `public/` directory of each frontend — served at `/logosmall.png`. (2026-04-23) |
+| **Logo Cache Cross-Browser Fix** | ✅ When clinic logo is updated by admin, other already-logged-in browsers were showing the old cached logo. Fixed: `AuthContext.jsx` now fires a silent background `api.get('/settings')` on every session restore. Fresh clinic data (name, logo_url, currency) is written to localStorage immediately. All browsers see the new logo on next page load without clearing cache. (2026-04-23) |
+| **VitalsModal Polling Standard** | ✅ VitalsModal now calls `onSaved?.()` after successful save. AppointmentsPage passes `onSaved={() => load(true)}` — the same `load(true)` function used by the 30s setInterval polling. All modals in AppointmentsPage now follow the same refresh standard. (2026-04-23) |
 
 ### What is NOT yet started
 - Phase 7 — Electron desktop version

@@ -75,6 +75,8 @@ Go to your domain registrar (where you bought the domain) → DNS Settings → A
 
 > The `*` (wildcard) record makes `anything.clinicpos.com` point to your server.
 > DNS changes take 5–30 minutes to propagate. You can check with `nslookup demo.clinicpos.com`.
+>
+> **If using Cloudflare DNS:** Set all A records to **DNS only** (gray cloud icon). Do NOT enable Cloudflare proxy (orange cloud) — it will break the wildcard SSL certificate validation.
 
 ---
 
@@ -217,12 +219,13 @@ sudo chown -R deploy:deploy /var/www/clinicpos
 cd /var/www/clinicpos
 ```
 
-### 9.2 — Install dependencies for all three projects
+### 9.2 — Install dependencies for all four projects
 
 ```bash
 cd /var/www/clinicpos/backend-api && npm install --production
 cd /var/www/clinicpos/clinic-frontend && npm install
 cd /var/www/clinicpos/admin-frontend && npm install
+cd /var/www/clinicpos/landing-frontend && npm install
 ```
 
 ---
@@ -336,6 +339,12 @@ node -r dotenv/config src/db/migrate_plan_billing_cycle.js
 # Platform settings table (landing page toggle)
 node -r dotenv/config src/db/migrate_platform_settings.js
 
+# Platform info (company/contact/payment fields — seeds 17 default keys)
+node -r dotenv/config src/db/migrate_platform_info.js
+
+# Nurse vitals (adds patient_vitals table to all tenant schemas)
+node -r dotenv/config src/db/migrate_vitals.js
+
 # Patch any clinic schemas created before addon modules existed (run after the above)
 node -r dotenv/config src/db/migrate_fix_new_clinics.js
 ```
@@ -357,8 +366,10 @@ cd /var/www/clinicpos/admin-frontend
 npm run build
 # Output: /var/www/clinicpos/admin-frontend/dist/
 
-# landing-frontend — no build needed (plain HTML, served directly by nginx)
-# Output: /var/www/clinicpos/landing-frontend/index.html
+# Build landing frontend (Vite/React project — must build before nginx serves it)
+cd /var/www/clinicpos/landing-frontend
+npm run build
+# Output: /var/www/clinicpos/landing-frontend/dist/
 ```
 
 ---
@@ -368,7 +379,7 @@ npm run build
 ```bash
 cd /var/www/clinicpos/backend-api
 
-pm2 start src/index.js --name clinicpos-api
+pm2 start src/index.js --name clinicpos-api --node-args="-r dotenv/config"
 
 # Save PM2 process list so it restarts after server reboot
 pm2 save
@@ -493,7 +504,7 @@ server {
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
-    root /var/www/clinicpos/landing-frontend;
+    root /var/www/clinicpos/landing-frontend/dist;
     index index.html;
 
     # Proxy /api calls to backend (for dynamic pricing fetch)
@@ -730,7 +741,7 @@ Every time you make changes to the code locally, follow these steps to deploy:
 # On your local machine — push to GitHub
 git add .
 git commit -m "your change description"
-git push origin main
+git push origin development
 
 # SSH into your server
 ssh deploy@YOUR_SERVER_IP
@@ -738,7 +749,7 @@ ssh deploy@YOUR_SERVER_IP
 cd /var/www/clinicpos
 
 # Pull the latest code
-git pull origin main
+git pull origin development
 
 # If backend changed:
 cd backend-api && npm install --production
@@ -751,6 +762,11 @@ npm run build
 
 # If admin-frontend changed:
 cd /var/www/clinicpos/admin-frontend
+npm install
+npm run build
+
+# If landing-frontend changed:
+cd /var/www/clinicpos/landing-frontend
 npm install
 npm run build
 
@@ -898,6 +914,7 @@ sudo systemctl reload nginx
 
 ---
 
-*Doctor POS — HOSTING.md*
-*Stack: Ubuntu 22.04 · Node.js 20 · PostgreSQL 16 · Nginx · PM2 · Let's Encrypt*
+*ClinicPOS / HealthCenter.lk — HOSTING.md*
+*Stack: Ubuntu 24.04 · Node.js 20 · PostgreSQL 16 · Nginx · PM2 · Let's Encrypt*
+*Production: healthcenter.lk — DigitalOcean Singapore (178.128.98.34)*
 *Read RUNNING.md for local development. Read PLAN.md for build order.*
