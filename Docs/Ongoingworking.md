@@ -17,7 +17,7 @@
 
 ## Current Status
 
-**Currently working on:** Docs update — all docs refreshed to reflect Vite landing-frontend, logo changes, vitals polling fix
+**Currently working on:** Phase 6 planning — payment gateway, SMS reminders, audit log, system health
 **Last updated:** 2026-04-24
 **Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
 
@@ -82,6 +82,12 @@
 | **Logo Replacement (All Frontends)** | ✅ Replaced placeholder SVG cross icons with `logosmall.png` (brand logo) in: landing Navbar, landing Footer, admin Sidebar, admin Login page. Logo placed in `public/` directory of each frontend — served at `/logosmall.png`. (2026-04-23) |
 | **Logo Cache Cross-Browser Fix** | ✅ When clinic logo is updated by admin, other already-logged-in browsers were showing the old cached logo. Fixed: `AuthContext.jsx` now fires a silent background `api.get('/settings')` on every session restore. Fresh clinic data (name, logo_url, currency) is written to localStorage immediately. All browsers see the new logo on next page load without clearing cache. (2026-04-23) |
 | **VitalsModal Polling Standard** | ✅ VitalsModal now calls `onSaved?.()` after successful save. AppointmentsPage passes `onSaved={() => load(true)}` — the same `load(true)` function used by the 30s setInterval polling. All modals in AppointmentsPage now follow the same refresh standard. (2026-04-23) |
+| **Landing Frontend — Light Theme Conversion** | ✅ Converted all dark sections from `bg-ink text-white` to light theme: RolesSection (`bg-surface`), PricingSection (`bg-surface-alt`), TestimonialsSection (`bg-surface`), CtaSection (`bg-surface-alt`). All mock UI cards, badges, text colors, borders updated to light palette. GuidePage fully converted from dark to light — Badge, Step, Section, Note components all updated. (2026-04-24) |
+| **Navbar Scroll + Mobile Menu Fix** | ✅ Hash links (`/#features`, `/#how-it-works`, `/#pricing`, `/#contact`) now use `scrollIntoView({ behavior: 'smooth' })` via click handler — no more page reload on same page. Mobile drawer: `bg-surface/99` (broken opacity — `99` not in Tailwind opacity table → transparent) fixed to `bg-surface` (solid white). (2026-04-24) |
+| **Nginx Conflicting Server Name Fix** | ✅ Removed `healthcenter.lk` from `clinicpos-clinic` port-80 `server_name` — it was duplicated in both `clinicpos-clinic` and `healthcenter.lk` configs, causing nginx warning on every reload. Fixed: port-80 wildcard block now only has `*.healthcenter.lk`; root domain port-80 redirect is handled exclusively by `healthcenter.lk` config. (2026-04-24) |
+| **PM2 Auto-Start on Reboot** | ✅ Ran `pm2 startup` → `sudo env PATH=... pm2 startup systemd -u deploy --hp /home/deploy` → `pm2 save`. PM2 now registered as a systemd service (`pm2-deploy.service`). API auto-starts on every server reboot without manual intervention. (2026-04-24) |
+| **Logo Caching Fix** | ✅ Logo uploads were always saved as `logo.ext` (same filename) — browsers cached the URL and served the old image indefinitely. Fixed: filename now uses timestamp (`logo_<Date.now()>.ext`) so every upload gets a unique URL. Old logo file is deleted after DB update. All browsers, other sessions, and the login page now see the new logo immediately. (2026-04-24) |
+| **AuthContext Currency Field Fix** | ✅ Background settings refresh in `AuthContext.jsx` was reading `s.currency_code` but the DB column is named `currency` — currency was silently resetting to `'LKR'` on every page reload regardless of clinic setting. Fixed: `s.currency || 'LKR'`. (2026-04-24) |
 
 ### What is NOT yet started
 - Phase 7 — Electron desktop version

@@ -185,12 +185,9 @@ Open `http://YOUR_SERVER_IP` in a browser — you should see the default Nginx w
 
 ```bash
 sudo npm install -g pm2
-
-# Set PM2 to start automatically on server reboot
-pm2 startup
-# Copy and run the command it prints — it looks like:
-# sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u deploy --hp /home/deploy
 ```
+
+> PM2 auto-start is configured **after** starting the API in Step 14 — do that step first, then come back and run `pm2 startup` + `pm2 save`.
 
 ---
 
@@ -381,15 +378,32 @@ cd /var/www/clinicpos/backend-api
 
 pm2 start src/index.js --name clinicpos-api --node-args="-r dotenv/config"
 
-# Save PM2 process list so it restarts after server reboot
-pm2 save
-
 # Verify it's running
 pm2 status
 pm2 logs clinicpos-api --lines 20
 ```
 
 You should see `status: online` in the PM2 status table.
+
+### 14.1 — Configure PM2 to auto-start on server reboot
+
+```bash
+pm2 startup
+```
+
+It will print a command — copy and run it exactly. It looks like:
+
+```bash
+sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u deploy --hp /home/deploy
+```
+
+Then save the current process list:
+
+```bash
+pm2 save
+```
+
+> **Important:** Always run `pm2 save` after starting or changing any PM2 process. If you skip this, the process list is not persisted and the API will not restart after a reboot.
 
 Test the API is reachable locally:
 
@@ -523,7 +537,7 @@ server {
 }
 ```
 
-> Note: If the existing wildcard HTTP block already includes `yourdomain.com` in its `server_name`, nginx will warn about a conflicting port-80 server name — this is harmless (the redirect still works via the wildcard block).
+> Note: Do NOT include `yourdomain.com` in the wildcard `clinicpos-clinic` port-80 `server_name`. The dedicated landing config handles the root domain on port 80. Having it in both places causes an nginx "conflicting server name" warning on every reload.
 
 ### 15.4 — Enable all configs
 
@@ -585,10 +599,10 @@ sudo nano /etc/nginx/sites-available/clinicpos-clinic
 Replace the entire file with:
 
 ```nginx
-# Redirect HTTP to HTTPS
+# Redirect HTTP to HTTPS (subdomains only — root domain is handled by its own config)
 server {
     listen 80;
-    server_name *.clinicpos.com clinicpos.com;
+    server_name *.clinicpos.com;
     return 301 https://$host$request_uri;
 }
 
