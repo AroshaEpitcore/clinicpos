@@ -27,11 +27,11 @@ const testimonials = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-16 md:py-20 lg:py-24 bg-ink text-white">
+    <section className="py-16 md:py-20 lg:py-24 bg-surface">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeIn className="text-center mb-12 md:mb-14">
           <div className="eyebrow mb-3.5">Testimonials</div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-ink">
             Trusted by clinics <span className="gradient-text">across Sri Lanka</span>
           </h2>
         </FadeIn>
@@ -40,24 +40,24 @@ export default function TestimonialsSection() {
           {testimonials.map((t, i) => (
             <FadeIn key={t.name} delay={0.1 * i}>
               <motion.div
-                whileHover={{ borderColor:'rgba(99,102,241,0.25)', y: -4 }}
+                whileHover={{ borderColor:'rgba(7,84,142,0.25)', y: -4 }}
                 transition={{ duration:0.2 }}
-                className="rounded-[18px] p-6 md:p-7 h-full border bg-white/[0.03] border-white/[0.07]"
+                className="rounded-[18px] p-6 md:p-7 h-full border bg-white border-primary/10 shadow-soft-sm"
               >
                 <div className="flex gap-0.5 mb-3">
                   {[...Array(5)].map((_, si) => (
                     <span key={si} className="text-[0.8rem] text-amber-400">★</span>
                   ))}
                 </div>
-                <span className="block text-5xl leading-none mb-4 text-indigo-500/30">"</span>
-                <p className="text-sm leading-relaxed mb-5 text-white/60">{t.quote}</p>
+                <span className="block text-5xl leading-none mb-4 text-primary/20">"</span>
+                <p className="text-sm leading-relaxed mb-5 text-ink-light">{t.quote}</p>
                 <div className="flex items-center gap-3">
                   <div className={`w-[42px] h-[42px] rounded-xl shrink-0 flex items-center justify-center font-black text-sm text-white ${t.avatarCls}`}>
                     {t.initials}
                   </div>
                   <div>
-                    <div className="text-sm font-bold">{t.name}</div>
-                    <div className="text-xs text-white/60">{t.title}</div>
+                    <div className="text-sm font-bold text-ink">{t.name}</div>
+                    <div className="text-xs text-ink-light">{t.title}</div>
                   </div>
                 </div>
               </motion.div>

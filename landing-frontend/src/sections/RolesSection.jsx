@@ -4,8 +4,8 @@ import FadeIn from '../components/ui/FadeIn';
 
 function PermRow({ yes, label }) {
   return (
-    <div className="flex items-center gap-2.5 text-sm">
-      <span className={`w-5 h-5 rounded-[6px] shrink-0 flex items-center justify-center text-xs ${yes ? 'bg-emerald-500/20 text-green-400' : 'bg-white/5 text-white/40'}`}>
+    <div className="flex items-center gap-2.5 text-sm text-ink-light">
+      <span className={`w-5 h-5 rounded-[6px] shrink-0 flex items-center justify-center text-xs font-bold ${yes ? 'bg-emerald-100 text-emerald-600' : 'bg-ink/5 text-ink-faint'}`}>
         {yes ? '✓' : '✗'}
       </span>
       {label}
@@ -15,9 +15,9 @@ function PermRow({ yes, label }) {
 
 function MiniStat({ num, label, colorCls }) {
   return (
-    <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+    <div className="bg-primary/5 border border-primary/10 rounded-xl p-3.5">
       <div className={`text-[1.4rem] font-black ${colorCls || 'gradient-text'}`}>{num}</div>
-      <div className="text-[0.72rem] mt-0.5 text-white/60">{label}</div>
+      <div className="text-[0.72rem] mt-0.5 text-ink-light">{label}</div>
     </div>
   );
 }
@@ -26,11 +26,11 @@ function MiniQueue({ rows }) {
   return (
     <div className="flex flex-col gap-1.5 mt-1.5">
       {rows.map(r => (
-        <div key={r.name} className="flex items-center gap-2.5 bg-white/[0.03] rounded-lg p-2 px-3 text-[0.78rem]">
+        <div key={r.name} className="flex items-center gap-2.5 bg-ink/3 rounded-lg p-2 px-3 text-[0.78rem]">
           <div className="w-[26px] h-[26px] bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-[6px] flex items-center justify-center font-black text-[0.72rem] shrink-0 text-white">
             {r.token}
           </div>
-          <span className="flex-1 font-semibold">{r.name}</span>
+          <span className="flex-1 font-semibold text-ink">{r.name}</span>
           <span className={`text-[0.68rem] px-1.5 py-0.5 rounded-[5px] font-bold ${r.cls}`}>{r.status}</span>
         </div>
       ))}
@@ -56,19 +56,19 @@ const roles = [
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-2.5">
           <MiniStat num="24"          label="Appointments Today" />
-          <MiniStat num="7"           label="Currently Waiting"  colorCls="text-amber-400" />
-          <MiniStat num="LKR 48,500" label="Collected"           colorCls="text-green-400" />
-          <MiniStat num="LKR 12,000" label="Outstanding"         colorCls="text-red-400" />
+          <MiniStat num="7"           label="Currently Waiting"  colorCls="text-amber-500" />
+          <MiniStat num="LKR 48,500" label="Collected"           colorCls="text-emerald-600" />
+          <MiniStat num="LKR 12,000" label="Outstanding"         colorCls="text-red-500" />
         </div>
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[0.8rem] font-bold">Live Queue</span>
-            <span className="text-[0.72rem] text-white/60">All Doctors</span>
+            <span className="text-[0.8rem] font-bold text-ink">Live Queue</span>
+            <span className="text-[0.72rem] text-ink-light">All Doctors</span>
           </div>
           <MiniQueue rows={[
-            { token:'3', name:'Kasun Jayawardena', status:'With Dr.', cls:'bg-indigo-500/20 text-indigo-300' },
-            { token:'4', name:'Nimal Perera',       status:'Waiting',  cls:'bg-amber-500/[0.15] text-amber-300' },
-            { token:'5', name:'Dilani Silva',        status:'Waiting',  cls:'bg-amber-500/[0.15] text-amber-300' },
+            { token:'3', name:'Kasun Jayawardena', status:'With Dr.', cls:'bg-indigo-100 text-indigo-600' },
+            { token:'4', name:'Nimal Perera',       status:'Waiting',  cls:'bg-amber-100 text-amber-600' },
+            { token:'5', name:'Dilani Silva',        status:'Waiting',  cls:'bg-amber-100 text-amber-600' },
           ]} />
         </div>
       </div>
@@ -91,19 +91,19 @@ const roles = [
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-2.5">
           <MiniStat num="12" label="My Patients Today" />
-          <MiniStat num="3"  label="Waiting For Me"    colorCls="text-amber-400" />
-          <MiniStat num="8"  label="Completed"         colorCls="text-green-400" />
-          <MiniStat num="2"  label="Online Bookings"   colorCls="text-cyan-300" />
+          <MiniStat num="3"  label="Waiting For Me"    colorCls="text-amber-500" />
+          <MiniStat num="8"  label="Completed"         colorCls="text-emerald-600" />
+          <MiniStat num="2"  label="Online Bookings"   colorCls="text-primary" />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[0.8rem] font-bold">Now Seeing</span>
-            <span className="text-[0.72rem] text-green-400">● Active</span>
+            <span className="text-[0.8rem] font-bold text-ink">Now Seeing</span>
+            <span className="text-[0.72rem] text-emerald-600">● Active</span>
           </div>
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3.5">
-            <div className="text-base font-black mb-1">Kasun Jayawardena</div>
-            <div className="text-[0.78rem] text-white/60">Token #3 · 09:15 AM · Walk-in</div>
-            <div className="text-[0.75rem] mt-1.5 text-red-400">⚠ Allergy: Penicillin</div>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5">
+            <div className="text-base font-black mb-1 text-ink">Kasun Jayawardena</div>
+            <div className="text-[0.78rem] text-ink-light">Token #3 · 09:15 AM · Walk-in</div>
+            <div className="text-[0.75rem] mt-1.5 text-red-500">⚠ Allergy: Penicillin</div>
           </div>
         </div>
       </div>
@@ -126,22 +126,22 @@ const roles = [
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-2.5">
           <MiniStat num="9" label="With Doctor" />
-          <MiniStat num="6" label="Still Waiting" colorCls="text-amber-400" />
+          <MiniStat num="6" label="Still Waiting" colorCls="text-amber-500" />
         </div>
-        <div className="bg-indigo-500/[0.08] border border-indigo-500/[0.15] rounded-xl p-3.5">
-          <div className="text-[0.78rem] font-bold mb-2 text-indigo-300">📊 Vitals — Kasun Jayawardena</div>
-          <div className="grid grid-cols-2 gap-1.5 text-[0.75rem] text-white/60">
-            <div>BP: <strong className="text-white">120/80</strong> mmHg</div>
-            <div>Pulse: <strong className="text-white">72</strong> bpm</div>
-            <div>Temp: <strong className="text-white">37.0</strong> °C</div>
-            <div>SpO₂: <strong className="text-white">98</strong> %</div>
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5">
+          <div className="text-[0.78rem] font-bold mb-2 text-indigo-600">📊 Vitals — Kasun Jayawardena</div>
+          <div className="grid grid-cols-2 gap-1.5 text-[0.75rem] text-ink-light">
+            <div>BP: <strong className="text-ink">120/80</strong> mmHg</div>
+            <div>Pulse: <strong className="text-ink">72</strong> bpm</div>
+            <div>Temp: <strong className="text-ink">37.0</strong> °C</div>
+            <div>SpO₂: <strong className="text-ink">98</strong> %</div>
           </div>
         </div>
         <div>
-          <div className="text-[0.8rem] font-bold mb-1.5">All Patients Today</div>
+          <div className="text-[0.8rem] font-bold mb-1.5 text-ink">All Patients Today</div>
           <MiniQueue rows={[
-            { token:'3', name:'Kasun Jayawardena', status:'With Dr.', cls:'bg-indigo-500/20 text-indigo-300' },
-            { token:'2', name:'Dilani Silva',        status:'Done',     cls:'bg-emerald-500/20 text-green-400' },
+            { token:'3', name:'Kasun Jayawardena', status:'With Dr.', cls:'bg-indigo-100 text-indigo-600' },
+            { token:'2', name:'Dilani Silva',        status:'Done',     cls:'bg-emerald-100 text-emerald-600' },
           ]} />
         </div>
       </div>
@@ -164,15 +164,15 @@ const roles = [
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-2.5">
           <MiniStat num="LKR 184,500" label="Billed This Month" />
-          <MiniStat num="LKR 156,000" label="Collected"          colorCls="text-green-400" />
-          <MiniStat num="3"           label="Low Stock Items"    colorCls="text-amber-400" />
-          <MiniStat num="2"           label="Doctors Active"     colorCls="text-cyan-300" />
+          <MiniStat num="LKR 156,000" label="Collected"          colorCls="text-emerald-600" />
+          <MiniStat num="3"           label="Low Stock Items"    colorCls="text-amber-500" />
+          <MiniStat num="2"           label="Doctors Active"     colorCls="text-primary" />
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3.5">
-          <div className="text-[0.78rem] font-semibold mb-2.5 text-white/60 tracking-widest uppercase">Monthly Revenue</div>
+        <div className="bg-primary/5 border border-primary/10 rounded-xl p-3.5">
+          <div className="text-[0.78rem] font-semibold mb-2.5 text-ink-faint tracking-widest uppercase">Monthly Revenue</div>
           <div className="flex gap-1 items-end h-10">
             {[60,80,50,90,100,70,85].map((h,i) => (
-              <div key={i} className={`flex-1 rounded-[3px] ${i===4 ? 'bg-gradient-to-t from-indigo-500 to-cyan-400' : i===3 ? 'bg-indigo-500/50' : 'bg-indigo-500/30'}`}
+              <div key={i} className={`flex-1 rounded-[3px] ${i===4 ? 'bg-gradient-to-t from-primary to-teal' : i===3 ? 'bg-primary/50' : 'bg-primary/20'}`}
                    style={{ height:`${h}%` }} />
             ))}
           </div>
@@ -187,14 +187,14 @@ export default function RolesSection() {
   const role = roles.find(r => r.id === active);
 
   return (
-    <section className="py-16 md:py-20 lg:py-24 bg-ink text-white">
+    <section className="py-16 md:py-20 lg:py-24 bg-surface">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeIn className="text-center mb-10 md:mb-12">
           <div className="eyebrow mb-3.5">Role-Based Access</div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 text-ink">
             Every role gets <span className="gradient-text">exactly what they need</span>
           </h2>
-          <p className="text-base max-w-lg mx-auto leading-relaxed text-white/60">
+          <p className="text-base max-w-lg mx-auto leading-relaxed text-ink-light">
             Fine-grained permissions ensure each staff member sees and does only what's relevant to their role.
           </p>
         </FadeIn>
@@ -206,7 +206,7 @@ export default function RolesSection() {
               className={`px-4 sm:px-6 py-2 rounded-full text-sm font-semibold cursor-pointer border transition-all duration-200
                 ${active === r.id
                   ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-transparent shadow-[0_4px_15px_rgba(99,102,241,0.35)]'
-                  : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white/80'
+                  : 'bg-ink/5 text-ink-light border-ink/10 hover:text-ink'
                 }`}>
               {r.label}
             </motion.button>
@@ -218,12 +218,12 @@ export default function RolesSection() {
             initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
             transition={{ duration:0.35, ease:[0.22,1,0.36,1] }}
             className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center">
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-[20px] p-5 md:p-7 order-first md:order-none">
+            <div className="bg-white border border-primary/10 rounded-[20px] p-5 md:p-7 order-first md:order-none shadow-soft-sm">
               {role.visual}
             </div>
             <div>
-              <h3 className="text-xl md:text-2xl font-black mb-3">{role.title}</h3>
-              <p className="text-sm leading-relaxed mb-6 text-white/60">{role.desc}</p>
+              <h3 className="text-xl md:text-2xl font-black mb-3 text-ink">{role.title}</h3>
+              <p className="text-sm leading-relaxed mb-6 text-ink-light">{role.desc}</p>
               <div className="flex flex-col gap-2.5">
                 {role.perms.map(p => <PermRow key={p.label} yes={p.yes} label={p.label} />)}
               </div>

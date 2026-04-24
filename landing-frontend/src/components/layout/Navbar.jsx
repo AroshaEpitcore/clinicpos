@@ -35,24 +35,44 @@ export default function Navbar() {
     { label: 'Contact',      href: '/#contact'      },
   ];
 
+  function handleNavClick(e, href) {
+    if (href.startsWith('/#')) {
+      const id = href.slice(2);
+      const el = document.getElementById(id);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth' });
+        setOpen(false);
+      }
+    }
+  }
+
+  function renderLink(l, className) {
+    if (l.href.startsWith('/#')) {
+      return (
+        <a key={l.label} href={l.href} onClick={e => handleNavClick(e, l.href)} className={className}>
+          {l.label}
+        </a>
+      );
+    }
+    return <Link key={l.label} to={l.href} className={className}>{l.label}</Link>;
+  }
+
   return (
     <nav className={`fixed top-0 left-0 right-0 z-sticky transition-all duration-300 backdrop-blur-xl ${scrolled ? 'bg-surface/95 shadow-soft-sm border-b border-primary/10' : 'bg-surface/80'}`}>
       <div className="flex items-center justify-between h-[68px] max-w-6xl mx-auto px-4 sm:px-6">
         <Logo />
 
         <div className="hidden md:flex items-center gap-8">
-          {links.map(l => (
-            <Link key={l.label} to={l.href}
-              className={`text-sm font-medium transition-colors duration-150 hover:text-primary ${isGuide && l.href === '/guide' ? 'text-primary' : 'text-ink-light'}`}>
-              {l.label}
-            </Link>
-          ))}
+          {links.map(l => renderLink(l,
+            `text-sm font-medium transition-colors duration-150 hover:text-primary ${isGuide && l.href === '/guide' ? 'text-primary' : 'text-ink-light'}`)
+          )}
         </div>
 
-        <Link to="/#contact"
+        <a href="/#contact" onClick={e => handleNavClick(e, '/#contact')}
           className="hidden md:inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-br from-primary to-primary-dark shadow-soft-md hover:-translate-y-0.5 transition-transform duration-150">
           Get Started →
-        </Link>
+        </a>
 
         <button className="md:hidden p-1 bg-transparent border-none cursor-pointer" onClick={() => setOpen(v => !v)} aria-label="Menu">
           {open ? <X size={22} className="text-ink-light" /> : <Menu size={22} className="text-ink-light" />}
@@ -61,17 +81,14 @@ export default function Navbar() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="fixed top-[68px] left-0 right-0 bottom-0 bg-surface/99 backdrop-blur-xl flex flex-col px-6 py-4 z-sticky">
-          {links.map(l => (
-            <Link key={l.label} to={l.href}
-              className="py-4 text-lg font-semibold text-ink-light border-b border-primary/8">
-              {l.label}
-            </Link>
-          ))}
-          <Link to="/#contact"
+        <div className="fixed top-[68px] left-0 right-0 bottom-0 bg-surface border-t border-primary/10 flex flex-col px-6 py-4 z-sticky overflow-y-auto">
+          {links.map(l => renderLink(l,
+            'py-4 text-lg font-semibold text-ink-light border-b border-primary/10 block')
+          )}
+          <a href="/#contact" onClick={e => handleNavClick(e, '/#contact')}
             className="mt-6 text-center py-3.5 rounded-xl font-bold text-white bg-gradient-to-br from-primary to-primary-dark">
             Get Started →
-          </Link>
+          </a>
         </div>
       )}
     </nav>

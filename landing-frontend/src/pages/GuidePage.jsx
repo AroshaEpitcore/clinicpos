@@ -5,11 +5,11 @@ import FadeIn from '../components/ui/FadeIn';
 
 function Badge({ role }) {
   const cls = {
-    receptionist: 'bg-blue-400/20 text-blue-300',
-    doctor:       'bg-emerald-500/20 text-emerald-300',
-    nurse:        'bg-purple-500/20 text-purple-300',
-    admin:        'bg-amber-500/20 text-amber-300',
-  }[role] || 'bg-white/10 text-white/60';
+    receptionist: 'bg-blue-100 text-blue-600',
+    doctor:       'bg-emerald-100 text-emerald-600',
+    nurse:        'bg-purple-100 text-purple-600',
+    admin:        'bg-amber-100 text-amber-700',
+  }[role] || 'bg-ink/10 text-ink-light';
 
   return (
     <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${cls}`}>
@@ -22,26 +22,26 @@ function Step({ number, title, who = [], desc, tip, next }) {
   return (
     <div className="flex gap-4 relative">
       <div className="flex flex-col items-center shrink-0">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-sm text-white shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal flex items-center justify-center font-bold text-sm text-white shrink-0">
           {number}
         </div>
-        {next && <div className="w-0.5 flex-1 bg-white/[0.08] mt-1.5 min-h-5" />}
+        {next && <div className="w-0.5 flex-1 bg-ink/10 mt-1.5 min-h-5" />}
       </div>
       <div className="pb-6 flex-1">
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <span className="text-sm font-bold">{title}</span>
+          <span className="text-sm font-bold text-ink">{title}</span>
           {who.map(r => <Badge key={r} role={r} />)}
         </div>
-        <p className="text-sm text-white/60 leading-relaxed">{desc}</p>
+        <p className="text-sm text-ink-light leading-relaxed">{desc}</p>
         {tip && (
-          <div className="flex items-start gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2.5 mt-2.5">
+          <div className="flex items-start gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2.5 mt-2.5">
             <span className="text-xs shrink-0">⭐</span>
-            <span className="text-xs text-indigo-300 leading-relaxed">{tip}</span>
+            <span className="text-xs text-primary leading-relaxed">{tip}</span>
           </div>
         )}
         {next && (
-          <div className="flex items-center gap-1.5 text-xs text-white/40 mt-2">
-            → <strong className="text-white/60">{next}</strong>
+          <div className="flex items-center gap-1.5 text-xs text-ink-faint mt-2">
+            → <strong className="text-ink-light">{next}</strong>
           </div>
         )}
       </div>
@@ -51,12 +51,12 @@ function Step({ number, title, who = [], desc, tip, next }) {
 
 function Section({ icon, title, children }) {
   return (
-    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden mb-5">
-      <div className="flex items-center gap-3 px-6 py-[18px] border-b border-white/[0.08]">
-        <div className="w-9 h-9 rounded-[10px] text-base shrink-0 flex items-center justify-center bg-indigo-500/[0.15]">
+    <div className="bg-white border border-primary/10 rounded-2xl overflow-hidden mb-5 shadow-soft-sm">
+      <div className="flex items-center gap-3 px-6 py-[18px] border-b border-primary/10">
+        <div className="w-9 h-9 rounded-[10px] text-base shrink-0 flex items-center justify-center bg-primary/8">
           {icon}
         </div>
-        <span className="text-sm font-bold">{title}</span>
+        <span className="text-sm font-bold text-ink">{title}</span>
       </div>
       <div className="p-6">{children}</div>
     </div>
@@ -65,9 +65,9 @@ function Section({ icon, title, children }) {
 
 function Note({ children }) {
   return (
-    <div className="flex items-start gap-2.5 bg-amber-500/[0.08] border border-amber-500/25 rounded-xl px-3.5 py-3 mt-4">
+    <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 mt-4">
       <span className="shrink-0">⚠️</span>
-      <span className="text-xs text-amber-300 leading-relaxed">{children}</span>
+      <span className="text-xs text-amber-700 leading-relaxed">{children}</span>
     </div>
   );
 }
@@ -75,8 +75,8 @@ function Note({ children }) {
 function OverviewPanel() {
   return (
     <div className="flex flex-col gap-5">
-      <div className="bg-gradient-to-br from-indigo-500/[0.08] to-cyan-500/[0.06] border border-indigo-500/20 rounded-2xl p-7">
-        <h3 className="text-sm font-bold mb-5 text-center">Complete Patient Journey</h3>
+      <div className="bg-gradient-to-br from-primary/5 to-teal/5 border border-primary/10 rounded-2xl p-7">
+        <h3 className="text-sm font-bold mb-5 text-center text-ink">Complete Patient Journey</h3>
         <Step number={1} title="Patient Arrives or Books Online" who={['receptionist']}
           desc="Patient walks in or books online via the /book portal. Receptionist opens Appointments, clicks Add to Queue, and searches by phone. If new, enter name + phone — patient is auto-registered instantly."
           tip="After 5 digits, phone search auto-suggests matching patients. No need to press Enter."
@@ -113,15 +113,15 @@ function OverviewPanel() {
           { icon:'🩺',   role:'nurse',        items:['Record patient vitals (BP, pulse, SpO2, temp, weight, height)','View appointments queue','Browse & print prescriptions','Enter lab test results','View patient profile & history'] },
           { icon:'⚙️',   role:'admin',        items:['All receptionist + doctor access','Manage staff (add/edit/deactivate)','Medicine Store management','7-tab reports with CSV export','Clinic settings, fees, branding','Working hours & holidays'] },
         ].map(({ icon, role, items }) => (
-          <div key={role} className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-[22px]">
+          <div key={role} className="bg-surface-alt border border-primary/10 rounded-2xl p-[22px]">
             <div className="flex items-center gap-2.5 mb-4">
               <span className="text-xl">{icon}</span>
               <Badge role={role} />
             </div>
             <ul className="list-none">
               {items.map(item => (
-                <li key={item} className="flex items-start gap-2 text-sm text-white/60 mb-2">
-                  <span className="text-emerald-400 shrink-0 mt-0.5">✓</span>
+                <li key={item} className="flex items-start gap-2 text-sm text-ink-light mb-2">
+                  <span className="text-emerald-500 shrink-0 mt-0.5">✓</span>
                   {item}
                 </li>
               ))}
@@ -297,24 +297,24 @@ export default function GuidePage() {
 
   return (
     <Layout>
-      <div className="bg-ink text-white min-h-screen pt-[68px]">
+      <div className="bg-surface min-h-screen pt-[68px]">
 
         <FadeIn>
           <div className="text-center py-16 px-6">
-            <div className="inline-flex items-center gap-2 bg-indigo-500/[0.15] border border-indigo-500/30 text-indigo-300 rounded-full px-4 py-1.5 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary rounded-full px-4 py-1.5 text-sm font-semibold mb-5">
               📖 User Guide
             </div>
-            <h1 className="guide-hero-text font-extrabold leading-tight mb-4 gradient-text-light">
+            <h1 className="guide-hero-text font-extrabold leading-tight mb-4 gradient-text">
               Step-by-Step Guide for Every Role
             </h1>
-            <p className="text-base text-white/60 max-w-[560px] mx-auto">
+            <p className="text-base text-ink-light max-w-[560px] mx-auto">
               Learn how each part of the system works and how every step connects to the next — from patient arrival to invoice payment.
             </p>
           </div>
         </FadeIn>
 
         <div className="max-w-[900px] mx-auto px-6">
-          <div className="flex gap-1 bg-white/[0.04] border border-white/[0.08] rounded-xl p-1.5 flex-wrap mb-8">
+          <div className="flex gap-1 bg-ink/5 border border-primary/10 rounded-xl p-1.5 flex-wrap mb-8">
             {TABS.map(t => (
               <motion.button
                 key={t.id}
@@ -322,8 +322,8 @@ export default function GuidePage() {
                 whileTap={{ scale: 0.97 }}
                 className={`flex-1 min-w-[100px] py-2.5 px-3.5 rounded-lg text-sm font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 ${
                   active === t.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-transparent text-white/60 hover:text-white/80'
+                    ? 'bg-primary text-white'
+                    : 'bg-transparent text-ink-light hover:text-ink'
                 }`}
               >
                 {t.label}
