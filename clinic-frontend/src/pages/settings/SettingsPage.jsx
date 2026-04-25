@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Upload, Trash2, Plus, Pencil, X, Calendar } from 'lucide-react';
+import { Upload, Trash2, Plus, Pencil, X, Calendar, QrCode } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
 import { Button }  from '../../components/ui/Button';
@@ -580,6 +581,9 @@ function NotificationsTab({ settings, onSave, saving }) {
 
 function SecurityTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
+  const { clinic } = useAuth();
+  const qrCanvasRef = useRef(null);
+
   useEffect(() => {
     setForm({
       session_timeout_minutes: settings.session_timeout_minutes ?? 30,
@@ -590,6 +594,79 @@ function SecurityTab({ settings, onSave, saving }) {
 
   const portalUrl  = `${window.location.origin}/book`;
   const displayUrl = `${window.location.origin}/display`;
+
+  function downloadQR() {
+    const qrCanvas = qrCanvasRef.current?.querySelector('canvas');
+    if (!qrCanvas) return;
+
+    const CARD_W   = 600;
+    const CARD_H   = 720;
+    const QR_SIZE  = 300;
+    const clinicName = clinic?.name || 'Our Clinic';
+
+    const canvas  = document.createElement('canvas');
+    canvas.width  = CARD_W;
+    canvas.height = CARD_H;
+    const ctx = canvas.getContext('2d');
+
+    // White background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, CARD_W, CARD_H);
+
+    // Top accent bar
+    const grad = ctx.createLinearGradient(0, 0, CARD_W, 0);
+    grad.addColorStop(0, '#07548E');
+    grad.addColorStop(1, '#07A39A');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, CARD_W, 10);
+
+    // Clinic name
+    ctx.fillStyle = '#0D2136';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(clinicName, CARD_W / 2, 68);
+
+    // Subtitle
+    ctx.fillStyle = '#456B84';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('Scan to Book Your Appointment Online', CARD_W / 2, 104);
+
+    // QR border card
+    const cardX = (CARD_W - QR_SIZE - 40) / 2;
+    const cardY = 128;
+    ctx.fillStyle = '#F4F8FB';
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, QR_SIZE + 40, QR_SIZE + 40, 16);
+    ctx.fill();
+
+    // Draw QR from the hidden canvas
+    ctx.drawImage(qrCanvas, cardX + 20, cardY + 20, QR_SIZE, QR_SIZE);
+
+    // URL text
+    ctx.fillStyle = '#07548E';
+    ctx.font = '13px monospace';
+    ctx.textAlign = 'center';
+    // Trim to fit — show only host + /book
+    const urlDisplay = portalUrl.replace(/^https?:\/\//, '');
+    ctx.fillText(urlDisplay, CARD_W / 2, cardY + QR_SIZE + 40 + 32);
+
+    // Instruction line
+    ctx.fillStyle = '#7AABB8';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('Point your phone camera at the QR code to book online', CARD_W / 2, cardY + QR_SIZE + 40 + 60);
+
+    // Bottom accent bar
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, CARD_H - 8, CARD_W, 8);
+
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `booking-qr-${(clinicName).toLowerCase().replace(/\s+/g, '-')}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/png');
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -618,21 +695,51 @@ function SecurityTab({ settings, onSave, saving }) {
           onChange={v => setForm(f => ({ ...f, patient_portal_enabled: v }))}
         />
         {form.patient_portal_enabled && (
-          <div className="mt-4 p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
-            <p className="text-xs text-[var(--color-text-secondary)] mb-1">Patient Booking URL</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs text-[var(--color-primary)] break-all">{portalUrl}</code>
-              <button
-                type="button"
-                onClick={() => { navigator.clipboard.writeText(portalUrl); }}
-                className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] shrink-0"
-              >
-                Copy
-              </button>
+          <div className="mt-4 flex flex-col gap-3">
+            {/* URL row */}
+            <div className="p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <p className="text-xs text-[var(--color-text-secondary)] mb-1">Patient Booking URL</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs text-[var(--color-primary)] break-all">{portalUrl}</code>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success('URL copied'); }}
+                  className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] shrink-0"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+                Share this link with patients so they can book appointments online.
+              </p>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-2">
-              Share this link with patients so they can book appointments online.
-            </p>
+
+            {/* QR card */}
+            <div className="p-4 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] flex flex-col sm:flex-row items-center gap-5">
+              {/* Hidden canvas used as source for download */}
+              <div ref={qrCanvasRef} className="hidden">
+                <QRCodeCanvas value={portalUrl} size={300} />
+              </div>
+              {/* Visible QR preview */}
+              <div className="p-3 bg-white rounded-lg border border-[var(--color-border)] shrink-0">
+                <QRCodeCanvas value={portalUrl} size={140} />
+              </div>
+              <div className="flex flex-col gap-2 text-center sm:text-left">
+                <p className="text-sm font-semibold text-[var(--color-text)]">Booking QR Code</p>
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  Print this QR and place it at your front desk or waiting room.
+                  Patients scan it to book appointments instantly — no URL needed.
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadQR}
+                  className="mt-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius)] text-sm font-medium bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity self-center sm:self-start"
+                >
+                  <QrCode className="w-4 h-4" />
+                  Download QR Card (PNG)
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </SectionCard>
