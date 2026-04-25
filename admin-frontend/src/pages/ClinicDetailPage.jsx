@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Users, UserCheck, Edit2, Ban, CheckCircle,
   ExternalLink, AlertTriangle, Save, Copy, Check, CreditCard, RefreshCw,
+  ScrollText, Search, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminTenantsApi, adminFlagsApi, adminPlansApi, adminSubscriptionsApi } from '../api/admin';
+import { adminTenantsApi, adminFlagsApi, adminPlansApi, adminSubscriptionsApi, adminSystemApi } from '../api/admin';
 import { Card, StatCard } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -194,6 +195,166 @@ function EditClinicModal({ open, onClose, clinic, onSaved }) {
   );
 }
 
+// ── Clinic Logs Tab ────────────────────────────────────────────────────────────
+function ClinicLogsTab({ clinicId }) {
+  const [logs,    setLogs]    = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [page,    setPage]    = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const [statusClass, setStatusClass] = useState('');
+  const limit      = 50;
+  const totalPages = Math.ceil(total / limit);
+
+  const load = useCallback(async (p = 1) => {
+    setLoading(true);
+    try {
+      const params = { page: p, limit, tenant_id: clinicId };
+      if (search)      params.search       = search;
+      if (statusClass) params.status_class = statusClass;
+      const res = await adminSystemApi.logs(params);
+      setLogs(res.data.data.logs  || []);
+      setTotal(res.data.data.total || 0);
+    } catch {
+    } finally { setLoading(false); }
+  }, [clinicId, search, statusClass]);
+
+  useEffect(() => { setPage(1); load(1); }, [search, statusClass, clinicId]);
+  useEffect(() => { load(page); }, [page]);
+
+  function statusColor(code) {
+    if (code >= 500) return 'bg-red-100 text-red-700';
+    if (code >= 400) return 'bg-orange-100 text-orange-700';
+    return 'bg-emerald-100 text-emerald-700';
+  }
+  function methodColor(m) {
+    return { POST:'bg-blue-100 text-blue-700', PUT:'bg-amber-100 text-amber-700',
+             DELETE:'bg-red-100 text-red-700', PATCH:'bg-purple-100 text-purple-700' }[m]
+      || 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]';
+  }
+  function roleColor(role) {
+    return { admin:'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
+             doctor:'bg-emerald-100 text-emerald-700', nurse:'bg-purple-100 text-purple-700',
+             receptionist:'bg-amber-100 text-amber-700', login:'bg-gray-100 text-gray-500' }[role]
+      || 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]';
+  }
+  function actionLabel(method, path) {
+    const clean = path.replace('/api/v1', '').replace(/\/\d+/g, '/{id}');
+    if (clean === '/auth/login') return 'Login';
+    const map = {
+      'POST /patients':'Patient registered','PUT /patients/{id}':'Patient updated',
+      'POST /appointments':'Appointment created','PUT /appointments/{id}':'Appointment updated',
+      'DELETE /appointments/{id}':'Appointment cancelled',
+      'POST /consultations':'Consultation created','PUT /consultations/{id}':'Consultation updated',
+      'POST /prescriptions':'Prescription created','POST /invoices':'Invoice created',
+      'PUT /invoices/{id}':'Invoice updated','POST /medicines':'Medicine added',
+      'PUT /medicines/{id}':'Medicine updated','DELETE /medicines/{id}':'Medicine deleted',
+      'POST /staff':'Staff created','PUT /staff/{id}':'Staff updated',
+      'PUT /settings':'Settings updated','POST /vitals':'Vitals recorded',
+      'POST /pharmacy/dispense':'Prescription dispensed','POST /end-of-day':'End-of-day closed',
+    };
+    return map[`${method} ${clean}`] || `${method} ${clean}`;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search path or email…"
+            className="pl-7 pr-3 py-1.5 text-xs rounded-[var(--radius)] border border-[var(--color-border)]
+              bg-[var(--color-surface)] text-[var(--color-text)] w-48 focus:outline-none
+              focus:ring-2 focus:ring-[var(--color-primary)] placeholder:text-[var(--color-text-secondary)]" />
+        </div>
+        <select value={statusClass} onChange={e => setStatusClass(e.target.value)}
+          className="px-3 py-1.5 text-xs rounded-[var(--radius)] border border-[var(--color-border)]
+            bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+          <option value="">All Status</option>
+          <option value="2xx">2xx Success</option>
+          <option value="4xx">4xx Errors</option>
+          <option value="5xx">5xx Server Errors</option>
+        </select>
+        <button onClick={() => load(page)} disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-[var(--radius)] border border-[var(--color-border)]
+            text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] disabled:opacity-50 transition-colors">
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+        <span className="ml-auto text-xs text-[var(--color-text-secondary)]">{total.toLocaleString()} entries</span>
+      </div>
+
+      {/* Table */}
+      <div className="border border-[var(--color-border)] rounded-[var(--radius-lg)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+                {['Timestamp','User','Action','Status','Duration'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1" />Loading…
+                </td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">No log entries found</td></tr>
+              ) : logs.map(log => (
+                <tr key={log.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg)] transition-colors">
+                  <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)] whitespace-nowrap">
+                    {new Date(log.created_at).toLocaleString('en-GB', { dateStyle:'short', timeStyle:'medium' })}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-[var(--color-text)] truncate max-w-[160px]">{log.user_email || '—'}</div>
+                    {log.user_role && (
+                      <span className={`text-[0.65rem] px-1.5 py-0.5 rounded font-semibold ${roleColor(log.user_role)}`}>
+                        {log.user_role === 'login' ? 'auth' : log.user_role}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-1.5 py-0.5 rounded font-bold font-mono ${methodColor(log.method)}`}>{log.method}</span>
+                      <span className="text-[var(--color-text)]">{actionLabel(log.method, log.path)}</span>
+                    </div>
+                    <div className="font-mono text-[0.65rem] text-[var(--color-text-secondary)] mt-0.5">
+                      {log.path.replace('/api/v1', '')}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded font-bold font-mono ${statusColor(log.status_code)}`}>{log.status_code}</span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)] whitespace-nowrap">
+                    {log.duration_ms != null ? `${log.duration_ms}ms` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-[var(--color-border)] flex items-center justify-between">
+            <span className="text-xs text-[var(--color-text-secondary)]">Page {page} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+                className="p-1.5 rounded-[var(--radius)] border border-[var(--color-border)] disabled:opacity-40 hover:bg-[var(--color-bg)] transition-colors">
+                <ChevronLeft className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+              </button>
+              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
+                className="p-1.5 rounded-[var(--radius)] border border-[var(--color-border)] disabled:opacity-40 hover:bg-[var(--color-bg)] transition-colors">
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function ClinicDetailPage() {
   const { id }   = useParams();
@@ -203,6 +364,7 @@ export default function ClinicDetailPage() {
   const [flags,         setFlags]         = useState({});
   const [plans,         setPlans]         = useState([]);
   const [loading,       setLoading]       = useState(true);
+  const [activeTab,     setActiveTab]     = useState('overview');
   const [showEdit,      setShowEdit]      = useState(false);
   const [showSetPlan,   setShowSetPlan]   = useState(false);
   const [showSuspend,   setShowSuspend]   = useState(false);
@@ -344,6 +506,31 @@ export default function ClinicDetailPage() {
       >
         <ArrowLeft className="w-4 h-4" /> Back to Clinics
       </button>
+
+      {/* Tabs */}
+      <div className="flex gap-0 border-b border-[var(--color-border)]">
+        {[
+          { id: 'overview', label: 'Overview' },
+          { id: 'logs',     label: 'System Logs', icon: ScrollText },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === tab.id
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+            }`}
+          >
+            {tab.icon && <tab.icon className="w-3.5 h-3.5" />}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'logs' && <ClinicLogsTab clinicId={clinic.id} />}
+
+      {activeTab === 'overview' && <>
 
       {/* Suspended banner */}
       {isSuspended && (
@@ -500,6 +687,8 @@ export default function ClinicDetailPage() {
           </div>
         </Card>
       </div>
+
+      </> /* end overview tab */}
 
       {/* Modals */}
       <SetPlanModal
