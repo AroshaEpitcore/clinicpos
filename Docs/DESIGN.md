@@ -20,6 +20,7 @@ npm install @tanstack/react-table
 npm install date-fns react-day-picker
 npm install recharts
 npm install @fontsource/inter
+npm install qrcode.react   # clinic-frontend only
 ```
 
 | Package | Purpose | Why |
@@ -35,6 +36,7 @@ npm install @fontsource/inter
 | `react-day-picker` | Calendar picker UI (used in `DatePicker.jsx`) | Pairs with date-fns, matches Radix visual style |
 | `recharts` | Charts and graphs | Reports and dashboard charts |
 | `@fontsource/inter` | Inter font — loaded locally, no Google Fonts CDN | Fast load, works offline, consistent across clinics |
+| `qrcode.react` | QR code generation (`QRCodeCanvas`) — **clinic-frontend only** | Used in Settings → Security tab to generate booking QR card for printing |
 
 **Do not install:** `moment.js`, `lodash`, `material-ui`, `antd`, `chakra-ui`, `bootstrap`, `jquery`.  
 **Do not install a second toast library** if sonner is already installed.  

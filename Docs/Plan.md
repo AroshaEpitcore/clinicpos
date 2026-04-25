@@ -634,6 +634,7 @@ Phase 7  →  Desktop version (later)
 | Bug fix: ConsultationModal `watch is not defined` crash | frontend | [x] |
 | Bug fix: portal patient code `P-XXXXX` → `PT-XXXXX` (shared util) | backend | [x] |
 | Bug fix: double "Dr." prefix removed across all 11 affected files | frontend | [x] |
+| Booking QR Code Card — Settings → Security tab shows live QR + "Download QR Card" button | frontend | [x] *(done 2026-04-25 — `qrcode.react`, branded 600×720 canvas PNG, clinic name + gradient + URL)* |
 
 **Access:** Public (no login) for `/book`. All roles see Online badge. Doctor gets enhanced dashboard. Admin controls toggle.
 

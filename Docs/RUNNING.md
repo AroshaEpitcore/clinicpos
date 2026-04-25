@@ -40,7 +40,7 @@ cd admin-frontend   && npm install
 cd landing-frontend && npm install
 ```
 
-> `clinic-frontend` includes Tailwind CSS, Radix UI, Sonner, Lucide, React Hook Form, Recharts, `date-fns`, `react-day-picker`, `clsx`, and `@fontsource/inter`.
+> `clinic-frontend` includes Tailwind CSS, Radix UI, Sonner, Lucide, React Hook Form, Recharts, `date-fns`, `react-day-picker`, `clsx`, `@fontsource/inter`, and `qrcode.react` (QR code generation for the booking QR card in Settings).
 > `admin-frontend` includes Tailwind CSS, Radix UI (`@radix-ui/react-dialog`), Sonner, Lucide, `clsx`, and `@fontsource/inter`.
 > `landing-frontend` includes Tailwind CSS v3 (custom brand config), Lucide, React Router DOM. Uses a separate design system (custom Tailwind palette, no CSS variables). Logo served from `public/logosmall.png`.
 > Running `npm install` in each project installs all of these at once — no extra steps needed.
@@ -414,7 +414,7 @@ clinicpos/
     │   ├── sections/               — HeroSection, FeaturesSection, WorkflowSection, RolesSection,
     │   │                             PricingSection, TestimonialsSection, CtaSection, TrustBar
     │   ├── components/layout/
-    │   │   ├── Navbar.jsx          — Sticky nav with logosmall.png + mobile drawer
+    │   │   ├── Navbar.jsx          — Sticky nav with logosmall.png + left-side slide drawer (mobile)
     │   │   ├── Footer.jsx          — Footer with logosmall.png + dynamic platform info from API
     │   │   └── Layout.jsx          — Wraps Navbar + <main> + Footer (used by all pages)
     │   ├── styles/
