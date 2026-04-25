@@ -52,6 +52,9 @@ import StaffPage from './pages/staff/StaffPage';
 // Help & User Guide (all roles)
 import HelpPage from './pages/help/HelpPage';
 
+// System Logs (admin only)
+import SystemLogsPage from './pages/system/SystemLogsPage';
+
 export default function App() {
   return (
     <Routes>
@@ -158,6 +161,13 @@ export default function App() {
 
       {/* Help & User Guide — all roles */}
       <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+
+      {/* System Logs — admin only */}
+      <Route path="/system-logs" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <SystemLogsPage />
+        </ProtectedRoute>
+      } />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

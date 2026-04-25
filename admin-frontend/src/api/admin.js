@@ -67,4 +67,9 @@ export const adminPlatformApi = {
   setBatch: (settings)       => api.put('/platform/batch', { settings }),
 };
 
+export const adminSystemApi = {
+  health: ()       => api.get('/system/health'),
+  logs:   (params) => api.get('/system/logs', { params }),
+};
+
 export default api;

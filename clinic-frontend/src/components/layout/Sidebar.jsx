@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, Stethoscope, Shield, UserCog, CreditCard, BookOpen,
+  Settings, Stethoscope, Shield, UserCog, CreditCard, BookOpen, ScrollText,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { label: 'Settings',      icon: Settings,         href: '/settings',      roles: ['admin'] },
   { label: 'Subscription',  icon: CreditCard,       href: '/subscription',  roles: ['admin'] },
   { label: 'Help & Guide',  icon: BookOpen,         href: '/help',          roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
+  { label: 'System Logs',  icon: ScrollText,       href: '/system-logs',   roles: ['admin'] },
 ];
 
 export function Sidebar({ collapsed, isMobile, mobileOpen, onMobileClose }) {

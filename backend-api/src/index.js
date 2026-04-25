@@ -19,6 +19,9 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
 
+// Audit logging — registered before routes so finish listener captures all requests
+app.use(require('./middleware/auditLog'));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
@@ -46,6 +49,7 @@ app.use('/api/v1/portal',         require('./routes/portal.routes'));
 app.use('/api/v1/staff',          require('./routes/staff.routes'));
 app.use('/api/v1/vitals',         require('./routes/vitals.routes'));
 app.use('/api/v1/public',         require('./routes/public.routes'));
+app.use('/api/v1/system',         require('./routes/system.routes'));
 
 // 404 handler
 app.use((req, res) => {

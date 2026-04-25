@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, LogOut, Menu, Sun, Moon, CreditCard, RefreshCw, Settings,
+  Activity, ScrollText,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuth } from '../../store/AdminAuthContext';
@@ -14,6 +15,8 @@ const NAV_ITEMS = [
   { to: '/plans',             label: 'Plans',              icon: CreditCard },
   { to: '/subscriptions',     label: 'Subscriptions',      icon: RefreshCw },
   { to: '/platform-settings', label: 'Platform Settings',  icon: Settings },
+  { to: '/system-health',     label: 'System Health',      icon: Activity },
+  { to: '/system-logs',       label: 'System Logs',        icon: ScrollText },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────────────────────

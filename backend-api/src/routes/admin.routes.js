@@ -1,6 +1,7 @@
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
+const os      = require('os');
 const { pool, queryPublic, queryTenant } = require('../config/db');
 const { createTenantSchema }             = require('../db/createTenantSchema');
 const { adminAuthMiddleware }            = require('../middleware/adminAuth');
@@ -700,6 +701,134 @@ router.put('/platform/batch', async (req, res) => {
     res.json({ status: 'success', message: `${entries.length} settings saved` });
   } catch (err) {
     console.error('PUT /admin/platform/batch', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── GET /api/v1/admin/system/health ──────────────────────────────────────────
+router.get('/system/health', async (req, res) => {
+  const dbStart = Date.now();
+  let dbConnected = false, dbResponseMs = null;
+  let activeTenants = 0, totalTenants = 0, errorsLastHour = 0, logsLast24h = 0;
+
+  try {
+    await queryPublic('SELECT 1');
+    dbConnected  = true;
+    dbResponseMs = Date.now() - dbStart;
+
+    const [tenantRes, logRes] = await Promise.all([
+      queryPublic(`SELECT
+        COUNT(*) FILTER (WHERE status = 'active')    AS active,
+        COUNT(*)                                      AS total
+        FROM public.tenants`),
+      queryPublic(`SELECT
+        COUNT(*) FILTER (WHERE status_code >= 400 AND created_at > NOW() - INTERVAL '1 hour')  AS errors_last_hour,
+        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours')                        AS logs_last_24h
+        FROM public.system_audit_logs`),
+    ]);
+    activeTenants  = parseInt(tenantRes.rows[0]?.active   || 0);
+    totalTenants   = parseInt(tenantRes.rows[0]?.total    || 0);
+    errorsLastHour = parseInt(logRes.rows[0]?.errors_last_hour || 0);
+    logsLast24h    = parseInt(logRes.rows[0]?.logs_last_24h    || 0);
+  } catch (_) {}
+
+  const totalMem = os.totalmem();
+  const freeMem  = os.freemem();
+  const usedMem  = totalMem - freeMem;
+  const heapInfo = process.memoryUsage();
+  const loadAvg  = os.loadavg();
+
+  res.json({
+    status: 'success',
+    data: {
+      server: {
+        platform:               os.platform(),
+        hostname:               os.hostname(),
+        node_version:           process.version,
+        uptime_seconds:         Math.floor(os.uptime()),
+        process_uptime_seconds: Math.floor(process.uptime()),
+      },
+      memory: {
+        total_mb:           Math.round(totalMem / 1024 / 1024),
+        free_mb:            Math.round(freeMem  / 1024 / 1024),
+        used_mb:            Math.round(usedMem  / 1024 / 1024),
+        used_percent:       Math.round((usedMem / totalMem) * 100),
+        node_heap_used_mb:  Math.round(heapInfo.heapUsed  / 1024 / 1024),
+        node_heap_total_mb: Math.round(heapInfo.heapTotal / 1024 / 1024),
+        node_rss_mb:        Math.round(heapInfo.rss       / 1024 / 1024),
+      },
+      cpu: {
+        model:        os.cpus()[0]?.model || 'Unknown',
+        cores:        os.cpus().length,
+        load_avg_1m:  parseFloat(loadAvg[0].toFixed(2)),
+        load_avg_5m:  parseFloat(loadAvg[1].toFixed(2)),
+        load_avg_15m: parseFloat(loadAvg[2].toFixed(2)),
+      },
+      database: {
+        connected:   dbConnected,
+        response_ms: dbResponseMs,
+      },
+      application: {
+        active_tenants:   activeTenants,
+        total_tenants:    totalTenants,
+        errors_last_hour: errorsLastHour,
+        logs_last_24h:    logsLast24h,
+      },
+    },
+  });
+});
+
+// ── GET /api/v1/admin/system/logs ─────────────────────────────────────────────
+router.get('/system/logs', async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+
+    const { tenant_id, method, status_class, search, date_from, date_to } = req.query;
+
+    const conditions = [];
+    const params     = [];
+    let   pi         = 1;
+
+    if (tenant_id)  { conditions.push(`l.tenant_id = $${pi++}`);       params.push(parseInt(tenant_id)); }
+    if (method)     { conditions.push(`l.method = $${pi++}`);           params.push(method.toUpperCase()); }
+    if (status_class === '2xx') conditions.push(`l.status_code BETWEEN 200 AND 299`);
+    else if (status_class === '4xx') conditions.push(`l.status_code BETWEEN 400 AND 499`);
+    else if (status_class === '5xx') conditions.push(`l.status_code >= 500`);
+    if (search)    { conditions.push(`(l.path ILIKE $${pi} OR l.user_email ILIKE $${pi})`); params.push(`%${search}%`); pi++; }
+    if (date_from) { conditions.push(`l.created_at >= $${pi++}`);       params.push(date_from); }
+    if (date_to)   { conditions.push(`l.created_at < $${pi++}`);        params.push(date_to); }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    const [logsRes, countRes] = await Promise.all([
+      queryPublic(
+        `SELECT l.*, t.name AS tenant_name
+         FROM public.system_audit_logs l
+         LEFT JOIN public.tenants t ON t.id = l.tenant_id
+         ${where}
+         ORDER BY l.created_at DESC
+         LIMIT $${pi} OFFSET $${pi + 1}`,
+        [...params, limit, offset]
+      ),
+      queryPublic(
+        `SELECT COUNT(*) FROM public.system_audit_logs l ${where}`,
+        params
+      ),
+    ]);
+
+    res.json({
+      status: 'success',
+      data: {
+        logs:  logsRes.rows,
+        total: parseInt(countRes.rows[0].count),
+        page,
+        limit,
+      },
+    });
+  } catch (err) {
+    console.error('GET /admin/system/logs', err);
     res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
