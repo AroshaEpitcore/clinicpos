@@ -35,6 +35,7 @@ function roleColor(role) {
     receptionist: 'bg-amber-100 text-amber-700',
     nurse:        'bg-purple-100 text-purple-700',
     superadmin:   'bg-red-100 text-red-700',
+    login:        'bg-gray-100 text-gray-500',
   };
   return r[role] || 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]';
 }
@@ -224,7 +225,7 @@ export default function SystemLogsPage() {
                     <div className="text-[var(--color-text)] truncate max-w-[140px]">{log.user_email || '—'}</div>
                     {log.user_role && (
                       <span className={`text-[0.65rem] px-1.5 py-0.5 rounded font-semibold ${roleColor(log.user_role)}`}>
-                        {log.user_role}
+                        {log.user_role === 'login' ? 'auth' : log.user_role}
                       </span>
                     )}
                   </td>

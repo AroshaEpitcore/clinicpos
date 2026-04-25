@@ -13,6 +13,7 @@ const STATUS_CLASSES = [
 ];
 
 const ACTION_MAP = {
+  'POST /auth/login':            null, // handled separately by status
   'POST /patients':              'Patient registered',
   'PUT /patients/{id}':          'Patient updated',
   'DELETE /patients/{id}':       'Patient deleted',
@@ -42,8 +43,11 @@ const ACTION_MAP = {
   'PUT /insurance/claims/{id}':  'Insurance claim updated',
 };
 
-function getActionLabel(method, path) {
+function getActionLabel(method, path, statusCode) {
   const clean = path.replace('/api/v1', '').replace(/\/\d+/g, '/{id}');
+  if (clean === '/auth/login') {
+    return statusCode < 300 ? 'Login successful' : 'Login failed';
+  }
   return ACTION_MAP[`${method} ${clean}`] || `${method} ${clean}`;
 }
 
@@ -218,9 +222,10 @@ export default function SystemLogsPage() {
                           ${log.user_role === 'admin'        ? 'bg-blue-50 text-blue-700' :
                             log.user_role === 'doctor'       ? 'bg-emerald-50 text-emerald-700' :
                             log.user_role === 'nurse'        ? 'bg-purple-50 text-purple-700' :
+                            log.user_role === 'login'        ? 'bg-gray-100 text-gray-500' :
                             'bg-amber-50 text-amber-700'}`}
                         >
-                          {log.user_role}
+                          {log.user_role === 'login' ? 'auth' : log.user_role}
                         </span>
                       )}
                     </td>
@@ -229,7 +234,7 @@ export default function SystemLogsPage() {
                         <span className={`px-1.5 py-0.5 rounded font-bold font-mono ${methodBadge(log.method)}`}>
                           {log.method}
                         </span>
-                        <span className="text-[var(--color-text)]">{getActionLabel(log.method, log.path)}</span>
+                        <span className="text-[var(--color-text)]">{getActionLabel(log.method, log.path, log.status_code)}</span>
                       </div>
                       <div className="font-mono text-[var(--color-text-secondary)] mt-0.5 text-[0.65rem]">
                         {log.path.replace('/api/v1', '')}
