@@ -791,7 +791,7 @@ router.get('/system/logs', async (req, res) => {
     const params     = [];
     let   pi         = 1;
 
-    if (tenant_id)  { conditions.push(`l.tenant_id = $${pi++}`);       params.push(parseInt(tenant_id)); }
+    if (tenant_id)  { conditions.push(`l.tenant_id = $${pi++}`);       params.push(String(tenant_id)); }
     if (method)     { conditions.push(`l.method = $${pi++}`);           params.push(method.toUpperCase()); }
     if (status_class === '2xx') conditions.push(`l.status_code BETWEEN 200 AND 299`);
     else if (status_class === '4xx') conditions.push(`l.status_code BETWEEN 400 AND 499`);
@@ -806,7 +806,7 @@ router.get('/system/logs', async (req, res) => {
       queryPublic(
         `SELECT l.*, t.clinic_name AS tenant_name
          FROM public.system_audit_logs l
-         LEFT JOIN public.tenants t ON t.id = l.tenant_id
+         LEFT JOIN public.tenants t ON t.id::text = l.tenant_id
          ${where}
          ORDER BY l.created_at DESC
          LIMIT $${pi} OFFSET $${pi + 1}`,
