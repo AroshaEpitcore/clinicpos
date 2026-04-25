@@ -94,7 +94,7 @@ async function testFailedLogin() {
   const r = await pool.query(`
     SELECT id, tenant_id, tenant_subdomain, user_email, user_role, status_code, ip_address, created_at
     FROM public.system_audit_logs
-    WHERE path = '/api/v1/auth/login'
+    WHERE (path = '/api/v1/auth/login' OR path LIKE '%/auth/login%')
       AND user_email = 'test_audit@example.com'
       AND created_at > $1
     ORDER BY created_at DESC LIMIT 1
