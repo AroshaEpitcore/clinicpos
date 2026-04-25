@@ -128,6 +128,38 @@ async function testTenantResolution() {
   return true;
 }
 
+async function testSuperAdminLogin() {
+  console.log('\n[5] Testing super admin login is logged…');
+  const before = new Date();
+
+  const res = await post('/api/v1/admin/auth/login', {
+    email:    'test_superadmin_audit@example.com',
+    password: 'wrong_password_for_audit_test',
+  });
+  info(`Admin login response: ${res.status} — ${res.body?.message}`);
+
+  await sleep(500);
+
+  const r = await pool.query(`
+    SELECT id, tenant_id, tenant_subdomain, user_email, user_role, status_code, ip_address, created_at
+    FROM public.system_audit_logs
+    WHERE path = '/api/v1/admin/auth/login'
+      AND user_email = 'test_superadmin_audit@example.com'
+      AND created_at > $1
+    ORDER BY created_at DESC LIMIT 1
+  `, [before.toISOString()]);
+
+  if (r.rows.length > 0) {
+    const row = r.rows[0];
+    pass(`Super admin login logged — id=${row.id} status=${row.status_code}`);
+    info(`  email=${row.user_email}  role=${row.user_role}  tenant_id=${row.tenant_id ?? 'null (correct — no tenant)'}  ip=${row.ip_address}`);
+    if (row.tenant_id !== null) fail('tenant_id should be null for super admin');
+    else pass('tenant_id=null as expected for super admin');
+  } else {
+    fail('No log entry found for super admin login');
+  }
+}
+
 async function testRecentLogs() {
   console.log('\n[4] Checking recent log entries in last 10 minutes…');
   const r = await pool.query(`
@@ -161,6 +193,7 @@ async function main() {
 
   await testTenantResolution();
   await testFailedLogin();
+  await testSuperAdminLogin();
   await testRecentLogs();
 
   console.log('\n═══════════════════════════════════════════════════\n');
