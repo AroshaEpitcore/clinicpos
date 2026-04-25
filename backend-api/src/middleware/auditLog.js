@@ -6,7 +6,7 @@ const LOGIN_PATHS   = ['/api/v1/auth/login', '/api/v1/admin/auth/login'];
 module.exports = function auditLogMiddleware(req, res, next) {
   const start = Date.now();
 
-  res.on('finish', async () => {
+  res.on('finish', () => {
     try {
       const isWrite = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method);
       const isError = res.statusCode >= 400;
@@ -15,23 +15,18 @@ module.exports = function auditLogMiddleware(req, res, next) {
 
       const duration  = Date.now() - start;
       const user      = req.user || null;
-      const subdomain = req.headers['x-tenant-subdomain'] || null;
       const ip        = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
 
       const isLogin = LOGIN_PATHS.includes(req.path);
       const email   = user?.email || (isLogin ? (req.body?.email || null) : null);
       const role    = user?.role  || (isLogin ? 'login' : null);
 
-      // For login events req.user is null — look up tenant_id from the subdomain header
-      let tenantId = user?.tenantId || null;
-      if (!tenantId && subdomain) {
-        try {
-          const r = await queryPublic('SELECT id FROM public.tenants WHERE subdomain = $1', [subdomain]);
-          tenantId = r.rows[0]?.id || null;
-        } catch (_) {}
-      }
+      // req.tenant is set by tenantMiddleware (production: from hostname, dev: from X-Tenant-Subdomain header)
+      // req.user.tenantId is set by authMiddleware for all authenticated requests
+      const tenantId  = user?.tenantId  || req.tenant?.id        || null;
+      const subdomain = req.tenant?.subdomain || req.headers['x-tenant-subdomain'] || null;
 
-      await queryPublic(
+      queryPublic(
         `INSERT INTO public.system_audit_logs
            (tenant_id, tenant_subdomain, user_id, user_email, user_role,
             method, path, status_code, duration_ms, ip_address)
