@@ -804,7 +804,7 @@ router.get('/system/logs', async (req, res) => {
 
     const [logsRes, countRes] = await Promise.all([
       queryPublic(
-        `SELECT l.*, t.name AS tenant_name
+        `SELECT l.*, t.clinic_name AS tenant_name
          FROM public.system_audit_logs l
          LEFT JOIN public.tenants t ON t.id = l.tenant_id
          ${where}

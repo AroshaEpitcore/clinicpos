@@ -116,7 +116,7 @@ async function testFailedLogin() {
 async function testTenantResolution() {
   console.log('\n[3] Checking tenant exists in DB for this subdomain…');
   const r = await pool.query(
-    `SELECT id, name, subdomain, status FROM public.tenants WHERE subdomain = $1`,
+    `SELECT id, clinic_name, subdomain, status FROM public.tenants WHERE subdomain = $1`,
     [SUBDOMAIN]
   );
   if (r.rows.length === 0) {
@@ -124,7 +124,7 @@ async function testTenantResolution() {
     return false;
   }
   const t = r.rows[0];
-  pass(`Tenant found: id=${t.id}  name="${t.name}"  status=${t.status}`);
+  pass(`Tenant found: id=${t.id}  name="${t.clinic_name}"  status=${t.status}`);
   return true;
 }
 
