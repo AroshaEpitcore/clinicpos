@@ -1,18 +1,21 @@
 import FadeIn from '../components/ui/FadeIn';
 
 const features = [
-  { n:'01', icon:'🏥', title:'Patient Management',     desc:'Full patient profiles with medical history, visit records, allergies, and document uploads. Find any patient in seconds with smart search.' },
-  { n:'02', icon:'📅', title:'Appointment Scheduling', desc:'Smart queuing with token numbers, online booking via patient portal, doctor-wise schedules, and holiday management. Eliminate waiting-room chaos.' },
-  { n:'03', icon:'💊', title:'Digital Prescriptions',  desc:'Write prescriptions with auto-suggest medicines, dosage chips, food instructions, and custom medicines — all in one combined consultation step.' },
-  { n:'04', icon:'🧪', title:'Lab Management',         desc:'Order tests, track sample collection, enter results with values or file uploads, and show results in the patient\'s consultation history.' },
-  { n:'05', icon:'💉', title:'In-Clinic Pharmacy',     desc:'Real-time stock tracking, dispense queue, purchase orders, supplier management, expiry alerts, and automatic stock deduction on dispensing.' },
-  { n:'06', icon:'🧾', title:'Billing & Invoicing',    desc:'Auto-generate invoices from consultations. Split payments, insurance claims, custom services, and PDF export — with a live end-of-day report.' },
-  { n:'07', icon:'🏢', title:'Insurance & Corporate',  desc:'Manage corporate accounts, process insurance claims with auto-numbered CLM-XXXXX references, and generate monthly billing summaries for insurers.' },
-  { n:'08', icon:'👨‍⚕️',title:'Multi-Doctor Support',   desc:'Unlimited doctors, each with their own schedule, consultation fees, and signature. Role-based access for doctors, nurses, receptionists, and admins.' },
-  { n:'09', icon:'📊', title:'Reports & Analytics',    desc:'7 report types: daily, monthly, doctor performance, medicines, patients, appointments, and EOD history — all with CSV export and live charts.' },
-  { n:'10', icon:'📺', title:'Waiting Room Display',   desc:'A full-screen TV display shows the live queue so patients know their turn. Auto-refreshes every 10 seconds. Emergency alerts in red.' },
-  { n:'11', icon:'🌐', title:'Patient Portal',         desc:'Patients book appointments online, download prescriptions, and view their history — 24/7 from any device. Bookings sync instantly to the clinic queue.' },
-  { n:'12', icon:'☁️', title:'Cloud & Secure',         desc:'Hosted on enterprise servers with SSL encryption, daily backups, and 99.9% uptime. Access your clinic from any device, anywhere, securely.' },
+  { n:'01', icon:'🏥', title:'Patient Management',       desc:'Full patient profiles with medical history, visit records, allergies, and document uploads. Find any patient in seconds with smart search.' },
+  { n:'02', icon:'📅', title:'Appointment Scheduling',   desc:'Smart queuing with token numbers, online booking via patient portal, doctor-wise schedules, and holiday management. Eliminate waiting-room chaos.' },
+  { n:'03', icon:'💊', title:'Digital Prescriptions',    desc:'Write prescriptions with auto-suggest medicines, dosage chips, food instructions, and custom medicines — all in one combined consultation step.' },
+  { n:'04', icon:'🧪', title:'Lab Management',           desc:'Order tests, track sample collection, enter results with values or file uploads, and show results in the patient\'s consultation history.' },
+  { n:'05', icon:'💉', title:'In-Clinic Pharmacy',       desc:'Real-time stock tracking, dispense queue, purchase orders, supplier management, expiry alerts, and automatic stock deduction on dispensing.' },
+  { n:'06', icon:'🧾', title:'Billing & Invoicing',      desc:'Auto-generate invoices from consultations. Split payments, insurance claims, custom services, and PDF export — with a live end-of-day report.' },
+  { n:'07', icon:'🏢', title:'Insurance & Corporate',    desc:'Manage corporate accounts, process insurance claims with auto-numbered CLM-XXXXX references, and generate monthly billing summaries for insurers.' },
+  { n:'08', icon:'👨‍⚕️',title:'Multi-Doctor Support',     desc:'Unlimited doctors, each with their own schedule, consultation fees, and signature. Role-based access for doctors, nurses, receptionists, and admins.' },
+  { n:'09', icon:'📊', title:'Reports & Analytics',      desc:'7 report types: daily, monthly, doctor performance, medicines, patients, appointments, and EOD history — all with CSV export and live charts.' },
+  { n:'10', icon:'📺', title:'Waiting Room Display',     desc:'A full-screen TV display shows the live queue so patients know their turn. Auto-refreshes every 10 seconds. Emergency alerts in red.' },
+  { n:'11', icon:'🌐', title:'Patient Portal',           desc:'Patients book appointments online from any device — 24/7, no app required. Unique BK-XXXXXX booking reference shown on confirmation. Online bookings sync instantly to the clinic queue.' },
+  { n:'12', icon:'☁️', title:'Cloud & Secure',           desc:'Hosted on enterprise servers with SSL encryption, daily backups, and 99.9% uptime. Access your clinic from any device, anywhere, securely.' },
+  { n:'13', icon:'🩺', title:'Nurse Vitals Workflow',    desc:'Nurses record BP, pulse, SpO₂, temperature, weight, and height before the doctor sees the patient. Vitals auto-populate the consultation modal — zero double-entry.' },
+  { n:'14', icon:'📱', title:'QR Booking Cards',         desc:'Generate a branded QR code card to print and place at your front desk. Patients scan it to open your booking page instantly — no URL to type, no app to download.' },
+  { n:'15', icon:'📖', title:'Built-in Staff Training',  desc:'Every staff member gets a guided help page with their own role tab highlighted. Step-by-step workflows for receptionist, doctor, nurse, and admin — no external training needed.' },
 ];
 
 export default function FeaturesSection() {

@@ -64,7 +64,7 @@ export default function HeroSection() {
 
             <motion.div {...fadeUp(0.28)} className="flex flex-wrap gap-8 mt-10">
               {[
-                { num:'12+',   label:'Modules included' },
+                { num:'15+',   label:'Modules included' },
                 { num:'99.9%', label:'Uptime SLA'       },
                 { num:'5min',  label:'Setup time'       },
               ].map(s => (

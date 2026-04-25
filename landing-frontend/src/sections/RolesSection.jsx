@@ -111,16 +111,16 @@ const roles = [
   },
   {
     id:'nurse', label:'Nurse', title:'Nurse',
-    desc:"Record patient vitals before the doctor sees them. Full visibility over today's queue and lab results with a dedicated vitals workflow.",
+    desc:"Record patient vitals before the doctor sees them. Vitals auto-populate the doctor's consultation modal — no double-entry. Full visibility over today's queue and lab results.",
     perms:[
-      { yes:true,  label:'Record patient vitals (BP, pulse, SpO2, temp, weight, height)' },
+      { yes:true,  label:'Record vitals (BP, pulse, SpO₂, temp, weight, height)' },
+      { yes:true,  label:'Vitals auto-populate doctor\'s consultation modal' },
       { yes:true,  label:'View all patients and appointments' },
       { yes:true,  label:'Browse patient profiles (read-only)' },
       { yes:true,  label:'View & print prescriptions' },
       { yes:true,  label:'Enter lab results' },
       { yes:false, label:'Register or edit patients' },
       { yes:false, label:'Write consultations or prescriptions' },
-      { yes:false, label:'Access billing or medicine store' },
     ],
     visual:(
       <div className="flex flex-col gap-3">
@@ -158,7 +158,7 @@ const roles = [
       { yes:true, label:'Clinic settings (logo, fees, modules)' },
       { yes:true, label:'Doctor schedules & holidays' },
       { yes:true, label:'End-of-day closing & history' },
-      { yes:true, label:'Pharmacy supplier management' },
+      { yes:true, label:'Download QR booking card (print for reception desk)' },
     ],
     visual:(
       <div className="flex flex-col gap-3">

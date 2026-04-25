@@ -648,6 +648,19 @@ Allow patients to book appointments online from any device, without calling the 
 - Toggle OFF → portal shows a "booking unavailable" message (no ugly error)
 - URL format: `https://yourclinic.clinicpos.com/book` (or `/book` in local dev)
 
+#### Booking QR Code Card
+When Patient Portal is enabled, the Settings → Security tab also shows:
+- **Live QR preview** (140×140px) — scannable preview of the `/book` URL
+- **"Download QR Card (PNG)"** button — generates a branded **600×720px** card image:
+  - Blue→teal gradient header/footer bars
+  - Clinic name (bold)
+  - Subtitle: "Scan to Book Your Appointment Online"
+  - QR code on a light card background
+  - Full booking URL in monospace
+  - Instruction text for patients
+- Downloaded file: `booking-qr-{clinic-name}.png`
+- **Use case:** Clinic prints and places at reception desk — patients scan to instantly open the booking page on their phone. No URL to type, no app to download.
+
 ### Patient Auto-Registration
 - System looks up patient by **phone number**
 - If found → appointment linked to existing patient record (no duplicate)
@@ -835,11 +848,45 @@ Each clinic that buys the software can make it look and behave like their own sy
 1. Clinic admin goes to Settings → Branding
 2. Clicks Upload Logo → selects image (JPG/PNG, max 2MB)
 3. System validates file type and size
-4. File saved to `/uploads/tenants/{tenant_id}/logo.png`
-5. URL saved to `clinic_settings.clinic_logo_url`
-6. Logo appears on all screens, invoices, prescriptions, and patient portal immediately
+4. File saved to `/uploads/tenants/{tenant_id}/logo_<timestamp>.png` (timestamp = `Date.now()` — unique filename per upload, prevents browser caching the old logo)
+5. Previous logo file is deleted from disk automatically
+6. URL saved to `clinic_settings.clinic_logo_url`
+7. Logo appears on all screens, invoices, prescriptions, and patient portal immediately
 
 Logo is stored per tenant — completely isolated from other clinics.
+
+---
+
+## 13. Help & User Guide 📖
+
+### Purpose
+Built-in help system so every staff member can learn the software without needing external training. Two access points: in-app guide for logged-in staff and a public guide on the landing site.
+
+### Clinic-Frontend — `/help` Page
+- Accessible to **all roles** (receptionist, doctor, nurse, admin)
+- **5 tabs:** Overview, Receptionist, Doctor, Nurse, Admin
+- **"You" badge** appears on the user's own role tab — so they instantly know which section is theirs
+- Each tab has:
+  - Step-by-step numbered workflow with connecting lines
+  - Role-specific tips and reminders
+  - Next-step arrows between workflow stages
+  - Role badges on each step
+
+### Landing-Frontend — `/guide` Route (Public)
+- Available at `healthcenter.lk/guide` — no login required
+- Identical content to the in-app `/help` page
+- Useful for: clinic admin to review before buying, staff to access from personal phone
+- Implemented as `GuidePage.jsx` React route in landing-frontend
+
+### Who Sees What
+| Who | Access |
+|-----|--------|
+| Any logged-in staff | `/help` in clinic-frontend (via navigation) |
+| Doctor | Doctor tab auto-highlighted with "You" badge |
+| Nurse | Nurse tab auto-highlighted |
+| Receptionist | Receptionist tab auto-highlighted |
+| Admin | Admin tab auto-highlighted |
+| Anyone (public) | `/guide` on landing site — no login |
 
 ---
 
