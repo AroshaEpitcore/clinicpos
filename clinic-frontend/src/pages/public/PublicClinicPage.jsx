@@ -186,8 +186,8 @@ export default function PublicClinicPage() {
         <div className="absolute inset-0">
           <img src={heroBg} alt="Clinic" className="w-full h-full object-cover object-center" />
           {/* Gradient overlay — left heavy for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/92 via-slate-900/75 to-slate-900/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/85 to-slate-900/55" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-transparent to-slate-900/20" />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-28 pb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
