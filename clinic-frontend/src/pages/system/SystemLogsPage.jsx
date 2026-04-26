@@ -122,7 +122,7 @@ export default function SystemLogsPage() {
     <PageLayout>
       <PageHeader title="System Logs" subtitle="All actions performed by clinic staff" icon={ScrollText} />
 
-      <div className="p-4 md:p-6 space-y-4">
+      <div className="space-y-4">
 
         {/* Filters */}
         <div className="bg-white dark:bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
