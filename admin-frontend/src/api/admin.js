@@ -73,4 +73,10 @@ export const adminSystemApi = {
   logs:   (params) => api.get('/system/logs', { params }),
 };
 
+export const adminEnquiriesApi = {
+  list:     ()   => api.get('/enquiries'),
+  markRead: (id) => api.patch(`/enquiries/${id}/read`),
+  delete:   (id) => api.delete(`/enquiries/${id}`),
+};
+
 export default api;

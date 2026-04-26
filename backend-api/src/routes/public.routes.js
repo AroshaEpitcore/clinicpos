@@ -77,4 +77,31 @@ router.get('/platform-info', async (req, res) => {
   }
 });
 
+// ── POST /api/v1/public/contact ───────────────────────────────────────────────
+// Public contact enquiry form — no auth, no tenant required
+router.post('/contact', async (req, res) => {
+  const { name, email, phone, clinic_name, message } = req.body;
+
+  if (!name?.trim() || !email?.trim() || !message?.trim()) {
+    return res.status(400).json({ status: 'error', message: 'Name, email, and message are required' });
+  }
+
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRx.test(email.trim())) {
+    return res.status(400).json({ status: 'error', message: 'Invalid email address' });
+  }
+
+  try {
+    await queryPublic(
+      `INSERT INTO public.contact_enquiries (name, email, phone, clinic_name, message)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [name.trim(), email.trim().toLowerCase(), phone?.trim() || null, clinic_name?.trim() || null, message.trim()]
+    );
+    res.status(201).json({ status: 'success', message: 'Enquiry received. We will get back to you within 24 hours.' });
+  } catch (err) {
+    console.error('POST /public/contact', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 module.exports = router;

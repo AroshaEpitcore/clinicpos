@@ -165,6 +165,37 @@ CREATE TABLE public.subscription_plans (
 
 ---
 
+### Table: `system_audit_logs`
+
+Records every API request made across all tenants — used by the super admin audit log viewer.
+
+```sql
+CREATE TABLE public.system_audit_logs (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
+  user_id     UUID,                               -- staff.id (from tenant schema) or NULL for public actions
+  user_email  VARCHAR(255),
+  user_role   VARCHAR(50),
+  action      VARCHAR(100) NOT NULL,              -- LOGIN | LOGOUT | CREATE | UPDATE | DELETE | VIEW | EXPORT
+  path        VARCHAR(500),                       -- request path e.g. /api/v1/patients
+  method      VARCHAR(10),                        -- GET | POST | PUT | PATCH | DELETE
+  status_code INTEGER,
+  ip_address  VARCHAR(45),
+  user_agent  TEXT,
+  details     JSONB,                              -- additional context (record IDs, changed fields, etc.)
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS system_audit_logs_tenant_idx ON public.system_audit_logs(tenant_id);
+CREATE INDEX IF NOT EXISTS system_audit_logs_created_idx ON public.system_audit_logs(created_at DESC);
+```
+
+**Who reads it:** Super admin audit log viewer (Phase 6 UI — deferred).  
+**Who writes it:** Backend middleware on every authenticated request + login handler for login events.  
+**Connects to:** `tenants` (tenant_id for cross-tenant queries)
+
+---
+
 ## Tenant Schema — Per-Clinic Tables
 
 All tables below are created inside `tenant_{clinic_id}` schema.  
@@ -625,8 +656,20 @@ CREATE TABLE clinic_settings (
   session_timeout_minutes   INTEGER DEFAULT 30,         -- auto logout timer
   allow_walk_ins            BOOLEAN DEFAULT TRUE,       -- walk-in queue on/off
   duplicate_check_enabled   BOOLEAN DEFAULT TRUE,       -- warn if similar patient exists on registration
+  website_enabled           BOOLEAN DEFAULT FALSE,      -- public clinic website on/off
+  website_tagline           VARCHAR(500),               -- hero tagline shown on public page
+  website_about             TEXT,                       -- about section body text
+  website_hours             TEXT,                       -- clinic hours displayed on public page (free text)
+  website_map_url           VARCHAR(500),               -- Google Maps embed URL for contact section
+  website_whatsapp          VARCHAR(30),                -- WhatsApp number shown in contact section
+  website_facebook          VARCHAR(500),               -- Facebook page URL shown in contact section
+  website_hero_url          VARCHAR(500),               -- hero background image — URL or local /uploads path
   updated_at                TIMESTAMP DEFAULT NOW()
 );
+
+-- Note (2026-04-26): 8 website fields added via migrate_website_settings.js.
+-- hero image uploads saved to /uploads/tenants/{id}/hero/hero_{timestamp}.ext (5MB limit).
+-- External URLs stored as-is; local upload paths use mediaUrl() on frontend for display.
 ```
 
 **Who uses it:** Clinic admin edits this. Backend reads it for every invoice and receipt generated.  
@@ -1394,6 +1437,8 @@ LIMIT 1;
 | 2026-04-16 | ALTER | `prescriptions` | Dropped NOT NULL from `consultation_id` via `migrate_prescription_consultation_nullable.js` | ✅ Done |
 | 2026-04-17 | ALTER | `prescription_items` | Dropped NOT NULL from `medicine_id`; added `custom_medicine_name VARCHAR(255)` via `migrate_custom_medicine.js` | ✅ Done |
 | 2026-04-18 | ALTER | `clinic_settings` | Added `queue_display_enabled BOOLEAN NOT NULL DEFAULT FALSE` to all tenant schemas via `migrate_queue_display.js` | ✅ Done |
+| 2026-04-26 | ALTER | `clinic_settings` | Added 8 website fields (`website_enabled`, `website_tagline`, `website_about`, `website_hours`, `website_map_url`, `website_whatsapp`, `website_facebook`, `website_hero_url`) to all tenant schemas via `migrate_website_settings.js` | ✅ Done |
+| 2026-04-26 | CREATE | `public.system_audit_logs` | Super admin audit logging table for cross-tenant request tracking. Created in public schema. Indexed on `tenant_id` and `created_at`. | ✅ Done |
 
 ---
 

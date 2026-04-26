@@ -150,6 +150,9 @@ node -r dotenv/config src/db/migrate_vitals.js
 
 # Fix clinic schemas created before addon modules existed (queue_display + pharmacy/lab/insurance tables)
 node -r dotenv/config src/db/migrate_fix_new_clinics.js
+
+# Website settings — adds website_enabled/tagline/about/hours/map_url/whatsapp/facebook/hero_url to all tenant clinic_settings
+node -r dotenv/config src/db/migrate_website_settings.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -327,7 +330,7 @@ clinicpos/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
 │   │   │   └── bookingReference.js — shared BK-XXXXXX generator
 │   │   └── index.js              — Express entry point
-│   ├── uploads/                  — Uploaded files (gitignored)
+│   ├── uploads/                  — Uploaded files (gitignored); subdirs: logo/, signature/, hero/
 │   ├── .env                      — Secrets (gitignored)
 │   ├── .env.example
 │   └── package.json
@@ -344,12 +347,13 @@ clinicpos/
 │   │   │   ├── medicines/        — Medicine Store (admin)
 │   │   │   ├── billing/          — BillingPage, EndOfDayPage, InvoiceModal
 │   │   │   ├── reports/          — 7-tab reports page
-│   │   │   ├── settings/         — 8-tab settings page
+│   │   │   ├── settings/         — 9-tab settings page (includes Website tab)
 │   │   │   ├── pharmacy/         — Phase 5.1 (4 tabs)
 │   │   │   ├── lab/              — Phase 5.2 (2 tabs)
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
 │   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
+│   │   │   ├── public/           — PublicClinicPage.jsx (public / root page, no auth — clinic's own website)
 │   │   │   ├── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
 │   │   │   ├── subscription/     — SubscriptionPage.jsx — clinic admin views own subscription status
 │   │   │   └── help/             — HelpPage.jsx — step-by-step guide per role (Overview/Receptionist/Doctor/Nurse/Admin tabs)

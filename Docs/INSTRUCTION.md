@@ -332,7 +332,7 @@ Ask: is this a system setting (goes in backend `.env`) or a clinic setting (goes
 Every file a clinic uploads (logo, doctor signature) must follow these rules:
 
 1. **Validate file type** — only accept JPG and PNG. Reject everything else with a clear error
-2. **Validate file size** — reject files over 2MB with a clear error message
+2. **Validate file size** — reject files over 2MB with a clear error message. **Exception:** hero background images (website feature, `/settings/hero-image` route) allow up to 5MB because they are full-width background images — standard 2MB is too restrictive for high-quality hero photos.
 3. **Save to tenant-isolated path** — always save to `/uploads/tenants/{tenant_id}/filename`  
    Never save to a shared folder — clinic A must never be able to see clinic B's files
 4. **Use a unique timestamp-based filename on every upload** — never use a fixed filename like `logo.jpg`. Fixed filenames mean the URL never changes, so browsers serve the cached old image indefinitely even after the file on disk is replaced. Always generate a unique name per upload:

@@ -10,6 +10,7 @@ import SubscriptionsPage      from './pages/SubscriptionsPage';
 import PlatformSettingsPage   from './pages/PlatformSettingsPage';
 import SystemHealthPage       from './pages/SystemHealthPage';
 import SystemLogsPage         from './pages/SystemLogsPage';
+import EnquiriesPage          from './pages/EnquiriesPage';
 
 function ProtectedRoute({ children }) {
   const { admin } = useAdminAuth();
@@ -30,6 +31,7 @@ function AppRoutes() {
       <Route path="/platform-settings" element={<ProtectedRoute><PlatformSettingsPage /></ProtectedRoute>} />
       <Route path="/system-health"     element={<ProtectedRoute><SystemHealthPage /></ProtectedRoute>} />
       <Route path="/system-logs"       element={<ProtectedRoute><SystemLogsPage /></ProtectedRoute>} />
+      <Route path="/enquiries"         element={<ProtectedRoute><EnquiriesPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

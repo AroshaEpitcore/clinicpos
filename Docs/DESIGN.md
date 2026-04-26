@@ -1158,6 +1158,26 @@ if (!resolvedPatient) {
 
 ---
 
+## Public Clinic Page — Standalone Design System
+
+`clinic-frontend/src/pages/public/PublicClinicPage.jsx` is the public-facing clinic website at the root `/` path. It is completely standalone — no shared components, no CSS variables, no design system rules from this document apply to it.
+
+Rules for PublicClinicPage only:
+- No CSS variables (`var(--color-*)`) — uses plain Tailwind classes and hardcoded colors
+- No shared components (`Button`, `Input`, `Modal`, `Card`, etc.) — self-contained
+- Own CSS keyframes injected via `<style>` tag: `fadeInUp`, `fadeInLeft`, `fadeInRight`, `floatY`, `scaleIn`, `.reveal/.reveal.in`
+- Own `RevealBlock` component (IntersectionObserver scroll-reveal with staggered `delay` prop)
+- Own `Navbar` component (fixed, `bg-transparent` → `bg-white/95 backdrop-blur-md` on scroll; mobile max-height transition hamburger menu)
+- Own `SectionHeading` component (supports `eyebrow`, `title`, `subtitle`, `center`, `light` props)
+- Hero height: `min-h-[100svh]` — uses small viewport height unit for correct mobile sizing with browser chrome
+- Hero animations triggered by `ready` state (set 80ms after data loads)
+- Responsive: `md:` breakpoints throughout; hero stats bar collapses on mobile
+- Hardcoded `HERO_STATS` and `WHY_US` arrays provide fallback content when clinic hasn't configured website data
+- `svcIcon()` maps service name keywords to Lucide icon + Tailwind color theme
+- Hero image: local `/uploads` paths use `mediaUrl()`, external URLs used as-is
+
+---
+
 ## Landing Frontend — Separate Design System
 
 `landing-frontend` is a separate marketing website with its own design system. The rules in this document apply to `clinic-frontend` and `admin-frontend` only.

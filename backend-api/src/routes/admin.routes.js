@@ -859,4 +859,45 @@ router.get('/system/logs', async (req, res) => {
   }
 });
 
+// ── GET /api/v1/admin/enquiries ───────────────────────────────────────────────
+router.get('/enquiries', async (req, res) => {
+  try {
+    const result = await queryPublic(
+      `SELECT id, name, email, phone, clinic_name, message, is_read, created_at
+       FROM public.contact_enquiries
+       ORDER BY created_at DESC`
+    );
+    const unread = result.rows.filter(r => !r.is_read).length;
+    res.json({ status: 'success', data: result.rows, unread_count: unread });
+  } catch (err) {
+    console.error('GET /admin/enquiries', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PATCH /api/v1/admin/enquiries/:id/read ────────────────────────────────────
+router.patch('/enquiries/:id/read', async (req, res) => {
+  try {
+    await queryPublic(
+      `UPDATE public.contact_enquiries SET is_read = TRUE WHERE id = $1`,
+      [req.params.id]
+    );
+    res.json({ status: 'success', message: 'Marked as read' });
+  } catch (err) {
+    console.error('PATCH /admin/enquiries/:id/read', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── DELETE /api/v1/admin/enquiries/:id ────────────────────────────────────────
+router.delete('/enquiries/:id', async (req, res) => {
+  try {
+    await queryPublic(`DELETE FROM public.contact_enquiries WHERE id = $1`, [req.params.id]);
+    res.json({ status: 'success', message: 'Deleted successfully' });
+  } catch (err) {
+    console.error('DELETE /admin/enquiries/:id', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 module.exports = router;
