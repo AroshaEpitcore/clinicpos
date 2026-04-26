@@ -1126,6 +1126,8 @@ function CustomServicesTab() {
 // ── Website tab ───────────────────────────────────────────────────────────────
 function WebsiteTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const heroFileRef = useRef(null);
   const subdomain = import.meta.env.VITE_TENANT_SUBDOMAIN || window.location.hostname.split('.')[0];
   const clinicUrl = `${window.location.origin}/`;
 
@@ -1143,6 +1145,33 @@ function WebsiteTab({ settings, onSave, saving }) {
   }, [settings]);
 
   const set = (k) => (v) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleHeroFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingHero(true);
+    try {
+      const res = await settingsApi.uploadHeroImage(file);
+      const url = `${res.data.data.url}?v=${Date.now()}`;
+      setForm(p => ({ ...p, website_hero_url: url }));
+      toast.success('Hero image uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploadingHero(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleHeroDelete() {
+    try {
+      await settingsApi.deleteHeroImage();
+      setForm(p => ({ ...p, website_hero_url: '' }));
+      toast.success('Hero image removed');
+    } catch {
+      toast.error('Could not remove hero image');
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -1196,19 +1225,44 @@ function WebsiteTab({ settings, onSave, saving }) {
       </SectionCard>
 
       <SectionCard title="Hero Background Image">
-        <Field label="Hero Image URL">
-          <TextInput value={form.website_hero_url} onChange={set('website_hero_url')}
-            placeholder="https://images.unsplash.com/photo-… (leave blank for default)" />
-        </Field>
+        {/* Preview */}
         {form.website_hero_url && (
-          <div className="mt-3 rounded-[var(--radius)] overflow-hidden border border-[var(--color-border)] h-24">
-            <img src={form.website_hero_url} alt="Hero preview"
-              className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+          <div className="mb-4 rounded-[var(--radius)] overflow-hidden border border-[var(--color-border)] h-32 relative group">
+            <img src={form.website_hero_url.startsWith('/uploads') ? mediaUrl(form.website_hero_url.split('?')[0]) + (form.website_hero_url.includes('?') ? '?' + form.website_hero_url.split('?')[1] : '') : form.website_hero_url}
+              alt="Hero preview" className="w-full h-full object-cover"
+              onError={e => e.target.style.display='none'} />
+            <button onClick={handleHeroDelete}
+              className="absolute top-2 right-2 bg-red-600 text-white rounded-lg px-2.5 py-1 text-xs font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
+              <Trash2 className="w-3.5 h-3.5" /> Remove
+            </button>
           </div>
         )}
-        <p className="text-xs text-[var(--color-text-secondary)] mt-2">
-          Paste any public image URL. Recommended: a photo of your clinic interior or staff. Leave blank to use the default medical background.
-        </p>
+
+        {/* Upload from device */}
+        <div className="flex flex-col gap-3">
+          <input ref={heroFileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleHeroFileChange} />
+          <Button size="sm" variant="secondary" onClick={() => heroFileRef.current?.click()} loading={uploadingHero}>
+            <Upload className="w-3.5 h-3.5 mr-1.5" />
+            {form.website_hero_url ? 'Replace with device image' : 'Choose image from device'}
+          </Button>
+          <p className="text-xs text-[var(--color-text-secondary)]">JPG or PNG · Max 5MB</p>
+
+          {/* Divider */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-[var(--color-border)]" />
+            <span className="text-xs text-[var(--color-text-secondary)]">or paste a URL</span>
+            <div className="flex-1 h-px bg-[var(--color-border)]" />
+          </div>
+
+          <Field label="Hero Image URL">
+            <TextInput value={form.website_hero_url?.startsWith('/uploads') ? '' : (form.website_hero_url || '')}
+              onChange={set('website_hero_url')}
+              placeholder="https://images.unsplash.com/photo-… (leave blank for default)" />
+          </Field>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            Recommended: a photo of your clinic interior or staff. Leave blank to use the default background.
+          </p>
+        </div>
       </SectionCard>
 
       <p className="text-xs text-[var(--color-text-secondary)]">

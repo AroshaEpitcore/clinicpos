@@ -16,4 +16,10 @@ export const settingsApi = {
     return api.post(`/settings/staff/${staffId}/signature`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   deleteSignature:  (staffId)    => api.delete(`/settings/staff/${staffId}/signature`),
+  uploadHeroImage:  (file)       => {
+    const form = new FormData();
+    form.append('hero', file);
+    return api.post('/settings/hero-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  deleteHeroImage:  ()           => api.delete('/settings/hero-image'),
 };
