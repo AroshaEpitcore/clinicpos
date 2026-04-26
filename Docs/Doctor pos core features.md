@@ -855,6 +855,14 @@ Each clinic that buys the software can make it look and behave like their own sy
 
 Logo is stored per tenant — completely isolated from other clinics.
 
+#### Website
+- Enable or disable the **public clinic website**
+- Set a **tagline** (short headline shown under clinic name)
+- Write an **About / Description** paragraph
+- Enter **Working Hours** free text (e.g. Mon–Fri: 8am–6pm, Sat: 8am–1pm)
+- Add **Google Maps link**, **WhatsApp number**, **Facebook page URL**
+- Clinic name, address, phone, email, logo, and doctors are pulled automatically — no duplication
+
 ---
 
 ## 13. Help & User Guide 📖
@@ -890,7 +898,119 @@ Built-in help system so every staff member can learn the software without needin
 
 ---
 
-## 12. Super Admin Panel 🛠️ *(admin.clinicpos.com — your control room)*
+## 14. Public Clinic Website 🌍
+
+### Purpose
+Every clinic automatically gets a branded public website at their subdomain. No developer needed. Patients can find the clinic, see doctors and services, and book appointments — all from one link.
+
+### What Patients See
+- **Hero** — clinic logo, name, tagline, and "Book Appointment" CTA button
+- **About** — short paragraph about the clinic
+- **Our Doctors** — card grid with name, specialization, and avatar
+- **Our Services** — list grouped by category with prices (from custom services)
+- **Working Hours** — free-text hours block
+- **Contact** — phone, email, address, Google Maps link, WhatsApp, Facebook
+- **Footer** — copyright + Staff Login + Book Appointment + "Powered by ClinicPOS"
+
+### How It Works
+- URL is auto-derived from subdomain: `familycare.healthcenter.lk/`
+- If a staff member is already logged in and visits `/`, they are redirected straight to `/dashboard`
+- If website is disabled, visitors see a "not available" message instead
+- Booking CTA links to `/book` — only shown if Patient Portal is enabled
+
+### Clinic Admin Controls (Settings → Website tab)
+| Field | Description |
+|-------|-------------|
+| Website Enabled | Toggle the whole public website on/off |
+| Tagline | Short headline shown under clinic name |
+| About | Description paragraph |
+| Working Hours | Free text (e.g. Mon–Fri: 8am–6pm) |
+| Google Maps Link | Opens in Maps when clicked |
+| WhatsApp Number | Country code + number, no `+` |
+| Facebook URL | Full URL to Facebook page |
+
+Clinic name, address, phone, email, logo, doctors, and services come automatically from existing settings — no duplication.
+
+### Super Admin Controls
+From `admin.healthcenter.lk/clinics/{id}` → Feature Flags card → **Public Website** toggle at the top:
+- Super admin can disable a clinic's website even if the clinic admin has it enabled
+- Useful for: suspended clinics, non-paying plans, or support cases
+
+### Backend Endpoint
+`GET /api/v1/portal/website` — public, no auth required. Returns clinic info, doctors, and services in one call.
+
+### Who Can Access
+| Who | Access |
+|-----|--------|
+| Anyone (public) | `/{subdomain}.healthcenter.lk/` — no login |
+| Clinic admin | Settings → Website tab to manage content |
+| Super admin | ClinicDetailPage → Feature Flags → Public Website toggle |
+
+---
+
+## 15. System Logs 📋 *(Audit Trail)*
+
+### Purpose
+Every significant action across the entire platform is automatically recorded. Both super admin and clinic admin can view logs to track activity, debug issues, and monitor security.
+
+### What Gets Logged
+- Every `POST`, `PUT`, `DELETE`, `PATCH` request
+- All `4xx` and `5xx` error responses
+- Login attempts (success and failure) with email, IP, and timestamp
+- Super admin actions (login, clinic management)
+
+### Super Admin — System Logs (`admin.healthcenter.lk/system-logs`)
+- Sees ALL log entries across every clinic
+- **Filters:** search (path/email), clinic dropdown, HTTP method, status class (2xx/4xx/5xx), date range
+- **Per-clinic view:** ClinicDetailPage → System Logs tab — filtered to that clinic only
+- Shows: timestamp, user email, role badge, action label, HTTP method, path, status code, duration
+
+### Clinic Admin — System Logs (`/system-logs`)
+- Sees only their own clinic's logs
+- Same filter bar, human-readable action labels (e.g. "Patient registered", "Login successful")
+- Admin-only route — other roles cannot access
+
+### Log Entry Fields
+| Field | Description |
+|-------|-------------|
+| tenant_id | UUID of the clinic (null for super admin actions) |
+| tenant_subdomain | Subdomain string |
+| user_email | Email of the acting user |
+| user_role | Role (doctor/nurse/receptionist/admin/login) |
+| method | HTTP method |
+| path | Full request path (originalUrl — never truncated) |
+| status_code | HTTP response code |
+| duration_ms | Response time in milliseconds |
+| ip_address | Client IP |
+
+### Database Table
+`public.system_audit_logs` — shared table in public schema, all tenants write here.
+`tenant_id` is `VARCHAR(50)` storing the UUID string. JOIN uses `t.id::text = l.tenant_id`.
+
+---
+
+## 16. System Health 🖥️ *(Super Admin Only)*
+
+### Purpose
+Live server and infrastructure monitoring dashboard at `admin.healthcenter.lk/system-health`.
+
+### What It Shows
+- **Server RAM** — total, used, free with progress bar
+- **Node.js Heap** — heap used vs heap total with progress bar
+- **CPU Load Averages** — 1 min, 5 min, 15 min
+- **Database** — connected status with ping time
+- **Server Info** — platform, hostname, Node version, process uptime, server uptime
+- **Tenant Stats** — active, trial, suspended clinic counts
+
+### Auto-Refresh
+Page auto-refreshes every 30 seconds with a live countdown. Manual refresh button available.
+
+### Backend Endpoint
+`GET /api/v1/admin/system/health` — super admin auth required.
+
+---
+
+## 17. Super Admin Panel 🛠️ *(admin.healthcenter.lk — your control room)*
 
 ### Purpose
 You manage all clinics from one place. Clinics cannot see each other. You can create accounts, toggle features, suspend clinics, and log in as any clinic to help with support.
@@ -927,6 +1047,10 @@ You manage all clinics from one place. Clinics cannot see each other. You can cr
 - **Activate** — restores access
 - **Login as clinic** — impersonate any clinic's admin account for support (shows amber "Impersonating" badge in the clinic's TopBar)
 - **Feature flag toggles** — enable/disable each module per clinic plan
+- **Public Website toggle** — enable/disable a clinic's public website independently of the clinic admin's setting
+- **Per-clinic System Logs** — ClinicDetailPage → System Logs tab shows only that clinic's audit entries
+- **System Health** — live server RAM, CPU, DB ping, Node heap at `/system-health`
+- **System Logs (all)** — full cross-clinic audit log at `/system-logs` with filters
 - **Dashboard** — total clinics, MRR, active/trial/suspended counts
 
 ---

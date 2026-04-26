@@ -16,6 +16,7 @@ const features = [
   { n:'13', icon:'🩺', title:'Nurse Vitals Workflow',    desc:'Nurses record BP, pulse, SpO₂, temperature, weight, and height before the doctor sees the patient. Vitals auto-populate the consultation modal — zero double-entry.' },
   { n:'14', icon:'📱', title:'QR Booking Cards',         desc:'Generate a branded QR code card to print and place at your front desk. Patients scan it to open your booking page instantly — no URL to type, no app to download.' },
   { n:'15', icon:'📖', title:'Built-in Staff Training',  desc:'Every staff member gets a guided help page with their own role tab highlighted. Step-by-step workflows for receptionist, doctor, nurse, and admin — no external training needed.' },
+  { n:'16', icon:'🌍', title:'Your Own Clinic Website',  desc:'Every clinic gets a branded public website at its own link — showing doctors, services, hours, and a booking button. Auto-generated, always up-to-date, zero extra cost.' },
 ];
 
 export default function FeaturesSection() {
