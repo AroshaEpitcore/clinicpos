@@ -20,7 +20,8 @@ async function run() {
           ADD COLUMN IF NOT EXISTS website_hours     TEXT,
           ADD COLUMN IF NOT EXISTS website_map_url   VARCHAR(500),
           ADD COLUMN IF NOT EXISTS website_whatsapp  VARCHAR(30),
-          ADD COLUMN IF NOT EXISTS website_facebook  VARCHAR(255);
+          ADD COLUMN IF NOT EXISTS website_facebook  VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS website_hero_url  VARCHAR(500);
       `);
       console.log(`  ✅ ${schema} done`);
     }

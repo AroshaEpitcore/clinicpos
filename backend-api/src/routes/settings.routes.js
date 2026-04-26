@@ -64,7 +64,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
     reminder_enabled, reminder_hours_before, reminder_message,
     session_timeout_minutes, patient_portal_enabled, queue_display_enabled,
     website_enabled, website_tagline, website_about, website_hours,
-    website_map_url, website_whatsapp, website_facebook,
+    website_map_url, website_whatsapp, website_facebook, website_hero_url,
   } = req.body;
 
   try {
@@ -96,6 +96,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
         website_map_url           = COALESCE($24, website_map_url),
         website_whatsapp          = COALESCE($25, website_whatsapp),
         website_facebook          = COALESCE($26, website_facebook),
+        website_hero_url          = COALESCE($27, website_hero_url),
         updated_at                = NOW()
     `, [
       clinic_name    || null, clinic_address  || null, clinic_phone  || null, clinic_email  || null,
@@ -118,6 +119,7 @@ router.put('/', requireRole('admin'), async (req, res) => {
       website_map_url           || null,
       website_whatsapp          || null,
       website_facebook          || null,
+      website_hero_url          || null,
     ]);
 
     // Keep public.tenants in sync when clinic_name changes

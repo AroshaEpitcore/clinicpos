@@ -1138,6 +1138,7 @@ function WebsiteTab({ settings, onSave, saving }) {
       website_map_url:  settings.website_map_url  || '',
       website_whatsapp: settings.website_whatsapp || '',
       website_facebook: settings.website_facebook || '',
+      website_hero_url: settings.website_hero_url || '',
     });
   }, [settings]);
 
@@ -1192,6 +1193,22 @@ function WebsiteTab({ settings, onSave, saving }) {
               placeholder="https://facebook.com/yourclinic" />
           </Field>
         </div>
+      </SectionCard>
+
+      <SectionCard title="Hero Background Image">
+        <Field label="Hero Image URL">
+          <TextInput value={form.website_hero_url} onChange={set('website_hero_url')}
+            placeholder="https://images.unsplash.com/photo-… (leave blank for default)" />
+        </Field>
+        {form.website_hero_url && (
+          <div className="mt-3 rounded-[var(--radius)] overflow-hidden border border-[var(--color-border)] h-24">
+            <img src={form.website_hero_url} alt="Hero preview"
+              className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+          </div>
+        )}
+        <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+          Paste any public image URL. Recommended: a photo of your clinic interior or staff. Leave blank to use the default medical background.
+        </p>
       </SectionCard>
 
       <p className="text-xs text-[var(--color-text-secondary)]">

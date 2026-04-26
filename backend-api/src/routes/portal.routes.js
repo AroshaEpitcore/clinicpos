@@ -360,6 +360,7 @@ router.get('/website', async (req, res) => {
       map_url:         s.website_map_url   || null,
       whatsapp:        s.website_whatsapp  || null,
       facebook:        s.website_facebook  || null,
+      hero_url:        s.website_hero_url  || null,
       portal_enabled:  s.patient_portal_enabled || false,
     };
 
