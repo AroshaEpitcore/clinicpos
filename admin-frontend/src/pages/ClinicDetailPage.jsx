@@ -365,6 +365,8 @@ export default function ClinicDetailPage() {
   const [plans,         setPlans]         = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [activeTab,     setActiveTab]     = useState('overview');
+  const [websiteEnabled, setWebsiteEnabled] = useState(true);
+  const [websiteSaving,  setWebsiteSaving]  = useState(false);
   const [showEdit,      setShowEdit]      = useState(false);
   const [showSetPlan,   setShowSetPlan]   = useState(false);
   const [showSuspend,   setShowSuspend]   = useState(false);
@@ -389,6 +391,7 @@ export default function ClinicDetailPage() {
       const flagMap = {};
       (data.feature_flags || []).forEach(f => { flagMap[f.module] = f.enabled; });
       setFlags(flagMap);
+      setWebsiteEnabled(data.website_enabled !== false);
     } catch {
       toast.error('Something went wrong. Please try again.');
       navigate('/clinics');
@@ -481,6 +484,21 @@ export default function ClinicDetailPage() {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setFlagSaving(false);
+    }
+  }
+
+  async function handleWebsiteToggle() {
+    const newVal = !websiteEnabled;
+    setWebsiteEnabled(newVal);
+    setWebsiteSaving(true);
+    try {
+      await adminTenantsApi.setWebsiteEnabled(id, newVal);
+      toast.success(`Clinic website ${newVal ? 'enabled' : 'disabled'}`);
+    } catch {
+      setWebsiteEnabled(!newVal);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setWebsiteSaving(false);
     }
   }
 
@@ -665,6 +683,27 @@ export default function ClinicDetailPage() {
           subtitle={flagSaving ? 'Saving…' : `${activeFlags} of ${ALL_MODULES.length} modules enabled`}
         >
           <div className="space-y-3">
+            {/* Website visibility toggle */}
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-[var(--color-border)]">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[var(--color-text)]">Public Website</p>
+                <p className="text-xs text-[var(--color-text-secondary)] truncate">
+                  Show clinic's public website at their subdomain
+                </p>
+              </div>
+              <button
+                onClick={handleWebsiteToggle}
+                disabled={websiteSaving}
+                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-1 ${
+                  websiteEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
+                } ${websiteSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  websiteEnabled ? 'translate-x-4' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
             {ALL_MODULES.map(m => (
               <div key={m.key} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">

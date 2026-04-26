@@ -34,13 +34,14 @@ export const adminDashboardApi = {
 };
 
 export const adminTenantsApi = {
-  list:        (params)    => api.get('/tenants', { params }),
-  get:         (id)        => api.get(`/tenants/${id}`),
-  create:      (body)      => api.post('/tenants', body),
-  update:      (id, body)  => api.put(`/tenants/${id}`, body),
-  suspend:     (id)        => api.put(`/tenants/${id}/suspend`),
-  activate:    (id)        => api.put(`/tenants/${id}/activate`),
-  impersonate: (id)        => api.post(`/tenants/${id}/impersonate`),
+  list:              (params)          => api.get('/tenants', { params }),
+  get:               (id)             => api.get(`/tenants/${id}`),
+  create:            (body)           => api.post('/tenants', body),
+  update:            (id, body)       => api.put(`/tenants/${id}`, body),
+  suspend:           (id)             => api.put(`/tenants/${id}/suspend`),
+  activate:          (id)             => api.put(`/tenants/${id}/activate`),
+  impersonate:       (id)             => api.post(`/tenants/${id}/impersonate`),
+  setWebsiteEnabled: (id, enabled)    => api.patch(`/tenants/${id}/website-enabled`, { enabled }),
 };
 
 export const adminFlagsApi = {

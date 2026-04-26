@@ -136,16 +136,19 @@ router.get('/tenants/:id', async (req, res) => {
       [req.params.id]
     );
 
-    // Get basic usage stats from tenant schema
+    // Get basic usage stats + website_enabled from tenant schema
     const schemaName = `tenant_${tenant.rows[0].subdomain}`;
     let stats = { staff_count: 0, patient_count: 0 };
+    let website_enabled = true;
     try {
-      const [staffRes, patientRes] = await Promise.all([
+      const [staffRes, patientRes, settingsRes] = await Promise.all([
         queryTenant(schemaName, `SELECT COUNT(*) AS c FROM staff WHERE is_active = TRUE`),
         queryTenant(schemaName, `SELECT COUNT(*) AS c FROM patients WHERE is_active = TRUE`),
+        queryTenant(schemaName, `SELECT website_enabled FROM clinic_settings LIMIT 1`),
       ]);
       stats.staff_count   = parseInt(staffRes.rows[0].c, 10);
       stats.patient_count = parseInt(patientRes.rows[0].c, 10);
+      if (settingsRes.rows.length) website_enabled = settingsRes.rows[0].website_enabled !== false;
     } catch { /* schema may not be set up yet */ }
 
     res.json({
@@ -153,6 +156,7 @@ router.get('/tenants/:id', async (req, res) => {
       data: {
         ...tenant.rows[0],
         feature_flags: flags.rows,
+        website_enabled,
         stats,
       },
     });
@@ -309,6 +313,28 @@ router.put('/tenants/:id/activate', async (req, res) => {
     res.json({ status: 'success', message: 'Clinic activated', data: result.rows[0] });
   } catch (err) {
     console.error('PUT /admin/tenants/:id/activate', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── PATCH /api/v1/admin/tenants/:id/website-enabled ──────────────────────────
+router.patch('/tenants/:id/website-enabled', async (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ status: 'error', message: 'enabled (boolean) is required' });
+  }
+  try {
+    const tenant = await queryPublic(`SELECT subdomain FROM public.tenants WHERE id = $1`, [req.params.id]);
+    if (!tenant.rows.length) return res.status(404).json({ status: 'error', message: 'Clinic not found' });
+
+    const schema = `tenant_${tenant.rows[0].subdomain}`;
+    await queryTenant(schema,
+      `UPDATE clinic_settings SET website_enabled = $1, updated_at = NOW()`,
+      [enabled]
+    );
+    res.json({ status: 'success', data: { website_enabled: enabled } });
+  } catch (err) {
+    console.error('PATCH /admin/tenants/:id/website-enabled', err);
     res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });
