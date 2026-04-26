@@ -339,6 +339,54 @@ router.get('/booking/:reference', async (req, res) => {
   }
 });
 
+// ── GET /api/v1/portal/website ────────────────────────────────────────────────
+// Public: all data needed to render the clinic's public website page
+router.get('/website', async (req, res) => {
+  const schema = req.tenantSchema;
+  try {
+    const cfg = await queryTenant(schema, `SELECT * FROM clinic_settings LIMIT 1`);
+    const s   = cfg.rows[0] || {};
+
+    const clinic = {
+      name:            s.clinic_name       || '',
+      logo_url:        s.clinic_logo_url   || null,
+      address:         s.clinic_address    || null,
+      phone:           s.clinic_phone      || null,
+      email:           s.clinic_email      || null,
+      website_enabled: s.website_enabled   !== false,
+      tagline:         s.website_tagline   || null,
+      about:           s.website_about     || null,
+      hours:           s.website_hours     || null,
+      map_url:         s.website_map_url   || null,
+      whatsapp:        s.website_whatsapp  || null,
+      facebook:        s.website_facebook  || null,
+      portal_enabled:  s.patient_portal_enabled || false,
+    };
+
+    const doctorsRes = await queryTenant(schema,
+      `SELECT id, full_name, specialization, avatar_url
+       FROM staff WHERE role = 'doctor' AND is_active = TRUE ORDER BY full_name ASC`
+    );
+
+    const servicesRes = await queryTenant(schema,
+      `SELECT name, category, description, price
+       FROM custom_services WHERE is_active = TRUE ORDER BY category ASC, name ASC`
+    );
+
+    res.json({
+      status: 'success',
+      data: {
+        clinic,
+        doctors:  doctorsRes.rows,
+        services: servicesRes.rows,
+      },
+    });
+  } catch (err) {
+    console.error('GET /portal/website', err);
+    res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
+  }
+});
+
 // ── GET /portal/queue-display ─────────────────────────────────────────────────
 // Public waiting-room display — returns today's queue grouped per doctor.
 // Gated by queue_display_enabled in clinic_settings.

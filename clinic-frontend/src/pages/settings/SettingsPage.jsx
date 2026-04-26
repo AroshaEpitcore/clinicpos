@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Upload, Trash2, Plus, Pencil, X, Calendar, QrCode } from 'lucide-react';
+import { Upload, Trash2, Plus, Pencil, X, Calendar, QrCode, ExternalLink } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { PageLayout }   from '../../components/layout/PageLayout';
 import { PageHeader }   from '../../components/ui/PageHeader';
@@ -26,6 +26,7 @@ const TABS = [
   { key: 'security',     label: 'Security'         },
   { key: 'doctor_fees',  label: 'Doctor Fees'      },
   { key: 'services',     label: 'Custom Services'  },
+  { key: 'website',      label: 'Website'          },
 ];
 
 // ── Reusable field components ─────────────────────────────────────────────────
@@ -1122,6 +1123,88 @@ function CustomServicesTab() {
   );
 }
 
+// ── Website tab ───────────────────────────────────────────────────────────────
+function WebsiteTab({ settings, onSave, saving }) {
+  const [form, setForm] = useState({});
+  const subdomain = import.meta.env.VITE_TENANT_SUBDOMAIN || window.location.hostname.split('.')[0];
+  const clinicUrl = `${window.location.origin}/`;
+
+  useEffect(() => {
+    setForm({
+      website_enabled:  settings.website_enabled  !== false,
+      website_tagline:  settings.website_tagline  || '',
+      website_about:    settings.website_about    || '',
+      website_hours:    settings.website_hours    || '',
+      website_map_url:  settings.website_map_url  || '',
+      website_whatsapp: settings.website_whatsapp || '',
+      website_facebook: settings.website_facebook || '',
+    });
+  }, [settings]);
+
+  const set = (k) => (v) => setForm(p => ({ ...p, [k]: v }));
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SectionCard title="Website Visibility">
+        <Toggle
+          label="Enable Public Website"
+          description={`Your clinic website is visible at ${clinicUrl}`}
+          checked={!!form.website_enabled}
+          onChange={set('website_enabled')}
+        />
+        <div className="pt-3">
+          <a href={clinicUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline">
+            <ExternalLink className="w-3.5 h-3.5" /> Preview your clinic website
+          </a>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Content">
+        <div className="flex flex-col gap-4">
+          <Field label="Tagline">
+            <TextInput value={form.website_tagline} onChange={set('website_tagline')}
+              placeholder="e.g. Your health, our priority" />
+          </Field>
+          <Field label="About / Description">
+            <Textarea value={form.website_about} onChange={set('website_about')} rows={5}
+              placeholder="Write a short description about your clinic, specialties, and values…" />
+          </Field>
+          <Field label="Working Hours">
+            <Textarea value={form.website_hours} onChange={set('website_hours')} rows={4}
+              placeholder={`Mon – Fri: 8:00 AM – 6:00 PM\nSat: 8:00 AM – 1:00 PM\nSun: Closed`} />
+          </Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Contact & Social">
+        <div className="flex flex-col gap-4">
+          <Field label="Google Maps Link">
+            <TextInput value={form.website_map_url} onChange={set('website_map_url')}
+              placeholder="https://maps.google.com/…" />
+          </Field>
+          <Field label="WhatsApp Number">
+            <TextInput value={form.website_whatsapp} onChange={set('website_whatsapp')}
+              placeholder="94771234567  (with country code, no +)" />
+          </Field>
+          <Field label="Facebook Page URL">
+            <TextInput value={form.website_facebook} onChange={set('website_facebook')}
+              placeholder="https://facebook.com/yourclinic" />
+          </Field>
+        </div>
+      </SectionCard>
+
+      <p className="text-xs text-[var(--color-text-secondary)]">
+        Clinic name, address, phone, email, logo and doctors are pulled automatically from the Clinic and Doctor Fees tabs.
+      </p>
+
+      <div className="flex justify-end">
+        <Button onClick={() => onSave(form)} loading={saving}>Save Website Settings</Button>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1164,6 +1247,7 @@ export default function SettingsPage() {
     security:      <SecurityTab      {...tabProps} />,
     doctor_fees:   <DoctorFeesTab />,
     services:      <CustomServicesTab />,
+    website:       <WebsiteTab {...tabProps} />,
   };
 
   return (

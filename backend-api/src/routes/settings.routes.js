@@ -63,6 +63,8 @@ router.put('/', requireRole('admin'), async (req, res) => {
     appointment_slot_duration, max_patients_per_day, allow_walk_ins,
     reminder_enabled, reminder_hours_before, reminder_message,
     session_timeout_minutes, patient_portal_enabled, queue_display_enabled,
+    website_enabled, website_tagline, website_about, website_hours,
+    website_map_url, website_whatsapp, website_facebook,
   } = req.body;
 
   try {
@@ -87,6 +89,13 @@ router.put('/', requireRole('admin'), async (req, res) => {
         session_timeout_minutes   = COALESCE($17, session_timeout_minutes),
         patient_portal_enabled    = COALESCE($18, patient_portal_enabled),
         queue_display_enabled     = COALESCE($19, queue_display_enabled),
+        website_enabled           = COALESCE($20, website_enabled),
+        website_tagline           = COALESCE($21, website_tagline),
+        website_about             = COALESCE($22, website_about),
+        website_hours             = COALESCE($23, website_hours),
+        website_map_url           = COALESCE($24, website_map_url),
+        website_whatsapp          = COALESCE($25, website_whatsapp),
+        website_facebook          = COALESCE($26, website_facebook),
         updated_at                = NOW()
     `, [
       clinic_name    || null, clinic_address  || null, clinic_phone  || null, clinic_email  || null,
@@ -102,6 +111,13 @@ router.put('/', requireRole('admin'), async (req, res) => {
       session_timeout_minutes   != null ? session_timeout_minutes   : null,
       patient_portal_enabled    != null ? patient_portal_enabled    : null,
       queue_display_enabled     != null ? queue_display_enabled     : null,
+      website_enabled           != null ? website_enabled           : null,
+      website_tagline           || null,
+      website_about             || null,
+      website_hours             || null,
+      website_map_url           || null,
+      website_whatsapp          || null,
+      website_facebook          || null,
     ]);
 
     // Keep public.tenants in sync when clinic_name changes

@@ -55,6 +55,9 @@ import HelpPage from './pages/help/HelpPage';
 // System Logs (admin only)
 import SystemLogsPage from './pages/system/SystemLogsPage';
 
+// Public clinic website
+import PublicClinicPage from './pages/public/PublicClinicPage';
+
 export default function App() {
   return (
     <Routes>
@@ -64,8 +67,8 @@ export default function App() {
       <Route path="/book"        element={<BookingPage />} />
       <Route path="/display"     element={<DisplayPage />} />
 
-      {/* Redirect root to dashboard */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Public clinic website — redirects to /dashboard if already logged in */}
+      <Route path="/" element={<PublicClinicPage />} />
 
       {/* Protected — all authenticated roles */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />

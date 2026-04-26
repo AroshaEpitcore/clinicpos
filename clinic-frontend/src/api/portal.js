@@ -39,4 +39,7 @@ export const portalApi = {
 
   /** Waiting-room TV display — public queue data grouped by doctor */
   getQueueDisplay: () => publicApi.get('/portal/queue-display'),
+
+  /** All public data for the clinic's own website page */
+  getWebsite: () => publicApi.get('/portal/website'),
 };
