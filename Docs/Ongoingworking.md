@@ -17,8 +17,8 @@
 
 ## Current Status
 
-**Currently working on:** Phase 6 planning — payment gateway, SMS reminders, audit log, system health
-**Last updated:** 2026-04-24
+**Currently working on:** Public clinic website UI polish + docs update
+**Last updated:** 2026-04-26
 **Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
 
 ### What is fully complete right now
@@ -90,6 +90,14 @@
 | **AuthContext Currency Field Fix** | ✅ Background settings refresh in `AuthContext.jsx` was reading `s.currency_code` but the DB column is named `currency` — currency was silently resetting to `'LKR'` on every page reload regardless of clinic setting. Fixed: `s.currency || 'LKR'`. (2026-04-24) |
 | **Navbar — Left-Side Slide Drawer (Mobile)** | ✅ Rewrote mobile menu in `landing-frontend/src/components/layout/Navbar.jsx`. Hamburger button now always visible (was invisible because icon color blended with background). Menu opens as a smooth left-side slide-in drawer (`w-72`, `translate-x` transition, `duration-300`). Includes: Logo + X close button in drawer header, nav links with active highlight, "Get Started" CTA pinned to bottom. Backdrop overlay with fade closes drawer on tap outside. Body scroll locked while open. (2026-04-25) |
 | **Clinic Booking QR Code Card** | ✅ Settings → Security tab: when Patient Portal is enabled, a QR code card now appears. Shows a live QR preview. "Download QR Card (PNG)" button generates a branded 600×720px print-ready image via HTML canvas: gradient top/bottom bar, clinic name, subtitle, QR on soft background, URL in plain text, instruction line. Uses `qrcode.react` (`QRCodeCanvas`) installed in `clinic-frontend`. Filename: `booking-qr-{clinic-name}.png`. Clinic prints it and places at front desk — patients scan to book instantly. (2026-04-25) |
+| **Public Clinic Website — Auto-Generated per Subdomain** | ✅ `{subdomain}.healthcenter.lk/` serves a full clinic website. `GET /api/v1/portal/website` (public, no auth) returns clinic info, doctors, services. Redirects logged-in staff to `/dashboard`. Website disabled → clean "unavailable" message. `migrate_website_settings.js` adds 8 columns to every tenant's `clinic_settings`. (2026-04-25) |
+| **Website Settings — Clinic Admin (Settings → Website tab)** | ✅ New tab in clinic Settings: enable/disable toggle, tagline, about, hours, Google Maps URL, WhatsApp number, Facebook URL, hero image. Clinic name/address/phone/email/logo/doctors pulled automatically — no duplication. (2026-04-25) |
+| **Website Visibility Toggle — Super Admin** | ✅ ClinicDetailPage → Feature Flags → "Public Website" toggle at top of card. `PATCH /admin/tenants/:id/website-enabled`. Super admin can override even if clinic admin has it enabled. `adminTenantsApi.setWebsiteEnabled()` added to admin API module. (2026-04-25) |
+| **Landing Page — Clinic Website Section** | ✅ New `ClinicWebsiteSection.jsx` added between FeaturesSection and WorkflowSection. Shows MockBrowser sub-component, 4 perks list, animated "Live instantly" + "100% auto-generated" floating badges. FeaturesSection grid: added feature #16 "Your Own Clinic Website". HeroSection stat updated to "16+". (2026-04-25) |
+| **Hero Image Upload from Device** | ✅ Settings → Website → Hero Background Image card: "Choose image from device" button (JPG/PNG, max 5MB) uploads immediately via `POST /settings/hero-image` → stored in `uploads/tenants/{id}/hero/hero_{timestamp}.ext`. Auto-deletes old local file on replacement. OR paste external URL (saves on "Save Website Settings"). Live preview with hover Remove button. `DELETE /settings/hero-image` route. `settingsApi.uploadHeroImage()` / `deleteHeroImage()`. (2026-04-26) |
+| **PublicClinicPage — Hero Redesign (Round 1: floating navbar + photo background)** | ✅ Hero: full-screen Unsplash medical photo, dual gradient overlay, floating→sticky navbar (transparent over hero, white+blur on scroll), mobile hamburger menu with slide-down dropdown. Hero content: left text column + right glass info card. Scroll hint. (2026-04-25) |
+| **PublicClinicPage — Hero Redesign (Round 2: enhanced animations + stats)** | ✅ CSS `@keyframes` (fadeInUp, floatY) injected via `<style>`. Staggered entry animations on all hero elements (0–0.48s delays). Ambient glow orbs (floatY animation). "Now Accepting Patients" live pulse badge. Info pills (address/hours/doctor count). Trust badges (Verified/Top Rated/MOH Registered). Stats bar: 5,000+ · 98% · 24/7 · 10+ with column dividers. Right card: floatY animation + teal ping indicator. Scroll mouse indicator. Navbar: max-height mobile dropdown animation, underline sweep hover on desktop links. Hero uses `min-h-[100svh]`. (2026-04-26) |
+| **PublicClinicPage — All Sections Redesign** | ✅ About: 2-col heading+text + 3 "Why Us" cards with flip-to-blue-gradient hover (Expert Care / Modern Facility / Easy Booking). Doctors: dark `slate-900` bg with cross-hatch texture, overlay-style cards, green "Available" badge, specialization pill, photo scales on hover, book button fills on card hover. Services: `svcIcon()` keyword mapper (heart→Heart/red, eye→Eye/teal, lab→Flask/purple, baby→Baby/pink, neuro→Activity/indigo, surgery→Zap/amber, default→CheckCircle/blue), price as blue badge. Contact: colour-coded individual cards per contact type with chevron arrows, dark hours card with gradient header + inline Book CTA. CTA banner: 2-col layout, blue→indigo gradient, Book + Call Us buttons, ambient orbs. Footer: 4-col (brand+socials, links, contact, hours), translate-x hover links, `slate-950` bg. All sections: `IntersectionObserver` scroll-reveal (fadeInUp/Left/Right/scaleIn) with per-item stagger delays. `RevealBlock` wrapper component. (2026-04-26) |
 
 ### What is NOT yet started
 - Phase 7 — Electron desktop version
@@ -103,12 +111,12 @@
 | PDF export for all reports | Phase 6 |
 | Payment gateway integration (LKR online payments) | Phase 6 |
 | SMS/WhatsApp appointment reminders | Phase 6 |
-| Super admin system health (CPU/memory/uptime) | Phase 6 |
-| Super admin audit log viewer | Phase 6 |
 | Lab result notification to patient | Phase 6 |
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
-| System health display in admin panel | Phase 6 |
-| Audit log viewer | Phase 6 |
+
+> **Already completed (previously deferred):**
+> - ~~Super admin system health~~ → ✅ Done (Section 16 in features doc)
+> - ~~Super admin audit log viewer~~ → ✅ Done (Section 15 in features doc, `public.system_audit_logs`)
 
 ---
 

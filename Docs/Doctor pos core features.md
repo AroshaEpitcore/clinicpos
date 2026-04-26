@@ -861,6 +861,7 @@ Logo is stored per tenant — completely isolated from other clinics.
 - Write an **About / Description** paragraph
 - Enter **Working Hours** free text (e.g. Mon–Fri: 8am–6pm, Sat: 8am–1pm)
 - Add **Google Maps link**, **WhatsApp number**, **Facebook page URL**
+- Upload a **Hero Background Image** from device (JPG/PNG, max 5MB) or paste any external image URL — live preview shown with hover-to-remove button
 - Clinic name, address, phone, email, logo, and doctors are pulled automatically — no duplication
 
 ---
@@ -904,13 +905,47 @@ Built-in help system so every staff member can learn the software without needin
 Every clinic automatically gets a branded public website at their subdomain. No developer needed. Patients can find the clinic, see doctors and services, and book appointments — all from one link.
 
 ### What Patients See
-- **Hero** — clinic logo, name, tagline, and "Book Appointment" CTA button
-- **About** — short paragraph about the clinic
-- **Our Doctors** — card grid with name, specialization, and avatar
-- **Our Services** — list grouped by category with prices (from custom services)
-- **Working Hours** — free-text hours block
-- **Contact** — phone, email, address, Google Maps link, WhatsApp, Facebook
-- **Footer** — copyright + Staff Login + Book Appointment + "Powered by ClinicPOS"
+
+#### Hero Section
+- **Full-screen photo background** — clinic's own uploaded image or default medical stock photo
+- **Floating → sticky navbar** — transparent over hero, white with blur on scroll; mobile hamburger with slide-down drawer
+- **"Now Accepting Patients"** live badge with teal pulse dot
+- **Clinic name + tagline** with staggered fade-in animations
+- **Info pills** — address, "Open Today", doctor count
+- **CTA buttons** — Book Appointment + Call Us (phone)
+- **Trust badges** — Verified Clinic · Top Rated · MOH Registered
+- **Stats bar** at bottom of hero — 5,000+ Patients · 98% Satisfaction · 24/7 Booking · 10+ Specialists
+- **Floating info card** (desktop) — phone, email, hours, doctor avatar chips; card has a subtle float animation
+- Scroll mouse indicator
+
+#### About Section
+- Two-column layout: section heading + description paragraph
+- "Why Choose Us" three cards: Expert Care · Modern Facility · Easy Booking
+  - Each card flips to a blue gradient on hover
+
+#### Doctors Section
+- Dark slate background with subtle cross-hatch texture
+- Doctor cards: photo (scales on hover), green "Available" badge, specialization pill, Book button fills blue on hover
+
+#### Services Section
+- Smart icon mapping by service keyword — heart/cardio → Heart (red), eye/vision → Eye (teal), lab/blood → Flask (purple), child/baby → Baby (pink), neuro → Activity (indigo), surgery → Zap (amber), default → CheckCircle (blue)
+- Price shown as blue badge; descriptions clamped to 2 lines
+
+#### Contact & Hours
+- Colour-coded individual cards per contact item (phone, email, address, WhatsApp, Facebook, Google Maps)
+- Hours: dark slate card with gradient header + Book button built in
+
+#### CTA Banner
+- Two-column: headline left, Book + Call buttons right
+- Blue-to-indigo gradient with ambient glow orbs
+
+#### Footer
+- 4-column layout: brand + social icon buttons · Quick Links · Contact · Hours
+- Translate-x hover on links
+
+#### Scroll Animations
+- All sections use `IntersectionObserver` for scroll-reveal (fadeInUp / fadeInLeft / fadeInRight / scaleIn)
+- Staggered per-card delays for grid items
 
 ### How It Works
 - URL is auto-derived from subdomain: `familycare.healthcenter.lk/`
@@ -928,22 +963,54 @@ Every clinic automatically gets a branded public website at their subdomain. No 
 | Google Maps Link | Opens in Maps when clicked |
 | WhatsApp Number | Country code + number, no `+` |
 | Facebook URL | Full URL to Facebook page |
+| Hero Background Image | Upload from device (JPG/PNG, max 5MB) OR paste external URL. Preview with hover Remove button. Stored in `/uploads/tenants/{id}/hero/`. Leave blank for default medical photo. |
 
 Clinic name, address, phone, email, logo, doctors, and services come automatically from existing settings — no duplication.
+
+### Hero Image Upload
+- `POST /api/v1/settings/hero-image` — multer upload, 5MB limit, stored at `uploads/tenants/{schema}/hero/hero_{timestamp}.ext`
+- Auto-deletes old local file on replacement (external URLs are left untouched)
+- `DELETE /api/v1/settings/hero-image` — removes file from disk and clears DB field
+- If `website_hero_url` starts with `/uploads/`, `mediaUrl()` is applied; external URLs used as-is
 
 ### Super Admin Controls
 From `admin.healthcenter.lk/clinics/{id}` → Feature Flags card → **Public Website** toggle at the top:
 - Super admin can disable a clinic's website even if the clinic admin has it enabled
 - Useful for: suspended clinics, non-paying plans, or support cases
+- Endpoint: `PATCH /api/v1/admin/tenants/:id/website-enabled`
 
-### Backend Endpoint
-`GET /api/v1/portal/website` — public, no auth required. Returns clinic info, doctors, and services in one call.
+### Backend Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/v1/portal/website` | Public, no auth. Returns clinic info, doctors, services in one call |
+| `POST /api/v1/settings/hero-image` | Admin only. Upload hero photo from device |
+| `DELETE /api/v1/settings/hero-image` | Admin only. Remove hero photo |
+| `PATCH /api/v1/admin/tenants/:id/website-enabled` | Super admin. Toggle website on/off |
+
+### Database Changes
+```
+clinic_settings table (migrate_website_settings.js):
+  + website_enabled   BOOLEAN DEFAULT TRUE
+  + website_tagline   VARCHAR(255)
+  + website_about     TEXT
+  + website_hours     TEXT
+  + website_map_url   VARCHAR(500)
+  + website_whatsapp  VARCHAR(30)
+  + website_facebook  VARCHAR(255)
+  + website_hero_url  VARCHAR(500)
+```
+
+### Migration
+```bash
+cd backend-api
+node src/db/migrate_website_settings.js
+```
 
 ### Who Can Access
 | Who | Access |
 |-----|--------|
-| Anyone (public) | `/{subdomain}.healthcenter.lk/` — no login |
-| Clinic admin | Settings → Website tab to manage content |
+| Anyone (public) | `{subdomain}.healthcenter.lk/` — no login |
+| Clinic admin | Settings → Website tab to manage all content + hero image |
 | Super admin | ClinicDetailPage → Feature Flags → Public Website toggle |
 
 ---
