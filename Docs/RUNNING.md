@@ -153,6 +153,9 @@ node -r dotenv/config src/db/migrate_fix_new_clinics.js
 
 # Website settings — adds website_enabled/tagline/about/hours/map_url/whatsapp/facebook/hero_url to all tenant clinic_settings
 node -r dotenv/config src/db/migrate_website_settings.js
+
+# Broadcast announcements — creates broadcast_announcements + announcement_reads tables in public schema
+node -r dotenv/config src/db/migrate_broadcast_announcements.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -325,7 +328,10 @@ clinicpos/
 │   │   │   ├── migrate_platform_settings.js            — public.platform_settings table (landing page toggle)
 │   │   │   ├── migrate_platform_info.js                — seeds 17 company/contact/payment/system keys
 │   │   │   ├── migrate_vitals.js                       — patient_vitals table in all tenant schemas
-│   │   │   └── migrate_fix_new_clinics.js              — backport addon tables to all existing schemas
+│   │   │   ├── migrate_fix_new_clinics.js              — backport addon tables to all existing schemas
+│   │   │   ├── migrate_website_settings.js             — website_enabled + 7 columns to tenant clinic_settings
+│   │   │   ├── migrate_contact_enquiries.js            — public.contact_enquiries table (landing page form)
+│   │   │   └── migrate_broadcast_announcements.js      — public.broadcast_announcements + announcement_reads
 │   │   ├── utils/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
 │   │   │   └── bookingReference.js — shared BK-XXXXXX generator
@@ -353,14 +359,15 @@ clinicpos/
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
 │   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
+│   │   │   ├── my-day/           — MyDayPage.jsx — doctor daily view (today's schedule + pending labs + today's Rx)
 │   │   │   ├── public/           — PublicClinicPage.jsx (public / root page, no auth — clinic's own website)
 │   │   │   ├── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
 │   │   │   ├── subscription/     — SubscriptionPage.jsx — clinic admin views own subscription status
 │   │   │   └── help/             — HelpPage.jsx — step-by-step guide per role (Overview/Receptionist/Doctor/Nurse/Admin tabs)
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar (collapsible), TopBar (live clock + dark toggle), PageLayout, ProtectedRoute
-│   │   │   └── ui/               — Button, Input, Select, Modal, Drawer, Badge, Card, DatePicker, Spinner, EmptyState, OfflineBanner, ConfirmDialog, DispenseModal
-│   │   ├── api/                  — One file per module (patients.js, pharmacy.js, lab.js, portal.js, etc.)
+│   │   │   └── ui/               — Button, Input, Select, Modal, Drawer, Badge, Card, DatePicker, Spinner, EmptyState, OfflineBanner, ConfirmDialog, DispenseModal, AnnouncementBanner
+│   │   ├── api/                  — One file per module (patients.js, pharmacy.js, lab.js, portal.js, announcements.js, etc.)
 │   │   ├── store/                — AuthContext, ThemeContext
 │   │   ├── utils/                — format.js, mediaUrl.js, printTokenSlip.js
 │   │   ├── styles/               — variables.css (CSS vars + dark mode overrides)
@@ -380,6 +387,10 @@ clinicpos/
 │   │   │   ├── ClinicDetailPage.jsx  — Clinic detail + feature flags + suspend/activate + set plan/renew
 │   │   │   ├── PlansPage.jsx         — CRUD for subscription plans (name, billing cycle, price)
 │   │   │   ├── SubscriptionsPage.jsx — All clinics subscription status + assign/renew plan
+│   │   │   ├── EnquiriesPage.jsx     — Contact form submissions from landing page (list, mark read, delete, reply)
+│   │   │   ├── AnnouncementsPage.jsx — Create/publish/archive broadcast messages to all clinic dashboards
+│   │   │   ├── SystemHealthPage.jsx  — Real-time server + DB + memory + CPU metrics (30s auto-refresh)
+│   │   │   ├── SystemLogsPage.jsx    — Audit log viewer (all API mutations, filterable)
 │   │   │   └── PlatformSettingsPage.jsx — 4-tab: Company Info, Contact Details, Payment Details, System
 │   │   ├── components/
 │   │   │   ├── layout/
@@ -394,7 +405,7 @@ clinicpos/
 │   │   │       ├── ConfirmDialog.jsx — Wraps Modal for all destructive confirmations
 │   │   │       └── EmptyState.jsx  — Consistent empty list state component
 │   │   ├── api/
-│   │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi, adminPlansApi, adminSubscriptionsApi
+│   │   │   └── admin.js            — adminAuthApi, adminTenantsApi, adminFlagsApi, adminDashboardApi, adminPlansApi, adminSubscriptionsApi, adminPlatformApi, adminSystemApi, adminEnquiriesApi, adminAnnouncementsApi
 │   │   ├── store/
 │   │   │   ├── AdminAuthContext.jsx — Admin JWT + login/logout
 │   │   │   └── ThemeContext.jsx     — Dark/light mode toggle (persisted in localStorage)

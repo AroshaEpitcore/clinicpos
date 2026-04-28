@@ -17,9 +17,9 @@
 
 ## Current Status
 
-**Currently working on:** Public clinic website UI polish + docs update
-**Last updated:** 2026-04-26
-**Next up:** Phase 6 — payment gateway integration, SMS reminders, audit log, system health
+**Currently working on:** Docs update
+**Last updated:** 2026-04-28
+**Next up:** Phase 6 — payment gateway integration, SMS reminders, WhatsApp integration
 
 ### What is fully complete right now
 
@@ -30,6 +30,9 @@
 | Phase 3 — Branding + PDF | ✅ Clinic logo, doctor signatures, invoice PDF, prescription PDF |
 | Phase 4 — Super admin | ✅ Admin panel, clinic creation with credentials, impersonation, feature flag toggles, suspend/activate |
 | Phase 4 — Admin UI Rebuild | ✅ DESIGN.md-compliant: CSS variables, dark mode, Radix Dialog, matching sidebar/TopBar, Inter font (2026-04-18) |
+| Phase 5.6 — Session Timeout Enforcement | ✅ Idle timer in AuthContext.jsx — reads session_timeout_minutes, tracks activity events, auto-logout + /login?reason=timeout toast (2026-04-28) |
+| Phase 5.6 — Broadcast Announcements | ✅ Super admin creates/publishes announcements → dismissible colour-coded banners on all 4 clinic dashboards. `broadcast_announcements` + `announcement_reads` tables. (2026-04-28) |
+| Phase 5.6 — Doctor My Day Page | ✅ /my-day (doctors only): today's schedule, awaiting lab results, today's prescriptions. Single backend endpoint. 30s auto-refresh. Sunrise icon in sidebar. (2026-04-28) |
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
@@ -107,7 +110,6 @@
 | Item | Deferred to |
 |------|-------------|
 | `duplicate_check_enabled` backend logic | Phase 6 |
-| Session timeout backend enforcement | Phase 6 |
 | PDF export for all reports | Phase 6 |
 | Payment gateway integration (LKR online payments) | Phase 6 |
 | SMS/WhatsApp appointment reminders | Phase 6 |
@@ -115,8 +117,10 @@
 | Appointment reminder SMS/WhatsApp job | Phase 6 |
 
 > **Already completed (previously deferred):**
-> - ~~Super admin system health~~ → ✅ Done (Section 16 in features doc)
-> - ~~Super admin audit log viewer~~ → ✅ Done (Section 15 in features doc, `public.system_audit_logs`)
+> - ~~Super admin system health~~ → ✅ Done (real OS + DB metrics, 30s auto-refresh)
+> - ~~Super admin audit log viewer~~ → ✅ Done (`public.system_audit_logs`, middleware logs all mutations)
+> - ~~Session timeout backend enforcement~~ → ✅ Done 2026-04-28 (idle timer in AuthContext.jsx)
+> - ~~Broadcast announcements~~ → ✅ Done 2026-04-28 (super admin → all clinic dashboards)
 
 ---
 

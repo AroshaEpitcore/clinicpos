@@ -89,7 +89,7 @@ Phase 7  →  Desktop version (later)
 | Tenant middleware — read subdomain → load tenant + feature flags | [x] |
 | `POST /api/v1/auth/logout` — invalidate token | [x] |
 | Password hashing with bcrypt | [x] |
-| Session timeout enforcement | [ ] *(UI built in Phase 2.7 — backend enforcement deferred to Phase 5)* |
+| Session timeout enforcement | [x] *(idle timer in AuthContext.jsx — reads session_timeout_minutes from /settings, tracks activity events, auto-logs out + redirects to /login?reason=timeout — done 2026-04-28)* |
 | Test: login as doctor, login as receptionist, login as admin | [x] |
 | Test: wrong role gets 403, wrong tenant gets 403 | [x] |
 
@@ -460,9 +460,9 @@ Phase 7  →  Desktop version (later)
 | Plans + Subscriptions nav items in AdminLayout sidebar | admin-frontend | [x] *(done 2026-04-20)* |
 | `SubscriptionPage.jsx` — clinic admin views own plan, dates, days remaining, expiry warnings | clinic-frontend | [x] *(done 2026-04-20)* |
 | Subscription nav item in clinic Sidebar (admin only) | clinic-frontend | [x] *(done 2026-04-20)* |
-| Announcement send to all or selected clinics | admin-frontend | [ ] *(deferred)* |
-| System health display — server, DB, uptime | admin-frontend | [ ] *(deferred)* |
-| Audit log viewer | admin-frontend | [ ] *(deferred)* |
+| Broadcast Announcements — create/publish/archive from super admin, appear as dismissible banners on all clinic dashboards (all 4 roles). Tables: `broadcast_announcements` + `announcement_reads`. Priority levels: info/normal/urgent with colour coding. | admin-frontend + clinic-frontend | [x] *(done 2026-04-28)* |
+| System health display — server, DB, uptime | admin-frontend | [x] *(done — real metrics from OS module + DB)* |
+| Audit log viewer | admin-frontend | [x] *(done — `system_audit_logs` table, middleware logs all mutations)* |
 | **UI Design Rebuild (DESIGN.md compliance)** | | |
 | CSS variables system (`variables.css`) + `.dark {}` overrides | admin-frontend | [x] *(done 2026-04-18)* |
 | `ThemeContext` dark/light toggle — persisted to localStorage | admin-frontend | [x] *(done 2026-04-18)* |
@@ -666,6 +666,16 @@ Phase 7  →  Desktop version (later)
 | `/display` public route registered in `App.jsx` | frontend | [x] |
 
 **Access:** Public (no login). Admin enables the toggle in Settings → Security. Staff do not need to be logged in to view the display on a waiting room TV.
+
+---
+
+### Phase 5.6 — Post-Launch UX Features *(added 2026-04-28)*
+
+| Task | Project | Done |
+|------|---------|------|
+| **Session Timeout Idle Enforcement** — `AuthContext.jsx` tracks mouse/keyboard/touch/scroll activity. Reads `session_timeout_minutes` from `/settings`. Auto-logs out after idle period. LoginPage shows toast when redirected via `?reason=timeout`. | clinic-frontend | [x] *(2026-04-28)* |
+| **Broadcast Announcements** — Super admin creates announcements (title, message, priority, optional expiry). Publish/archive actions. Clinic dashboards show dismissible `AnnouncementBanner` (all 4 roles). Dismissals tracked per clinic in `announcement_reads` table. Priority: urgent=red, normal=blue, info=green. `migrate_broadcast_announcements.js`. | admin-frontend + clinic-frontend + backend | [x] *(2026-04-28)* |
+| **Doctor My Day Page** — `/my-day` (doctors only). Single backend call `GET /appointments/my-day` returns today's appointments, pending lab requests (awaiting results), and prescriptions written today. Frontend: 3 sections with status-tab filtered appointment cards, lab items with days-waiting, Rx list. Sidebar nav item (Sunrise icon). Auto-refreshes 30s. | clinic-frontend + backend | [x] *(2026-04-28)* |
 
 ---
 
