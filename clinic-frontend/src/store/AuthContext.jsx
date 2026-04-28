@@ -1,16 +1,54 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import api from '../api/index';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser]               = useState(null);   // { id, name, email, role }
-  const [tenantFlags, setTenantFlags] = useState({});     // { pharmacy: bool, lab: bool, ... }
-  const [clinic, setClinic]           = useState(null);   // { name, logo_url, currency }
-  const [loading, setLoading]         = useState(true);   // restoring session from localStorage
+const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
 
-  // Restore session from localStorage on first load, then refresh clinic info from API
-  // so all browsers immediately see the latest logo/name without clearing cache.
+export function AuthProvider({ children }) {
+  const [user, setUser]               = useState(null);
+  const [tenantFlags, setTenantFlags] = useState({});
+  const [clinic, setClinic]           = useState(null);
+  const [loading, setLoading]         = useState(true);
+
+  const lastActiveRef = useRef(Date.now());
+  const intervalRef   = useRef(null);
+  const handlerRef    = useRef(null);
+
+  function stopIdleWatcher() {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (handlerRef.current) {
+      ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, handlerRef.current));
+      handlerRef.current = null;
+    }
+  }
+
+  function startIdleWatcher(timeoutMinutes) {
+    stopIdleWatcher();
+    lastActiveRef.current = Date.now();
+
+    handlerRef.current = () => { lastActiveRef.current = Date.now(); };
+    ACTIVITY_EVENTS.forEach(e =>
+      window.addEventListener(e, handlerRef.current, { passive: true })
+    );
+
+    const timeoutMs = timeoutMinutes * 60 * 1000;
+    intervalRef.current = setInterval(() => {
+      if (Date.now() - lastActiveRef.current >= timeoutMs) {
+        stopIdleWatcher();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('flags');
+        localStorage.removeItem('clinic');
+        window.location.href = '/login?reason=timeout';
+      }
+    }, 30_000);
+  }
+
+  // Restore session from localStorage on mount
   useEffect(() => {
     const token       = localStorage.getItem('token');
     const savedUser   = localStorage.getItem('user');
@@ -21,24 +59,33 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(savedUser));
       setTenantFlags(savedFlags  ? JSON.parse(savedFlags)  : {});
       setClinic(savedClinic ? JSON.parse(savedClinic) : null);
-
-      // Background refresh — keeps logo/name in sync across all browsers
-      api.get('/settings')
-        .then(res => {
-          const s = res.data?.data;
-          if (!s) return;
-          const fresh = {
-            name:     s.clinic_name     || null,
-            logo_url: s.clinic_logo_url || null,
-            currency: s.currency        || 'LKR',
-          };
-          localStorage.setItem('clinic', JSON.stringify(fresh));
-          setClinic(fresh);
-        })
-        .catch(() => {});
     }
     setLoading(false);
+
+    return () => stopIdleWatcher();
   }, []);
+
+  // Fetch latest settings + start idle watcher whenever user session becomes active
+  useEffect(() => {
+    if (!user) return;
+
+    api.get('/settings')
+      .then(res => {
+        const s = res.data?.data;
+        if (!s) return;
+        const fresh = {
+          name:     s.clinic_name     || null,
+          logo_url: s.clinic_logo_url || null,
+          currency: s.currency        || 'LKR',
+        };
+        localStorage.setItem('clinic', JSON.stringify(fresh));
+        setClinic(fresh);
+
+        const minutes = parseInt(s.session_timeout_minutes, 10) || 480;
+        startIdleWatcher(minutes);
+      })
+      .catch(() => {});
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function login(token, userData, flags, clinicData) {
     localStorage.setItem('token',  token);
@@ -58,6 +105,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    stopIdleWatcher();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('flags');

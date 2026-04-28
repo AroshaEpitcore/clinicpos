@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Users, Calendar, Receipt, Activity } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -18,8 +18,16 @@ const FEATURES = [
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate  = useNavigate();
+  const location  = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [clinic, setClinic] = useState({ name: 'ClinicPOS', logo_url: null });
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reason') === 'timeout') {
+      toast.warning('You were signed out due to inactivity.');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     api.get('/portal/info')
