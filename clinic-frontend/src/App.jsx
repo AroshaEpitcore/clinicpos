@@ -11,6 +11,9 @@ import PatientProfile from './pages/patients/PatientProfile';
 // Phase 2.2 — Appointments
 import AppointmentsPage from './pages/appointments/AppointmentsPage';
 
+// Doctor's My Day view
+import MyDayPage from './pages/my-day/MyDayPage';
+
 // Phase 2.3 — Consultations
 import ConsultationsPage from './pages/consultations/ConsultationsPage';
 
@@ -76,6 +79,13 @@ export default function App() {
       {/* Phase 2.1 — Patients */}
       <Route path="/patients"     element={<ProtectedRoute><PatientList /></ProtectedRoute>} />
       <Route path="/patients/:id" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
+
+      {/* Doctor's My Day */}
+      <Route path="/my-day" element={
+        <ProtectedRoute allowedRoles={['doctor']}>
+          <MyDayPage />
+        </ProtectedRoute>
+      } />
 
       {/* Phase 2.2 — Appointments */}
       <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />

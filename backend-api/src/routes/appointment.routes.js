@@ -220,4 +220,88 @@ router.delete('/:id', requireRole('receptionist', 'admin'), async (req, res) => 
   }
 });
 
+// ── GET /api/v1/appointments/my-day ──────────────────────────────────────────
+// Doctor's personal daily summary: appointments + pending labs + today's Rx
+router.get('/my-day', requireRole('doctor'), async (req, res) => {
+  const schema   = req.tenantSchema;
+  const doctorId = req.user.id;
+  const today    = new Date().toISOString().slice(0, 10);
+
+  const safeQuery = (sql, params) =>
+    queryTenant(schema, sql, params).catch(() => ({ rows: [] }));
+
+  try {
+    const [apptResult, labResult, rxResult] = await Promise.all([
+      // Today's appointments for this doctor
+      queryTenant(schema, `
+        SELECT
+          a.id, a.token_number, a.appointment_time, a.type, a.status,
+          a.reason, a.notes, a.booked_online, a.booking_source,
+          p.id           AS patient_id,
+          p.patient_code,
+          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
+          p.phone        AS patient_phone,
+          p.allergies    AS patient_allergies,
+          c.id           AS consultation_id,
+          pr.id          AS prescription_id
+        FROM appointments a
+        JOIN patients p ON p.id = a.patient_id
+        LEFT JOIN consultations c  ON c.appointment_id = a.id
+        LEFT JOIN prescriptions pr ON pr.consultation_id = c.id
+        WHERE a.doctor_id = $1
+          AND a.appointment_date = $2
+          AND a.status != 'cancelled'
+        ORDER BY
+          CASE WHEN a.type = 'emergency' THEN 0 ELSE 1 END,
+          a.token_number ASC NULLS LAST,
+          a.appointment_time ASC NULLS LAST
+      `, [doctorId, today]),
+
+      // Pending lab requests ordered by this doctor (not yet resulted)
+      safeQuery(`
+        SELECT
+          lr.id, lr.status, lr.created_at,
+          p.id AS patient_id, p.patient_code,
+          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
+          t.name AS test_name, t.code AS test_code, t.category
+        FROM lab_requests lr
+        JOIN patients  p ON p.id = lr.patient_id
+        JOIN lab_tests t ON t.id = lr.test_id
+        WHERE lr.requested_by = $1
+          AND lr.status IN ('pending', 'collected')
+        ORDER BY lr.created_at ASC
+        LIMIT 30
+      `, [doctorId]),
+
+      // Prescriptions written today by this doctor
+      safeQuery(`
+        SELECT
+          pr.id, pr.rx_number, pr.created_at, pr.notes,
+          p.id AS patient_id, p.patient_code,
+          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
+          COUNT(pi.id)::int AS item_count
+        FROM prescriptions pr
+        JOIN patients p ON p.id = pr.patient_id
+        LEFT JOIN prescription_items pi ON pi.prescription_id = pr.id
+        WHERE pr.doctor_id = $1
+          AND DATE(pr.created_at) = $2
+        GROUP BY pr.id, p.id, p.patient_code, p.first_name, p.last_name
+        ORDER BY pr.created_at ASC
+      `, [doctorId, today]),
+    ]);
+
+    res.json({
+      status: 'success',
+      data: {
+        appointments: apptResult.rows,
+        lab_pending:  labResult.rows,
+        rx_today:     rxResult.rows,
+      }
+    });
+  } catch (err) {
+    console.error('GET /appointments/my-day', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
 module.exports = router;

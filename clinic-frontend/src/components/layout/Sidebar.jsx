@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   Pill, Receipt, Package, FlaskConical, BarChart2,
-  Settings, Stethoscope, Shield, UserCog, CreditCard, BookOpen, ScrollText,
+  Settings, Stethoscope, Shield, UserCog, CreditCard, BookOpen, ScrollText, Sunrise,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth }   from '../../store/AuthContext';
@@ -10,6 +10,7 @@ import { mediaUrl }  from '../../utils/mediaUrl';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: LayoutDashboard, href: '/dashboard',     roles: ['doctor', 'receptionist', 'nurse', 'admin'] },
+  { label: 'My Day',        icon: Sunrise,         href: '/my-day',        roles: ['doctor'] },
   { label: 'Patients',      icon: Users,            href: '/patients',      roles: ['receptionist', 'doctor', 'nurse', 'admin'] },
   { label: 'Appointments',  icon: Calendar,         href: '/appointments',  roles: ['receptionist', 'doctor', 'nurse', 'admin'] },
   { label: 'Consultations', icon: Stethoscope,      href: '/consultations', roles: ['doctor', 'admin'] },
