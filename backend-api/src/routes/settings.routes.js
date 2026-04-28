@@ -325,4 +325,44 @@ router.get('/subscription', requireRole('admin'), async (req, res) => {
   }
 });
 
+// ── GET /api/v1/settings/announcements ───────────────────────────────────────
+// Returns published, non-expired announcements not yet dismissed by this clinic
+router.get('/announcements', async (req, res) => {
+  const schema = req.tenantSchema;
+  try {
+    const result = await queryPublic(`
+      SELECT a.*
+      FROM public.broadcast_announcements a
+      WHERE a.status = 'published'
+        AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        AND NOT EXISTS (
+          SELECT 1 FROM public.announcement_reads r
+          WHERE r.announcement_id = a.id AND r.tenant_schema = $1
+        )
+      ORDER BY
+        CASE a.priority WHEN 'urgent' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END,
+        a.published_at DESC
+    `, [schema]);
+    res.json({ status: 'success', data: result.rows });
+  } catch (err) {
+    console.error('GET /settings/announcements', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── POST /api/v1/settings/announcements/:id/dismiss ──────────────────────────
+router.post('/announcements/:id/dismiss', async (req, res) => {
+  const schema = req.tenantSchema;
+  try {
+    await queryPublic(`
+      INSERT INTO public.announcement_reads (announcement_id, tenant_schema)
+      VALUES ($1, $2) ON CONFLICT DO NOTHING
+    `, [req.params.id, schema]);
+    res.json({ status: 'success', message: 'Dismissed' });
+  } catch (err) {
+    console.error('POST /settings/announcements/:id/dismiss', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 module.exports = router;

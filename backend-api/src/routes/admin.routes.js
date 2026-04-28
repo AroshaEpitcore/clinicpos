@@ -900,4 +900,102 @@ router.delete('/enquiries/:id', async (req, res) => {
   }
 });
 
+// ── GET /api/v1/admin/announcements ──────────────────────────────────────────
+router.get('/announcements', async (req, res) => {
+  try {
+    const result = await queryPublic(`
+      SELECT a.*,
+        (SELECT COUNT(*) FROM public.announcement_reads r WHERE r.announcement_id = a.id)::int AS read_count
+      FROM public.broadcast_announcements a
+      ORDER BY a.created_at DESC
+    `);
+    res.json({ status: 'success', data: result.rows });
+  } catch (err) {
+    console.error('GET /admin/announcements', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── POST /api/v1/admin/announcements ─────────────────────────────────────────
+router.post('/announcements', async (req, res) => {
+  const { title, message, priority = 'normal', expires_at } = req.body;
+  if (!title || !message) {
+    return res.status(400).json({ status: 'error', message: 'Title and message are required' });
+  }
+  try {
+    const result = await queryPublic(`
+      INSERT INTO public.broadcast_announcements (title, message, priority, expires_at)
+      VALUES ($1, $2, $3, $4) RETURNING *
+    `, [title, message, priority, expires_at || null]);
+    res.status(201).json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('POST /admin/announcements', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PUT /api/v1/admin/announcements/:id ──────────────────────────────────────
+router.put('/announcements/:id', async (req, res) => {
+  const { title, message, priority, expires_at } = req.body;
+  try {
+    const result = await queryPublic(`
+      UPDATE public.broadcast_announcements
+      SET title      = COALESCE($1, title),
+          message    = COALESCE($2, message),
+          priority   = COALESCE($3, priority),
+          expires_at = $4,
+          updated_at = NOW()
+      WHERE id = $5 RETURNING *
+    `, [title || null, message || null, priority || null, expires_at || null, req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ status: 'error', message: 'Not found' });
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('PUT /admin/announcements/:id', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PATCH /api/v1/admin/announcements/:id/publish ────────────────────────────
+router.patch('/announcements/:id/publish', async (req, res) => {
+  try {
+    const result = await queryPublic(`
+      UPDATE public.broadcast_announcements
+      SET status = 'published', published_at = NOW(), updated_at = NOW()
+      WHERE id = $1 RETURNING *
+    `, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ status: 'error', message: 'Not found' });
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('PATCH /admin/announcements/:id/publish', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── PATCH /api/v1/admin/announcements/:id/archive ────────────────────────────
+router.patch('/announcements/:id/archive', async (req, res) => {
+  try {
+    const result = await queryPublic(`
+      UPDATE public.broadcast_announcements
+      SET status = 'archived', updated_at = NOW()
+      WHERE id = $1 RETURNING *
+    `, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ status: 'error', message: 'Not found' });
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error('PATCH /admin/announcements/:id/archive', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// ── DELETE /api/v1/admin/announcements/:id ────────────────────────────────────
+router.delete('/announcements/:id', async (req, res) => {
+  try {
+    await queryPublic(`DELETE FROM public.broadcast_announcements WHERE id = $1`, [req.params.id]);
+    res.json({ status: 'success', message: 'Deleted' });
+  } catch (err) {
+    console.error('DELETE /admin/announcements/:id', err);
+    res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
 module.exports = router;

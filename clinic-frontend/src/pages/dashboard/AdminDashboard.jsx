@@ -9,6 +9,7 @@ import { LoadingState } from '../../components/ui/Spinner';
 import { reportsApi }   from '../../api/reports';
 import { medicinesApi } from '../../api/medicines';
 import { formatCurrency, toInputDate } from '../../utils/format';
+import { AnnouncementBanner }          from '../../components/ui/AnnouncementBanner';
 
 export default function AdminDashboard() {
   const navigate  = useNavigate();
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
 
   return (
     <PageLayout title="Dashboard">
+      <AnnouncementBanner />
       <PageHeader
         title="Admin Overview"
         subtitle={`Today — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}

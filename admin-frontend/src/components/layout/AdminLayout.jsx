@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, LogOut, Menu, Sun, Moon, CreditCard, RefreshCw, Settings,
-  Activity, ScrollText, MessageSquare,
+  Activity, ScrollText, MessageSquare, Megaphone,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuth } from '../../store/AdminAuthContext';
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { to: '/subscriptions',     label: 'Subscriptions',      icon: RefreshCw },
   { to: '/platform-settings', label: 'Platform Settings',  icon: Settings },
   { to: '/enquiries',         label: 'Enquiries',          icon: MessageSquare },
+  { to: '/announcements',     label: 'Announcements',      icon: Megaphone },
   { to: '/system-health',     label: 'System Health',      icon: Activity },
   { to: '/system-logs',       label: 'System Logs',        icon: ScrollText },
 ];

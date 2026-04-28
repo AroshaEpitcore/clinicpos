@@ -79,4 +79,13 @@ export const adminEnquiriesApi = {
   delete:   (id) => api.delete(`/enquiries/${id}`),
 };
 
+export const adminAnnouncementsApi = {
+  list:    ()          => api.get('/announcements'),
+  create:  (body)      => api.post('/announcements', body),
+  update:  (id, body)  => api.put(`/announcements/${id}`, body),
+  publish: (id)        => api.patch(`/announcements/${id}/publish`),
+  archive: (id)        => api.patch(`/announcements/${id}/archive`),
+  delete:  (id)        => api.delete(`/announcements/${id}`),
+};
+
 export default api;

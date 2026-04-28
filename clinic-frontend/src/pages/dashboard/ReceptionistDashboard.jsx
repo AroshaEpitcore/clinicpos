@@ -10,6 +10,7 @@ import { appointmentsApi }  from '../../api/appointments';
 import { endOfDayApi }      from '../../api/invoices';
 import { medicinesApi }     from '../../api/medicines';
 import { formatCurrency, toInputDate } from '../../utils/format';
+import { AnnouncementBanner }          from '../../components/ui/AnnouncementBanner';
 
 const STATUS_STYLES = {
   pending:   'bg-amber-50 text-amber-700',
@@ -60,6 +61,7 @@ export default function ReceptionistDashboard() {
 
   return (
     <PageLayout title="Dashboard">
+      <AnnouncementBanner />
       <PageHeader
         title="Reception Desk"
         subtitle={`Today — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}

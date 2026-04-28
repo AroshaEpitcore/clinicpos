@@ -8,6 +8,7 @@ import { LoadingState }     from '../../components/ui/Spinner';
 import { appointmentsApi }  from '../../api/appointments';
 import { useAuth }          from '../../store/AuthContext';
 import { toInputDate }      from '../../utils/format';
+import { AnnouncementBanner } from '../../components/ui/AnnouncementBanner';
 
 const STATUS_STYLES = {
   pending:   'bg-amber-50 text-amber-700 border-amber-200',
@@ -61,6 +62,7 @@ export default function DoctorDashboard() {
 
   return (
     <PageLayout title="Dashboard">
+      <AnnouncementBanner />
       <PageHeader
         title={`${greeting}, ${user?.name}`}
         subtitle={`Today — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}

@@ -7,6 +7,7 @@ import { Card }             from '../../components/ui/Card';
 import { LoadingState }     from '../../components/ui/Spinner';
 import { appointmentsApi }  from '../../api/appointments';
 import { toInputDate }      from '../../utils/format';
+import { AnnouncementBanner } from '../../components/ui/AnnouncementBanner';
 
 export default function NurseDashboard() {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export default function NurseDashboard() {
 
   return (
     <PageLayout title="Dashboard">
+      <AnnouncementBanner />
       <PageHeader
         title="Nurse Station"
         subtitle={`Today — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
