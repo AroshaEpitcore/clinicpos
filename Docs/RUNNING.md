@@ -156,6 +156,13 @@ node -r dotenv/config src/db/migrate_website_settings.js
 
 # Broadcast announcements — creates broadcast_announcements + announcement_reads tables in public schema
 node -r dotenv/config src/db/migrate_broadcast_announcements.js
+
+# Lanka QR Payment — adds qr_image_url/qr_image_filename to tenant clinic_settings; adds qr_total column to end_of_day
+node -r dotenv/config src/db/migrate_qr_payment.js
+
+# System audit logs type fix — changes tenant_id and user_id columns from INTEGER to VARCHAR(50) in system_audit_logs
+# NOTE: already run on production server (2026-04-30). Run on fresh installs only if needed.
+node -r dotenv/config src/db/migrate_system_logs_fix.js
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -331,7 +338,9 @@ clinicpos/
 │   │   │   ├── migrate_fix_new_clinics.js              — backport addon tables to all existing schemas
 │   │   │   ├── migrate_website_settings.js             — website_enabled + 7 columns to tenant clinic_settings
 │   │   │   ├── migrate_contact_enquiries.js            — public.contact_enquiries table (landing page form)
-│   │   │   └── migrate_broadcast_announcements.js      — public.broadcast_announcements + announcement_reads
+│   │   │   ├── migrate_broadcast_announcements.js      — public.broadcast_announcements + announcement_reads
+│   │   │   ├── migrate_qr_payment.js                   — qr_image_url/qr_image_filename in clinic_settings + qr_total in end_of_day
+│   │   │   └── migrate_system_logs_fix.js              — changes tenant_id/user_id in system_audit_logs from INTEGER to VARCHAR(50)
 │   │   ├── utils/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
 │   │   │   └── bookingReference.js — shared BK-XXXXXX generator
@@ -426,8 +435,9 @@ clinicpos/
     │   ├── pages/
     │   │   ├── LandingPage.jsx     — Marketing homepage (hero, features, pricing, testimonials, CTA)
     │   │   └── GuidePage.jsx       — Public user guide (tabs: Overview, Receptionist, Doctor, Nurse, Admin)
-    │   ├── sections/               — HeroSection, FeaturesSection, WorkflowSection, RolesSection,
-    │   │                             PricingSection, TestimonialsSection, CtaSection, TrustBar
+    │   ├── sections/               — HeroSection, TrustBar, FeaturesSection, QrPaymentSection,
+    │   │                             ClinicWebsiteSection, WorkflowSection, RolesSection,
+    │   │                             PricingSection, TestimonialsSection, ContactSection, CtaSection
     │   ├── components/layout/
     │   │   ├── Navbar.jsx          — Sticky nav with logosmall.png + left-side slide drawer (mobile)
     │   │   ├── Footer.jsx          — Footer with logosmall.png + dynamic platform info from API

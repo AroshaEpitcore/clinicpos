@@ -333,8 +333,9 @@ Phase 7  →  Desktop version (later)
 | EndOfDayPage — totals, cash count, discrepancy, lock button | frontend | [x] |
 | Invoice "Download PDF" button in InvoiceModal | frontend | [x] |
 
-**Completed:** 2026-04-09
-**Test:** Complete consultation → click Bill on queue row → invoice auto-populated with doctor fee and medicines. Add service item. Pay cash + insurance in two steps → both recorded as splits. EOD shows correct totals. Cash short highlighted in red.
+**Completed:** 2026-04-09 (base) — Lanka QR Payment added 2026-04-30
+**Note (2026-04-30):** QR Pay added as a 5th payment method. Clinic admin uploads their bank's Lanka QR image in Settings → Billing tab. InvoiceModal shows a full-screen QR dialog when QR Pay is selected — displays the QR image + invoice amount + Download button. `qr_total` tracked in `end_of_day`. `migrate_qr_payment.js` adds DB columns.
+**Test:** Complete consultation → click Bill on queue row → invoice auto-populated with doctor fee and medicines. Add service item. Pay cash + insurance in two steps → both recorded as splits. EOD shows correct totals. Cash short highlighted in red. QR Pay: select QR Pay → dialog shows QR image + amount → click Payment Received → invoice marked paid.
 
 ---
 
@@ -676,6 +677,7 @@ Phase 7  →  Desktop version (later)
 | **Session Timeout Idle Enforcement** — `AuthContext.jsx` tracks mouse/keyboard/touch/scroll activity. Reads `session_timeout_minutes` from `/settings`. Auto-logs out after idle period. LoginPage shows toast when redirected via `?reason=timeout`. | clinic-frontend | [x] *(2026-04-28)* |
 | **Broadcast Announcements** — Super admin creates announcements (title, message, priority, optional expiry). Publish/archive actions. Clinic dashboards show dismissible `AnnouncementBanner` (all 4 roles). Dismissals tracked per clinic in `announcement_reads` table. Priority: urgent=red, normal=blue, info=green. `migrate_broadcast_announcements.js`. | admin-frontend + clinic-frontend + backend | [x] *(2026-04-28)* |
 | **Doctor My Day Page** — `/my-day` (doctors only). Single backend call `GET /appointments/my-day` returns today's appointments, pending lab requests (awaiting results), and prescriptions written today. Frontend: 3 sections with status-tab filtered appointment cards, lab items with days-waiting, Rx list. Sidebar nav item (Sunrise icon). Auto-refreshes 30s. | clinic-frontend + backend | [x] *(2026-04-28)* |
+| **Lanka QR Payment (Static QR at Counter)** — `migrate_qr_payment.js` adds `qr_image_url`/`qr_image_filename` to `clinic_settings` + `qr_total` to `end_of_day`. `POST/DELETE /settings/qr-image` (multer, 2MB). Settings → Billing tab: QR upload card with preview. InvoiceModal: "QR Pay" 5th payment method with full-screen QR dialog (image, amount, bank app instruction, Download QR link, Payment Received button). EOD: `qr_total` in payment breakdown. Help page updated with QR Pay flow. Landing: `QrPaymentSection.jsx` + FeaturesSection #17. | clinic-frontend + backend + landing-frontend | [x] *(2026-04-30)* |
 
 ---
 

@@ -17,8 +17,8 @@
 
 ## Current Status
 
-**Currently working on:** Docs update
-**Last updated:** 2026-04-28
+**Currently working on:** Phase 6 prep
+**Last updated:** 2026-04-30
 **Next up:** Phase 6 — payment gateway integration, SMS reminders, WhatsApp integration
 
 ### What is fully complete right now
@@ -33,6 +33,8 @@
 | Phase 5.6 — Session Timeout Enforcement | ✅ Idle timer in AuthContext.jsx — reads session_timeout_minutes, tracks activity events, auto-logout + /login?reason=timeout toast (2026-04-28) |
 | Phase 5.6 — Broadcast Announcements | ✅ Super admin creates/publishes announcements → dismissible colour-coded banners on all 4 clinic dashboards. `broadcast_announcements` + `announcement_reads` tables. (2026-04-28) |
 | Phase 5.6 — Doctor My Day Page | ✅ /my-day (doctors only): today's schedule, awaiting lab results, today's prescriptions. Single backend endpoint. 30s auto-refresh. Sunrise icon in sidebar. (2026-04-28) |
+| **Lanka QR Payment (Static QR at Counter)** | ✅ `migrate_qr_payment.js` adds `qr_image_url`/`qr_image_filename` to all tenant `clinic_settings` and `qr_total` to `end_of_day`. `POST/DELETE /settings/qr-image` for upload/removal (multer, 2MB, image only). Settings → Billing tab: QR image upload with 160×160 preview. InvoiceModal: new "QR Pay" payment method; selecting it shows a full-screen QR dialog (image + amount + bank app instruction + Download button). EOD shows `qr_total` in payment breakdown alongside Cash/Card/Online/Insurance. Help page updated with QR Pay flow (Receptionist Billing step 4, Admin QR Setup section). Landing page: new `QrPaymentSection.jsx` (MockQrDialog + 4 perks + Lanka QR badge) added between FeaturesSection and ClinicWebsiteSection. FeaturesSection grid: feature #17 "Lanka QR Payments". (2026-04-30) |
+| **System Logs Fix (Production)** | ✅ `system_audit_logs` table had `tenant_id` and `user_id` as INTEGER columns while the middleware was inserting UUID/VARCHAR values → error code 42883. Fixed by running `migrate_system_logs_fix.js` on the production server: changed both columns to VARCHAR(50). Confirmed healthy via `curl http://localhost:4000/health`. (2026-04-30) |
 | UI Polish pass | ✅ Dark mode, DatePicker, improved Select dropdowns, Inter font (2026-04-15) |
 | Phase 5.1 — Pharmacy | ✅ Suppliers, Purchase Orders, Dispense Queue, Stock Adjustments (2026-04-15) |
 | Phase 5.2 — Lab      | ✅ Test Catalog, Lab Queue, Enter Result (value + file upload), Patient Lab History tab (2026-04-15) |
