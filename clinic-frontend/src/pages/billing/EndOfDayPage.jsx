@@ -133,6 +133,7 @@ export default function EndOfDayPage() {
               <SummaryRow label="Card"      value={formatCurrency(s.card_total)}      />
               <SummaryRow label="Online"    value={formatCurrency(s.online_total)}    />
               <SummaryRow label="Insurance" value={formatCurrency(s.insurance_total)} />
+              <SummaryRow label="QR Pay"    value={formatCurrency(s.qr_total || 0)}   />
             </Card>
           </div>
 
@@ -239,6 +240,7 @@ function ClosedSummary({ s }) {
           <SummaryRow label="Card"      value={formatCurrency(s.card_total)} />
           <SummaryRow label="Online"    value={formatCurrency(s.online_total)} />
           <SummaryRow label="Insurance" value={formatCurrency(s.insurance_total)} />
+          <SummaryRow label="QR Pay"    value={formatCurrency(s.qr_total || 0)} />
         </div>
         {s.notes && (
           <p className="mt-3 text-xs text-[var(--color-text-secondary)] italic">Notes: {s.notes}</p>

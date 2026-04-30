@@ -222,14 +222,45 @@ function DocumentsTab({ settings, onSave, saving }) {
 
 function BillingTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
+  const [qrPreview,     setQrPreview]     = useState(null);
+  const [uploadingQr,   setUploadingQr]   = useState(false);
+  const qrFileRef = useRef();
+
   useEffect(() => {
     setForm({
       currency:  settings.currency  || 'LKR',
       tax_rate:  settings.tax_rate  ?? 0,
       tax_label: settings.tax_label || 'Tax',
     });
+    setQrPreview(settings.qr_image_url || null);
   }, [settings]);
   const set = (k) => (v) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleQrChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingQr(true);
+    try {
+      const res = await settingsApi.uploadQrImage(file);
+      setQrPreview(`${res.data.data.url}?v=${Date.now()}`);
+      toast.success('QR image uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploadingQr(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleQrDelete() {
+    try {
+      await settingsApi.deleteQrImage();
+      setQrPreview(null);
+      toast.success('QR image removed');
+    } catch {
+      toast.error('Could not remove QR image');
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -248,6 +279,39 @@ function BillingTab({ settings, onSave, saving }) {
         <p className="text-xs text-[var(--color-text-secondary)] mt-3">
           Tax is applied to invoice totals. Set to 0 to disable.
         </p>
+      </SectionCard>
+
+      <SectionCard title="QR Payment">
+        <p className="text-xs text-[var(--color-text-secondary)] mb-4">
+          Upload your bank's Lanka QR image (from Commercial Bank, Sampath, HNB, etc.).
+          This will be shown to patients at the counter when they pay by QR scan.
+        </p>
+        <div className="flex items-start gap-5">
+          <div className="w-40 h-40 rounded-[var(--radius)] border-2 border-dashed border-[var(--color-border)] flex items-center justify-center overflow-hidden bg-[var(--color-bg)] shrink-0">
+            {qrPreview
+              ? <img src={mediaUrl(qrPreview)} alt="Payment QR" className="w-full h-full object-contain p-1" />
+              : <div className="flex flex-col items-center gap-1 text-[var(--color-text-secondary)]">
+                  <QrCode className="w-8 h-8" />
+                  <span className="text-xs text-center px-2">No QR image</span>
+                </div>
+            }
+          </div>
+          <div className="flex flex-col gap-2">
+            <input ref={qrFileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleQrChange} />
+            <Button size="sm" variant="secondary" onClick={() => qrFileRef.current?.click()} loading={uploadingQr}>
+              <Upload className="w-3.5 h-3.5 mr-1.5" /> {qrPreview ? 'Replace QR Image' : 'Upload QR Image'}
+            </Button>
+            {qrPreview && (
+              <button onClick={handleQrDelete} className="flex items-center gap-1 text-xs text-[var(--color-danger)] hover:underline">
+                <Trash2 className="w-3.5 h-3.5" /> Remove
+              </button>
+            )}
+            <p className="text-xs text-[var(--color-text-secondary)]">JPG or PNG · Max 2MB</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+              Get this QR from your bank's merchant portal or mobile banking app.
+            </p>
+          </div>
+        </div>
       </SectionCard>
 
       <div className="flex justify-end">

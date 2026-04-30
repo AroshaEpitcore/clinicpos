@@ -40,6 +40,7 @@ const imageFilter = (req, file, cb) => {
 const uploadLogo      = multer({ storage: makeStorage(''),           fileFilter: imageFilter, limits: { fileSize: 2 * 1024 * 1024 } });
 const uploadSignature = multer({ storage: makeStorage('signatures'), fileFilter: imageFilter, limits: { fileSize: 2 * 1024 * 1024 } });
 const uploadHero      = multer({ storage: makeStorage('hero'),       fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const uploadQr        = multer({ storage: makeStorage('qr'),         fileFilter: imageFilter, limits: { fileSize: 2 * 1024 * 1024 } });
 
 // ── GET /api/v1/settings ──────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -237,6 +238,59 @@ router.delete('/staff/:staffId/signature', requireRole('admin'), async (req, res
     res.json({ status: 'success', message: 'Signature removed' });
   } catch (err) {
     console.error('DELETE /settings/staff/:id/signature', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── POST /api/v1/settings/qr-image ───────────────────────────────────────────
+router.post('/qr-image', requireRole('admin'), (req, res) => {
+  uploadQr.single('qr')(req, res, async (err) => {
+    if (err) return res.status(400).json({ status: 'error', message: err.message });
+    if (!req.file) return res.status(400).json({ status: 'error', message: 'No file uploaded' });
+
+    const tenantId = req.tenantSchema;
+    const url = `/uploads/tenants/${tenantId}/qr/${req.file.filename}`;
+
+    try {
+      const old = await queryTenant(tenantId, `SELECT qr_image_filename FROM clinic_settings LIMIT 1`);
+      const oldFilename = old.rows[0]?.qr_image_filename;
+
+      await queryTenant(tenantId, `
+        UPDATE clinic_settings SET qr_image_url = $1, qr_image_filename = $2, updated_at = NOW()
+      `, [url, req.file.filename]);
+
+      if (oldFilename && oldFilename !== req.file.filename) {
+        const oldPath = path.join('uploads', 'tenants', tenantId, 'qr', oldFilename);
+        try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
+      }
+
+      res.json({ status: 'success', message: 'QR image uploaded', data: { url } });
+    } catch (dbErr) {
+      console.error('POST /settings/qr-image', dbErr);
+      res.status(500).json({ status: 'error', message: 'Server error', detail: dbErr.message });
+    }
+  });
+});
+
+// ── DELETE /api/v1/settings/qr-image ─────────────────────────────────────────
+router.delete('/qr-image', requireRole('admin'), async (req, res) => {
+  const tenantId = req.tenantSchema;
+  try {
+    const result = await queryTenant(tenantId,
+      `SELECT qr_image_filename FROM clinic_settings LIMIT 1`);
+    const filename = result.rows[0]?.qr_image_filename;
+
+    if (filename) {
+      const filePath = path.join('uploads', 'tenants', tenantId, 'qr', filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+
+    await queryTenant(tenantId, `
+      UPDATE clinic_settings SET qr_image_url = NULL, qr_image_filename = NULL, updated_at = NOW()
+    `);
+    res.json({ status: 'success', message: 'QR image removed' });
+  } catch (err) {
+    console.error('DELETE /settings/qr-image', err);
     res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
   }
 });

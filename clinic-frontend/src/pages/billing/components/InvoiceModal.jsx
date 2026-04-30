@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, Download, Search, Package, Wrench, FileText, Check, X } from 'lucide-react';
+import { Plus, Trash2, CreditCard, Banknote, Smartphone, Shield, Download, Search, Package, Wrench, FileText, Check, X, QrCode } from 'lucide-react';
 import { Modal }          from '../../../components/ui/Modal';
 import { Button }         from '../../../components/ui/Button';
 import { LoadingState }   from '../../../components/ui/Spinner';
@@ -9,7 +9,9 @@ import { invoicesApi, customServicesApi } from '../../../api/invoices';
 import { medicinesApi }   from '../../../api/medicines';
 import { pharmacyApi }    from '../../../api/pharmacy';
 import { prescriptionsApi } from '../../../api/prescriptions';
+import { settingsApi }    from '../../../api/settings';
 import { formatCurrency, formatDate }     from '../../../utils/format';
+import { mediaUrl }       from '../../../utils/mediaUrl';
 import { PaymentStatusBadge }             from '../BillingPage';
 
 const PAYMENT_METHODS = [
@@ -17,6 +19,7 @@ const PAYMENT_METHODS = [
   { value: 'Card',      label: 'Card',      icon: CreditCard },
   { value: 'Online',    label: 'Online',    icon: Smartphone },
   { value: 'Insurance', label: 'Insurance', icon: Shield },
+  { value: 'QR',        label: 'QR Pay',    icon: QrCode },
 ];
 
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
@@ -416,10 +419,13 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
   const [payMethod,    setPayMethod]    = useState('Cash');
   const [payAmount,    setPayAmount]    = useState('');
   const [payReference, setPayReference] = useState('');
+  const [showQrDialog, setShowQrDialog] = useState(false);
+  const [qrImageUrl,   setQrImageUrl]   = useState(null);
 
   useEffect(() => {
     loadInvoice();
     customServicesApi.list().then(r => setServices(r.data.data)).catch(() => {});
+    settingsApi.get().then(r => setQrImageUrl(r.data.data?.qr_image_url || null)).catch(() => {});
   }, [invoiceId]);
 
   async function loadInvoice() {
@@ -478,6 +484,30 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
       toast.error('Enter a valid payment amount.');
       return;
     }
+    if (payMethod === 'QR') {
+      setShowQrDialog(true);
+      return;
+    }
+    await submitPayment();
+  }
+
+  async function downloadQr() {
+    if (!qrImageUrl) return;
+    try {
+      const response = await fetch(mediaUrl(qrImageUrl));
+      const blob = await response.blob();
+      const ext  = qrImageUrl.split('.').pop().split('?')[0] || 'png';
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `payment-qr.${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      toast.error('Could not download QR image.');
+    }
+  }
+
+  async function submitPayment() {
     setSaving(true);
     try {
       await invoicesApi.pay(invoiceId, {
@@ -487,6 +517,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
       });
       toast.success('Payment recorded');
       setShowPay(false);
+      setShowQrDialog(false);
       setPayReference('');
       loadInvoice();
       onSuccess();
@@ -711,7 +742,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-5 gap-2 mb-4">
                   {PAYMENT_METHODS.map(m => {
                     const Icon = m.icon;
                     return (
@@ -741,7 +772,7 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
                       className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                     />
                   </div>
-                  {(payMethod === 'Card' || payMethod === 'Online' || payMethod === 'Insurance') && (
+                  {(payMethod === 'Card' || payMethod === 'Online' || payMethod === 'Insurance') && payMethod !== 'QR' && (
                     <div className="flex-1">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)] mb-1 block">
                         {payMethod === 'Card' ? 'Last 4 digits' : payMethod === 'Insurance' ? 'Claim / Policy No.' : 'Reference / UTR'}
@@ -783,6 +814,64 @@ export function InvoiceModal({ invoiceId, onClose, onSuccess }) {
         onConfirm={handleDispense}
         confirming={dispensing}
       />
+
+      {/* QR Payment dialog */}
+      {showQrDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-[var(--color-primary)]" />
+                <span className="font-semibold text-[var(--color-text)]">Scan to Pay</span>
+              </div>
+              <button onClick={() => setShowQrDialog(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 p-6">
+              {qrImageUrl ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-3 bg-white rounded-[var(--radius)] border border-[var(--color-border)]">
+                    <img src={mediaUrl(qrImageUrl)} alt="Payment QR" className="w-56 h-56 object-contain" />
+                  </div>
+                  <button
+                    onClick={downloadQr}
+                    className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download QR Image
+                  </button>
+                </div>
+              ) : (
+                <div className="w-56 h-56 flex items-center justify-center rounded-[var(--radius)] border-2 border-dashed border-[var(--color-border)] bg-[var(--color-bg)]">
+                  <div className="text-center text-[var(--color-text-secondary)]">
+                    <QrCode className="w-10 h-10 mx-auto mb-2" />
+                    <p className="text-xs">No QR image configured.<br />Add it in Settings → Billing.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-center">
+                <p className="text-xs text-[var(--color-text-secondary)] mb-1">Amount to pay</p>
+                <p className="text-2xl font-bold text-[var(--color-text)]">{formatCurrency(parseFloat(payAmount) || 0)}</p>
+              </div>
+
+              <p className="text-xs text-[var(--color-text-secondary)] text-center">
+                Ask the patient to scan with their bank app (Commercial Bank, Sampath, HNB, BOC...).
+              </p>
+            </div>
+
+            <div className="flex gap-3 px-5 pb-5">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowQrDialog(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={submitPayment} loading={saving}>
+                <Check className="w-4 h-4 mr-1.5" /> Payment Received
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -801,7 +890,7 @@ function TotalRow({ label, value, bold, valueClass = '' }) {
 }
 
 function PayMethodIcon({ method }) {
-  const map = { Cash: Banknote, Card: CreditCard, Online: Smartphone, Insurance: Shield };
+  const map = { Cash: Banknote, Card: CreditCard, Online: Smartphone, Insurance: Shield, QR: QrCode };
   const Icon = map[method] || Banknote;
   return <Icon className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />;
 }

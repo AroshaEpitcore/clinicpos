@@ -22,4 +22,10 @@ export const settingsApi = {
     return api.post('/settings/hero-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   deleteHeroImage:  ()           => api.delete('/settings/hero-image'),
+  uploadQrImage:    (file)       => {
+    const form = new FormData();
+    form.append('qr', file);
+    return api.post('/settings/qr-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  deleteQrImage:    ()           => api.delete('/settings/qr-image'),
 };

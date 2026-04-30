@@ -71,6 +71,7 @@ router.get('/summary/:date', requireRole('receptionist', 'admin'), async (req, r
       card_total:      methodMap['card']      || 0,
       online_total:    methodMap['online']    || 0,
       insurance_total: methodMap['insurance'] || 0,
+      qr_total:        methodMap['qr']        || 0,
     };
 
     res.json({ status: 'success', data: summary });
@@ -160,10 +161,10 @@ router.post('/auto-close', requireRole('receptionist', 'admin'), async (req, res
         INSERT INTO end_of_day (
           closing_date, total_billed, total_collected,
           cash_system, cash_counted, cash_difference,
-          card_total, online_total, insurance_total,
+          card_total, online_total, insurance_total, qr_total,
           total_patients, total_invoices, outstanding_balance,
           notes, closed_by
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
         ON CONFLICT (closing_date) DO NOTHING
       `, [
         d,
@@ -172,6 +173,7 @@ router.post('/auto-close', requireRole('receptionist', 'admin'), async (req, res
         methodMap['card']      || 0,
         methodMap['online']    || 0,
         methodMap['insurance'] || 0,
+        methodMap['qr']        || 0,
         t.total_patients, t.total_invoices, t.outstanding_balance,
         'Auto-closed by system', req.user.id,
       ]);
@@ -237,10 +239,10 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       INSERT INTO end_of_day (
         closing_date, total_billed, total_collected,
         cash_system, cash_counted, cash_difference,
-        card_total, online_total, insurance_total,
+        card_total, online_total, insurance_total, qr_total,
         total_patients, total_invoices, outstanding_balance,
         notes, closed_by
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *
     `, [
       closing_date,
@@ -249,6 +251,7 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       methodMap['card']      || 0,
       methodMap['online']    || 0,
       methodMap['insurance'] || 0,
+      methodMap['qr']        || 0,
       t.total_patients, t.total_invoices, t.outstanding_balance,
       notes || null, req.user.id,
     ]);
