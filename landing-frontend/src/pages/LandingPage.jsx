@@ -2,6 +2,7 @@ import Layout                from '../components/layout/Layout';
 import HeroSection           from '../sections/HeroSection';
 import TrustBar              from '../sections/TrustBar';
 import FeaturesSection       from '../sections/FeaturesSection';
+import QrPaymentSection      from '../sections/QrPaymentSection';
 import ClinicWebsiteSection  from '../sections/ClinicWebsiteSection';
 import WorkflowSection       from '../sections/WorkflowSection';
 import RolesSection          from '../sections/RolesSection';
@@ -17,6 +18,8 @@ export default function LandingPage() {
       <TrustBar />
       <div className="divider-line" />
       <FeaturesSection />
+      <div className="divider-line" />
+      <QrPaymentSection />
       <div className="divider-line" />
       <ClinicWebsiteSection />
       <div className="divider-line" />

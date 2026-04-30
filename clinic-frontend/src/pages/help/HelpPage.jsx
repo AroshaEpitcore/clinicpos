@@ -3,7 +3,7 @@ import {
   BookOpen, Users, Calendar, Stethoscope, Pill, Receipt,
   Package, FlaskConical, Shield, UserCog, BarChart2,
   CheckCircle, ArrowRight, AlertCircle, ClipboardList, Star,
-  LayoutDashboard, Settings, Activity,
+  LayoutDashboard, Settings, Activity, QrCode,
 } from 'lucide-react';
 import { PageLayout } from '../../components/layout/PageLayout';
 import { PageHeader }  from '../../components/ui/PageHeader';
@@ -112,8 +112,8 @@ function OverviewTab() {
             tip="Low stock is shown in red inside the Dispense modal. A warning toast appears after dispensing if any medicine falls below its reorder level."
             next="Prescription marked Dispensed → Stock updated" />
           <Step number={7} title="Generate Invoice & Collect Payment" who={['receptionist', 'admin']}
-            description="On the Billing page, find the completed appointment and click Bill. An invoice is auto-created with the doctor fee and prescribed medicines. Add extra services if needed using the + Add Item button. Click Record Payment and select Cash / Card / Online / Insurance. Enter the amount — partial payments are supported."
-            tip="The invoice auto-pulls ALL prescribed medicines including those with price 0 (you can edit the price after)."
+            description="On the Billing page, find the completed appointment and click Bill. An invoice is auto-created with the doctor fee and prescribed medicines. Add extra services if needed using the + Add Item button. Click Record Payment and select Cash / Card / Online / Insurance / QR Pay. Enter the amount — partial payments are supported."
+            tip="QR Pay: selecting QR Pay opens a dialog showing your clinic's Lanka QR code and the exact amount. Patient scans with their bank app — receptionist clicks Payment Received to confirm."
             next="Payment recorded → Invoice marked Paid" />
           <Step number={8} title="End of Day Closing" who={['receptionist', 'admin']}
             description="At the end of the day, click End of Day on the Billing page header. Count your physical cash and enter it. The system compares it against the total collected — green means matched, amber means surplus, red means short. Add notes if needed and click Close Day & Lock."
@@ -181,9 +181,13 @@ function ReceptionistTab() {
         <Step number={2} title="Add Extra Items" who={['receptionist', 'admin']}
           description="Inside the invoice, click + Add Item. A 3-tab overlay opens: Service tab (configured custom services), Medicine tab (search stock), Custom tab (free-text anything). Each added item shows in the line items table." next="Totals update automatically" />
         <Step number={3} title="Record Payment" who={['receptionist', 'admin']}
-          description="Click Record Payment. Select method (Cash / Card / Online / Insurance), enter the amount, and optionally a reference. You can record partial payments — call Record Payment again for split payments." tip="Payment history shows below the totals section. Each payment is logged with method, amount, and timestamp." next="Invoice status updates to Partial or Paid" />
-        <Step number={4} title="End of Day" who={['receptionist', 'admin']}
-          description="Click End of Day button on the Billing page header. Enter your physical cash count. Compare against system total. Add notes and click Close Day & Lock. This cannot be undone from the UI." />
+          description="Click Record Payment. Select method: Cash, Card, Online, Insurance, or QR Pay. Enter the amount and optionally a reference. You can record partial payments — call Record Payment again for split payments." tip="Payment history shows below the totals section. Each payment is logged with method, amount, and timestamp." next="Invoice status updates to Partial or Paid" />
+        <Step number={4} title="QR Pay — How It Works" who={['receptionist', 'admin']}
+          description="Select QR Pay as the payment method and enter the amount. Click Confirm Payment — a QR dialog appears showing your clinic's Lanka QR image and the exact invoice amount. The patient opens their bank app (Commercial Bank, Sampath, HNB, BOC, etc.) and scans the QR. Once they confirm on their phone, click Payment Received. The payment is recorded and the invoice updates automatically."
+          tip="The Download QR Image link in the dialog lets you save and print the QR to place at the counter — patients can scan it without needing you to show the screen."
+          next="Invoice marked Paid" />
+        <Step number={5} title="End of Day" who={['receptionist', 'admin']}
+          description="Click End of Day button on the Billing page header. Enter your physical cash count. Compare against system total. The breakdown shows Cash, Card, Online, Insurance, and QR Pay totals separately. Add notes and click Close Day & Lock. This cannot be undone from the UI." />
       </Section>
 
       <Section icon={Package} title="Pharmacy (if enabled)">
@@ -297,7 +301,9 @@ function AdminTab() {
         <Step number={2} title="Documents Tab" who={['admin']}
           description="Set receipt header/footer text and prescription footer text. These appear on all printed invoices and prescriptions." next="Settings → Billing" />
         <Step number={3} title="Billing Tab" who={['admin']}
-          description="Set currency code (default LKR), tax label, and tax rate percentage. Tax is applied automatically to all invoices." next="Settings → Appointments" />
+          description="Set currency code (default LKR), tax label, and tax rate percentage. Tax is applied automatically to all invoices. Also upload your clinic's Lanka QR image in the QR Payment section — this appears to patients when the receptionist selects QR Pay on an invoice."
+          tip="Get your Lanka QR image from your bank's merchant portal or mobile banking app (Commercial Bank, Sampath, HNB, BOC, etc.). Upload it once and it applies to all future QR payments."
+          next="Settings → Appointments" />
         <Step number={4} title="Appointments Tab" who={['admin']}
           description="Set slot duration (10–60 min), max patients per day per doctor, and toggle Allow Walk-ins. When walk-ins are off, the Walk-in tab is hidden in Add to Queue and walk-in creation is blocked at the backend." next="Settings → Security" />
         <Step number={5} title="Security Tab" who={['admin']}
@@ -326,6 +332,18 @@ function AdminTab() {
           description="Set a date range. Shows per-doctor consultations, patients seen, revenue billed and collected. CSV export available." />
         <Step number={4} title="Medicines, Patients, Appointments, EOD History" who={['admin']}
           description="Medicines: stock overview, low stock, near expiry, top prescribed. Patients: registrations, demographics, top diagnoses. Appointments: status breakdown, busiest day of week. EOD History: all closing records with cash discrepancy." />
+      </Section>
+
+      <Section icon={QrCode} title="QR Payment Setup">
+        <Step number={1} title="Upload Your Lanka QR Image" who={['admin']}
+          description="Go to Settings → Billing → QR Payment section. Click Upload QR Image and select your bank's Lanka QR image (JPG or PNG, max 2MB). This is the static QR code you get from your bank's merchant portal — Commercial Bank, Sampath, HNB, BOC, and all major Sri Lankan banks support Lanka QR."
+          tip="Do this once. The QR image is stored against your clinic and shown automatically every time a receptionist selects QR Pay on an invoice."
+          next="QR Pay method is now active in the invoice payment modal" />
+        <Step number={2} title="How the Counter Flow Works" who={['admin']}
+          description="When a receptionist opens an invoice, selects QR Pay, and clicks Confirm Payment — a full-screen QR dialog appears showing your uploaded QR and the exact invoice amount. The patient scans with their bank app and pays. Receptionist clicks Payment Received to record it." next="Payment recorded as QR method" />
+        <Step number={3} title="Download or Print the QR" who={['admin']}
+          description="Inside the QR dialog, a Download QR Image link lets you save the QR as an image file. Print it and place it at the reception counter so patients can scan without needing the screen to be turned toward them." />
+        <Note>Lanka QR works with all major Sri Lankan bank apps — patients do not need a specific app. Any bank that supports Lanka QR (most do) can scan and pay.</Note>
       </Section>
 
       <Section icon={Package} title="Medicine Store">

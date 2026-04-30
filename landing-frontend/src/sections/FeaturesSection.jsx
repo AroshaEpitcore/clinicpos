@@ -6,7 +6,7 @@ const features = [
   { n:'03', icon:'💊', title:'Digital Prescriptions',    desc:'Write prescriptions with auto-suggest medicines, dosage chips, food instructions, and custom medicines — all in one combined consultation step.' },
   { n:'04', icon:'🧪', title:'Lab Management',           desc:'Order tests, track sample collection, enter results with values or file uploads, and show results in the patient\'s consultation history.' },
   { n:'05', icon:'💉', title:'In-Clinic Pharmacy',       desc:'Real-time stock tracking, dispense queue, purchase orders, supplier management, expiry alerts, and automatic stock deduction on dispensing.' },
-  { n:'06', icon:'🧾', title:'Billing & Invoicing',      desc:'Auto-generate invoices from consultations. Split payments, insurance claims, custom services, and PDF export — with a live end-of-day report.' },
+  { n:'06', icon:'🧾', title:'Billing & Invoicing',      desc:'Auto-generate invoices from consultations. Split payments across Cash, Card, Online, Insurance, and Lanka QR — with custom services, PDF export, and a live end-of-day report.' },
   { n:'07', icon:'🏢', title:'Insurance & Corporate',    desc:'Manage corporate accounts, process insurance claims with auto-numbered CLM-XXXXX references, and generate monthly billing summaries for insurers.' },
   { n:'08', icon:'👨‍⚕️',title:'Multi-Doctor Support',     desc:'Unlimited doctors, each with their own schedule, consultation fees, and signature. Role-based access for doctors, nurses, receptionists, and admins.' },
   { n:'09', icon:'📊', title:'Reports & Analytics',      desc:'7 report types: daily, monthly, doctor performance, medicines, patients, appointments, and EOD history — all with CSV export and live charts.' },
@@ -17,6 +17,7 @@ const features = [
   { n:'14', icon:'📱', title:'QR Booking Cards',         desc:'Generate a branded QR code card to print and place at your front desk. Patients scan it to open your booking page instantly — no URL to type, no app to download.' },
   { n:'15', icon:'📖', title:'Built-in Staff Training',  desc:'Every staff member gets a guided help page with their own role tab highlighted. Step-by-step workflows for receptionist, doctor, nurse, and admin — no external training needed.' },
   { n:'16', icon:'🌍', title:'Your Own Clinic Website',  desc:'Every clinic gets a branded public website at its own link — showing doctors, services, hours, and a booking button. Auto-generated, always up-to-date, zero extra cost.' },
+  { n:'17', icon:'📲', title:'Lanka QR Payments',        desc:'Accept payments via Lanka QR at the counter. Patient scans your bank QR with any Sri Lankan bank app — Commercial Bank, Sampath, HNB, BOC and more. Instant transfer, zero card fees.' },
 ];
 
 export default function FeaturesSection() {
