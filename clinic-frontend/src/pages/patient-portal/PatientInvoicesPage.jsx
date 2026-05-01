@@ -9,16 +9,16 @@ function fmt(v) {
 }
 
 const STATUS_STYLE = {
-  paid:    'bg-green-100 text-green-800',
-  partial: 'bg-amber-100 text-amber-800',
-  unpaid:  'bg-red-100 text-red-800',
+  paid:    'bg-green-100 text-green-700 border-green-200',
+  partial: 'bg-amber-100 text-amber-700 border-amber-200',
+  unpaid:  'bg-red-100 text-red-600 border-red-200',
 };
 
 export default function PatientInvoicesPage() {
-  const [invoices, setInvoices] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [open,     setOpen]     = useState(null);
-  const [detail,   setDetail]   = useState({});
+  const [invoices,      setInvoices]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [open,          setOpen]          = useState(null);
+  const [detail,        setDetail]        = useState({});
   const [loadingDetail, setLoadingDetail] = useState(null);
 
   useEffect(() => {
@@ -47,11 +47,24 @@ export default function PatientInvoicesPage() {
         <h1 className="text-lg font-black text-[var(--color-ink)]">Invoices</h1>
 
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-[var(--color-ink-faint)] text-sm">Loading…</div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-28" />
+                  <div className="h-3 bg-gray-100 rounded w-20" />
+                  <div className="h-4 bg-gray-100 rounded w-32" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : invoices.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <Receipt className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-ink-light)]">No invoices on record</p>
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+              <Receipt className="w-7 h-7 text-gray-300" />
+            </div>
+            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No invoices on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -60,57 +73,66 @@ export default function PatientInvoicesPage() {
               const isOpen = open === inv.id;
               return (
                 <div key={inv.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
+                  {/* Row */}
                   <button
                     onClick={() => toggleDetail(inv.id)}
-                    className="w-full flex items-start gap-3 p-4 text-left hover:bg-[var(--color-surface)] transition-colors"
+                    className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-alt)] flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
                       <Receipt className="w-4.5 h-4.5 text-[var(--color-ink-light)]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-[var(--color-ink)]">{inv.invoice_number}</span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_STYLE[inv.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className="text-sm font-bold text-[var(--color-ink)]">{inv.invoice_number}</span>
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border capitalize ${STATUS_STYLE[inv.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                           {inv.status}
                         </span>
                       </div>
                       <p className="text-xs text-[var(--color-ink-light)] mt-0.5">
                         {format(new Date(inv.created_at), 'd MMM yyyy')}
                       </p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-sm font-bold text-[var(--color-ink)]">{fmt(inv.total_amount)}</span>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-sm font-black text-[var(--color-ink)]">{fmt(inv.total_amount)}</span>
                         {parseFloat(inv.balance) > 0 && (
-                          <span className="text-xs text-red-600">Balance: {fmt(inv.balance)}</span>
+                          <span className="text-xs font-semibold text-red-500">Due: {fmt(inv.balance)}</span>
                         )}
                       </div>
                     </div>
-                    {isOpen ? <ChevronUp className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" /> : <ChevronDown className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" />}
+                    <div className="shrink-0 text-gray-400">
+                      {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
                   </button>
 
+                  {/* Detail panel */}
                   {isOpen && (
-                    <div className="border-t border-[var(--color-border)] p-4 space-y-4">
+                    <div className="border-t border-[var(--color-border)] bg-gray-50/50 p-4 space-y-4">
                       {loadingDetail === inv.id ? (
-                        <p className="text-xs text-[var(--color-ink-faint)]">Loading…</p>
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-3 bg-gray-200 rounded w-full" />
+                          <div className="h-3 bg-gray-200 rounded w-3/4" />
+                        </div>
                       ) : d ? (
                         <>
                           {/* Line items */}
-                          <div>
-                            <p className="text-xs font-semibold text-[var(--color-ink-light)] mb-2">Items</p>
-                            <div className="space-y-1">
+                          <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+                            <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide px-3 pt-3 pb-1">
+                              Items
+                            </p>
+                            <div className="divide-y divide-[var(--color-border)]">
                               {d.items.map((item, i) => (
-                                <div key={i} className="flex justify-between text-sm">
-                                  <span className="text-[var(--color-ink)] truncate mr-2">{item.description}</span>
-                                  <span className="text-[var(--color-ink)] shrink-0 font-medium">{fmt(item.line_total)}</span>
+                                <div key={i} className="flex items-center justify-between px-3 py-2.5 gap-3">
+                                  <span className="text-sm text-[var(--color-ink)] truncate">{item.description}</span>
+                                  <span className="text-sm font-semibold text-[var(--color-ink)] shrink-0">{fmt(item.line_total)}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
 
                           {/* Totals */}
-                          <div className="border-t border-[var(--color-border)] pt-3 space-y-1">
+                          <div className="bg-white rounded-xl border border-[var(--color-border)] px-3 py-3 space-y-2">
                             {parseFloat(d.discount) > 0 && (
                               <div className="flex justify-between text-xs text-[var(--color-ink-light)]">
-                                <span>Discount</span><span>- {fmt(d.discount)}</span>
+                                <span>Discount</span><span className="text-green-600">− {fmt(d.discount)}</span>
                               </div>
                             )}
                             {parseFloat(d.tax_amount) > 0 && (
@@ -118,28 +140,33 @@ export default function PatientInvoicesPage() {
                                 <span>Tax</span><span>{fmt(d.tax_amount)}</span>
                               </div>
                             )}
-                            <div className="flex justify-between text-sm font-bold text-[var(--color-ink)]">
+                            <div className="flex justify-between pt-2 border-t border-[var(--color-border)] text-sm font-black text-[var(--color-ink)]">
                               <span>Total</span><span>{fmt(d.total_amount)}</span>
                             </div>
-                            <div className="flex justify-between text-sm text-green-700">
+                            <div className="flex justify-between text-sm font-semibold text-green-600">
                               <span>Paid</span><span>{fmt(d.paid_amount)}</span>
                             </div>
                             {parseFloat(d.balance) > 0 && (
-                              <div className="flex justify-between text-sm font-semibold text-red-600">
+                              <div className="flex justify-between text-sm font-black text-red-600 bg-red-50 rounded-lg px-3 py-2 -mx-3">
                                 <span>Balance Due</span><span>{fmt(d.balance)}</span>
                               </div>
                             )}
                           </div>
 
-                          {/* Payments */}
-                          {d.payments.length > 0 && (
-                            <div>
-                              <p className="text-xs font-semibold text-[var(--color-ink-light)] mb-2">Payment History</p>
-                              <div className="space-y-1">
+                          {/* Payment history */}
+                          {d.payments?.length > 0 && (
+                            <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+                              <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide px-3 pt-3 pb-1">
+                                Payment History
+                              </p>
+                              <div className="divide-y divide-[var(--color-border)]">
                                 {d.payments.map((p, i) => (
-                                  <div key={i} className="flex justify-between text-xs text-[var(--color-ink-light)]">
-                                    <span className="capitalize">{p.payment_method} {p.reference ? `(${p.reference})` : ''}</span>
-                                    <span>{fmt(p.amount)}</span>
+                                  <div key={i} className="flex items-center justify-between px-3 py-2.5">
+                                    <div>
+                                      <span className="text-sm text-[var(--color-ink)] capitalize font-medium">{p.payment_method}</span>
+                                      {p.reference && <span className="text-xs text-[var(--color-ink-faint)] ml-1.5">({p.reference})</span>}
+                                    </div>
+                                    <span className="text-sm font-semibold text-green-600">{fmt(p.amount)}</span>
                                   </div>
                                 ))}
                               </div>

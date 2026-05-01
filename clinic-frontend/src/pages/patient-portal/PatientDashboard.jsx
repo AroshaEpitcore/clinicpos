@@ -4,11 +4,21 @@ import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import PatientLayout from './PatientLayout';
-import { CalendarDays, Stethoscope, AlertCircle, ArrowRight } from 'lucide-react';
+import {
+  CalendarDays, Stethoscope, AlertTriangle, ArrowRight,
+  FileText, FlaskConical, Receipt, User, CheckCircle,
+} from 'lucide-react';
 
-function formatCurrency(val) {
-  return `LKR ${parseFloat(val || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 })}`;
+function fmt(v) {
+  return `LKR ${parseFloat(v || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 })}`;
 }
+
+const QUICK_LINKS = [
+  { to: '/patient/prescriptions', label: 'Prescriptions', icon: FileText,     bg: 'bg-blue-500',   light: 'bg-blue-50',   text: 'text-blue-600'   },
+  { to: '/patient/labs',          label: 'Lab Results',   icon: FlaskConical, bg: 'bg-purple-500', light: 'bg-purple-50', text: 'text-purple-600' },
+  { to: '/patient/invoices',      label: 'Invoices',      icon: Receipt,      bg: 'bg-green-500',  light: 'bg-green-50',  text: 'text-green-600'  },
+  { to: '/patient/profile',       label: 'My Profile',    icon: User,         bg: 'bg-gray-500',   light: 'bg-gray-50',   text: 'text-gray-600'   },
+];
 
 export default function PatientDashboard() {
   const { patientName } = usePatientAuth();
@@ -27,74 +37,112 @@ export default function PatientDashboard() {
 
   return (
     <PatientLayout>
-      <div className="space-y-5">
-        <div>
-          <h1 className="text-xl font-black text-[var(--color-ink)]">{greeting}, {patientName} 👋</h1>
-          <p className="text-sm text-[var(--color-ink-light)] mt-0.5">Your health summary at a glance</p>
+      <div className="space-y-4">
+
+        {/* ── Greeting banner ─────────────────────────────────────────────── */}
+        <div className="rounded-2xl p-5 text-white" style={{ background: 'var(--color-primary)' }}>
+          <p className="text-sm font-medium text-blue-100">{greeting}</p>
+          <h1 className="text-xl font-black mt-0.5">{patientName}</h1>
+          <p className="text-sm text-blue-100 mt-1">Here's your health summary</p>
         </div>
 
+        {/* ── Summary cards ───────────────────────────────────────────────── */}
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-[var(--color-ink-faint)] text-sm">Loading…</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[1, 2].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-5 animate-pulse">
+                <div className="h-3 bg-gray-100 rounded w-24 mb-3" />
+                <div className="h-5 bg-gray-100 rounded w-40 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-32" />
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             {/* Next appointment */}
-            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 flex flex-col gap-2 col-span-1 sm:col-span-2">
-              <div className="flex items-center gap-2 text-[var(--color-primary)]">
-                <CalendarDays className="w-4 h-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Next Appointment</span>
+            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
+                  <CalendarDays className="w-4 h-4 text-[var(--color-primary)]" />
+                </div>
+                <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Next Appointment</span>
               </div>
               {summary?.next_appointment ? (
                 <>
-                  <p className="text-lg font-black text-[var(--color-ink)]">
-                    {format(new Date(summary.next_appointment.appointment_date), 'EEEE, d MMM yyyy')}
+                  <p className="text-base font-black text-[var(--color-ink)]">
+                    {format(new Date(summary.next_appointment.appointment_date), 'EEE, d MMM yyyy')}
                   </p>
-                  <p className="text-sm text-[var(--color-ink-light)]">
+                  <p className="text-sm text-[var(--color-ink-light)] mt-0.5">
                     {summary.next_appointment.appointment_time
-                      ? summary.next_appointment.appointment_time.slice(0, 5)
-                      : 'Walk-in'
-                    } · Dr. {summary.next_appointment.doctor_name}
+                      ? summary.next_appointment.appointment_time.slice(0, 5) + ' · '
+                      : 'Walk-in · '
+                    }
+                    Dr. {summary.next_appointment.doctor_name}
                   </p>
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)] capitalize">
+                      {summary.next_appointment.status}
+                    </span>
+                  </div>
                   <Link to="/patient/appointments"
-                    className="mt-1 text-xs text-[var(--color-primary)] font-semibold flex items-center gap-1 hover:underline">
-                    View details <ArrowRight className="w-3 h-3" />
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
+                    View details <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div>
                   <p className="text-sm text-[var(--color-ink-light)]">No upcoming appointments</p>
-                  <a href="/book" className="text-xs text-[var(--color-primary)] font-semibold flex items-center gap-1 hover:underline">
-                    Book now <ArrowRight className="w-3 h-3" />
+                  <a href="/book"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
+                    Book now <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                 </div>
               )}
             </div>
 
-            {/* Outstanding balance */}
-            <div className={`bg-white rounded-2xl border p-5 flex flex-col gap-2 ${summary?.outstanding_balance > 0 ? 'border-amber-200 bg-amber-50' : 'border-[var(--color-border)]'}`}>
-              <div className={`flex items-center gap-2 ${summary?.outstanding_balance > 0 ? 'text-amber-600' : 'text-[var(--color-ink-faint)]'}`}>
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Balance Due</span>
+            {/* Balance */}
+            <div className={`rounded-2xl border p-5 ${
+              summary?.outstanding_balance > 0
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-white border-[var(--color-border)]'
+            }`}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                  summary?.outstanding_balance > 0 ? 'bg-amber-100' : 'bg-green-50'
+                }`}>
+                  {summary?.outstanding_balance > 0
+                    ? <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    : <CheckCircle className="w-4 h-4 text-green-500" />
+                  }
+                </div>
+                <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Balance Due</span>
               </div>
-              <p className={`text-xl font-black ${summary?.outstanding_balance > 0 ? 'text-amber-700' : 'text-[var(--color-ink-faint)]'}`}>
-                {formatCurrency(summary?.outstanding_balance)}
+              <p className={`text-xl font-black ${summary?.outstanding_balance > 0 ? 'text-amber-700' : 'text-green-600'}`}>
+                {fmt(summary?.outstanding_balance)}
               </p>
-              {summary?.outstanding_balance > 0 && (
-                <Link to="/patient/invoices" className="text-xs text-amber-600 font-semibold flex items-center gap-1 hover:underline">
-                  View invoices <ArrowRight className="w-3 h-3" />
+              {summary?.outstanding_balance > 0 ? (
+                <Link to="/patient/invoices"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:underline">
+                  Pay now <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+              ) : (
+                <p className="text-xs text-green-600 mt-1 font-medium">All clear — no outstanding balance</p>
               )}
             </div>
           </div>
         )}
 
-        {/* Last visit */}
+        {/* ── Last visit ──────────────────────────────────────────────────── */}
         {!loading && summary?.last_visit && (
           <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5">
-            <div className="flex items-center gap-2 text-[var(--color-ink-light)] mb-3">
-              <Stethoscope className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Last Visit</span>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
+                <Stethoscope className="w-4 h-4 text-purple-600" />
+              </div>
+              <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Last Visit</span>
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink)]">
+            <p className="text-sm font-bold text-[var(--color-ink)]">
               {format(new Date(summary.last_visit.created_at), 'd MMM yyyy')} · Dr. {summary.last_visit.doctor_name}
             </p>
             {summary.last_visit.chief_complaint && (
@@ -103,30 +151,32 @@ export default function PatientDashboard() {
             {summary.last_visit.diagnosis && (
               <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">Diagnosis: {summary.last_visit.diagnosis}</p>
             )}
-            <Link to="/patient/consultations" className="mt-3 text-xs text-[var(--color-primary)] font-semibold flex items-center gap-1 hover:underline">
-              Full visit history <ArrowRight className="w-3 h-3" />
+            <Link to="/patient/consultations"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
+              Full history <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
 
-        {/* Quick links */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { to: '/patient/prescriptions', label: 'Prescriptions', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-            { to: '/patient/labs',          label: 'Lab Results',   color: 'bg-purple-50 text-purple-700 border-purple-100' },
-            { to: '/patient/invoices',      label: 'Invoices',      color: 'bg-green-50 text-green-700 border-green-100' },
-            { to: '/patient/profile',       label: 'My Profile',    color: 'bg-gray-50 text-gray-700 border-gray-100' },
-          ].map(q => (
-            <Link
-              key={q.to}
-              to={q.to}
-              className={`${q.color} rounded-xl border p-4 text-sm font-semibold flex items-center justify-between hover:opacity-80 transition-opacity`}
-            >
-              {q.label}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          ))}
+        {/* ── Quick links grid ─────────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide mb-3 px-0.5">Quick Access</p>
+          <div className="grid grid-cols-2 gap-3">
+            {QUICK_LINKS.map(q => (
+              <Link
+                key={q.to}
+                to={q.to}
+                className={`${q.light} rounded-2xl border border-transparent p-4 flex items-center gap-3 hover:opacity-80 active:scale-[0.98] transition-all`}
+              >
+                <div className={`w-10 h-10 rounded-xl ${q.bg} flex items-center justify-center shadow-sm shrink-0`}>
+                  <q.icon className="w-5 h-5 text-white" />
+                </div>
+                <span className={`text-sm font-bold ${q.text}`}>{q.label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
+
       </div>
     </PatientLayout>
   );

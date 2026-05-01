@@ -5,7 +5,7 @@ import { useAuth } from '../../store/AuthContext';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { patientPortalApi } from '../../api/patientPortal';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { Phone, Lock, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function PatientLoginPage() {
   const { clinic } = useAuth();
@@ -26,11 +26,10 @@ export default function PatientLoginPage() {
       loginPatient(token, first_name);
       navigate('/patient/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed';
       if (err.response?.status === 403) {
-        toast.error('Patient portal is not available for this clinic');
+        toast.error('Patient portal is not available at this clinic');
       } else {
-        toast.error(msg);
+        toast.error(err.response?.data?.message || 'Invalid phone number or password');
       }
     } finally {
       setLoading(false);
@@ -38,51 +37,62 @@ export default function PatientLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Clinic branding */}
-        <div className="flex flex-col items-center mb-8">
-          {clinic?.logo_url
-            ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-14 w-14 object-contain rounded-xl mb-3" />
-            : <div className="h-14 w-14 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-xl mb-3">P</div>
-          }
-          <h1 className="text-xl font-black text-[var(--color-ink)]">{clinic?.clinic_name || 'Patient Portal'}</h1>
-          <p className="text-sm text-[var(--color-ink-light)] mt-1">Sign in to your health account</p>
-        </div>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-primary)' }}>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-[var(--color-border)] p-6 flex flex-col gap-4">
+      {/* ── Hero branding area ───────────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center flex-1 px-6 pt-12 pb-6 text-white min-h-[220px]">
+        <div className="mb-4">
+          {clinic?.logo_url
+            ? <img src={mediaUrl(clinic.logo_url)} alt=""
+                className="h-16 w-16 object-contain rounded-2xl shadow-xl border-2 border-white/30 mx-auto" />
+            : <div className="h-16 w-16 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-2xl mx-auto shadow-xl">
+                {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
+              </div>
+          }
+        </div>
+        <h1 className="text-2xl font-black text-white text-center leading-tight">
+          {clinic?.clinic_name || 'Patient Portal'}
+        </h1>
+        <p className="text-blue-100 text-sm mt-1.5 text-center">Your health records, anytime</p>
+      </div>
+
+      {/* ── White login sheet ────────────────────────────────────────────── */}
+      <div className="bg-white rounded-t-[2rem] px-6 pt-8 pb-10 shadow-2xl">
+        <h2 className="text-xl font-black text-[var(--color-ink)] mb-0.5">Welcome back</h2>
+        <p className="text-sm text-[var(--color-ink-light)] mb-7">Sign in with your registered phone number</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Phone */}
           <div>
-            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1.5">Phone Number</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-faint)]" />
-              <input
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="07X XXX XXXX"
-                required
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-[var(--color-border)] rounded-lg bg-white focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-              />
-            </div>
+            <label className="block text-xs font-bold text-[var(--color-ink)] mb-2">Phone Number</label>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="07X XXX XXXX"
+              required
+              className="w-full px-4 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-gray-50 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white transition-all placeholder:text-gray-300"
+            />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1.5">Password</label>
+            <label className="block text-xs font-bold text-[var(--color-ink)] mb-2">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-faint)]" />
               <input
                 type={showPw ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Your password"
                 required
-                className="w-full pl-9 pr-9 py-2.5 text-sm border border-[var(--color-border)] rounded-lg bg-white focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                className="w-full px-4 pr-12 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-gray-50 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white transition-all placeholder:text-gray-300"
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]">
-                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-ink)] transition-colors rounded-lg">
+                {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -90,18 +100,28 @@ export default function PatientLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[var(--color-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="w-full mt-2 py-4 rounded-2xl bg-[var(--color-primary)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
           >
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading
+              ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Signing in…</span>
+              : <span className="flex items-center gap-2">Sign In <ArrowRight className="w-5 h-5" /></span>
+            }
           </button>
         </form>
 
-        <p className="text-center text-sm text-[var(--color-ink-light)] mt-5">
-          New to the portal?{' '}
-          <Link to="/patient/register" className="text-[var(--color-primary)] font-semibold hover:underline">
-            Create account
-          </Link>
-        </p>
+        <div className="mt-7 text-center">
+          <p className="text-sm text-[var(--color-ink-light)]">
+            Don't have an account?{' '}
+            <Link to="/patient/register" className="text-[var(--color-primary)] font-bold hover:underline">
+              Register here
+            </Link>
+          </p>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-1.5 text-[0.65rem] text-gray-400">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Your health data is private and encrypted
+        </div>
       </div>
     </div>
   );

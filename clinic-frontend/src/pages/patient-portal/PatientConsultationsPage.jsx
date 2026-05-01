@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
-import { Stethoscope, ChevronDown, ChevronUp } from 'lucide-react';
+import { Stethoscope, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 
 function VitalPill({ label, value, unit }) {
   if (!value) return null;
   return (
-    <div className="bg-[var(--color-surface-alt)] rounded-lg px-3 py-1.5 text-center">
-      <p className="text-[0.6rem] text-[var(--color-ink-faint)] uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-bold text-[var(--color-ink)]">{value}<span className="text-[0.6rem] font-normal ml-0.5">{unit}</span></p>
+    <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-center min-w-[64px]">
+      <p className="text-[0.55rem] text-gray-400 uppercase tracking-wide font-semibold">{label}</p>
+      <p className="text-sm font-black text-[var(--color-ink)] leading-tight">
+        {value}<span className="text-[0.6rem] font-normal text-gray-400 ml-0.5">{unit}</span>
+      </p>
     </div>
   );
 }
@@ -29,15 +31,29 @@ export default function PatientConsultationsPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-ink)]">Visit History</h1>
-        <p className="text-sm text-[var(--color-ink-light)] -mt-2">Your past consultations and clinical notes</p>
+        <div>
+          <h1 className="text-lg font-black text-[var(--color-ink)]">Visit History</h1>
+          <p className="text-sm text-[var(--color-ink-light)] mt-0.5">Your consultations and clinical notes</p>
+        </div>
 
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-[var(--color-ink-faint)] text-sm">Loading…</div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-24" />
+                  <div className="h-3 bg-gray-100 rounded w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : list.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <Stethoscope className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-ink-light)]">No consultations on record yet</p>
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+              <Stethoscope className="w-7 h-7 text-gray-300" />
+            </div>
+            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No consultations on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -45,69 +61,83 @@ export default function PatientConsultationsPage() {
               <div key={c.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
                 <button
                   onClick={() => setOpen(open === c.id ? null : c.id)}
-                  className="w-full flex items-start gap-3 p-4 text-left hover:bg-[var(--color-surface)] transition-colors"
+                  className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
-                    <Stethoscope className="w-4.5 h-4.5 text-[var(--color-primary)]" />
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <Stethoscope className="w-4.5 h-4.5 text-purple-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--color-ink)]">{format(new Date(c.created_at), 'd MMM yyyy')}</p>
-                    <p className="text-xs text-[var(--color-ink-light)]">Dr. {c.doctor_name}{c.specialization ? ` · ${c.specialization}` : ''}</p>
+                    <p className="text-sm font-bold text-[var(--color-ink)]">
+                      {format(new Date(c.created_at), 'd MMM yyyy')}
+                    </p>
+                    <p className="text-xs text-[var(--color-ink-light)]">
+                      Dr. {c.doctor_name}{c.specialization ? ` · ${c.specialization}` : ''}
+                    </p>
                     {c.chief_complaint && (
                       <p className="text-xs text-[var(--color-ink-faint)] mt-0.5 truncate">{c.chief_complaint}</p>
                     )}
                   </div>
-                  {open === c.id ? <ChevronUp className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" /> : <ChevronDown className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" />}
+                  <div className="shrink-0 text-gray-400">
+                    {open === c.id
+                      ? <ChevronUp className="w-4 h-4" />
+                      : <ChevronDown className="w-4 h-4" />
+                    }
+                  </div>
                 </button>
 
                 {open === c.id && (
-                  <div className="border-t border-[var(--color-border)] p-4 space-y-4">
+                  <div className="border-t border-[var(--color-border)] p-4 space-y-4 bg-gray-50/50">
                     {/* Vitals */}
                     {(c.bp_systolic || c.pulse || c.temperature || c.weight) && (
                       <div>
-                        <p className="text-xs font-semibold text-[var(--color-ink-light)] mb-2">Vitals</p>
+                        <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide mb-2">Vitals</p>
                         <div className="flex flex-wrap gap-2">
                           {c.bp_systolic && c.bp_diastolic && (
                             <VitalPill label="BP" value={`${c.bp_systolic}/${c.bp_diastolic}`} unit="mmHg" />
                           )}
                           <VitalPill label="Pulse"  value={c.pulse}       unit="bpm" />
-                          <VitalPill label="Temp"   value={c.temperature} unit="°C" />
-                          <VitalPill label="Weight" value={c.weight}      unit="kg" />
+                          <VitalPill label="Temp"   value={c.temperature} unit="°C"  />
+                          <VitalPill label="Weight" value={c.weight}      unit="kg"  />
                         </div>
                       </div>
                     )}
-                    {/* Clinical */}
+
+                    {/* Clinical details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {c.chief_complaint && (
-                        <div>
-                          <p className="text-[0.65rem] text-[var(--color-ink-faint)] uppercase tracking-wide mb-0.5">Chief Complaint</p>
+                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                          <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Chief Complaint</p>
                           <p className="text-sm text-[var(--color-ink)]">{c.chief_complaint}</p>
                         </div>
                       )}
                       {c.diagnosis && (
-                        <div>
-                          <p className="text-[0.65rem] text-[var(--color-ink-faint)] uppercase tracking-wide mb-0.5">Diagnosis</p>
-                          <p className="text-sm text-[var(--color-ink)]">{c.diagnosis}{c.icd10_code ? ` (${c.icd10_code})` : ''}</p>
+                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                          <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Diagnosis</p>
+                          <p className="text-sm text-[var(--color-ink)]">
+                            {c.diagnosis}{c.icd_code ? ` (${c.icd_code})` : ''}
+                          </p>
                         </div>
                       )}
                       {c.symptoms && (
-                        <div>
-                          <p className="text-[0.65rem] text-[var(--color-ink-faint)] uppercase tracking-wide mb-0.5">Symptoms</p>
+                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                          <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Symptoms</p>
                           <p className="text-sm text-[var(--color-ink)]">{c.symptoms}</p>
                         </div>
                       )}
                       {c.notes && (
-                        <div>
-                          <p className="text-[0.65rem] text-[var(--color-ink-faint)] uppercase tracking-wide mb-0.5">Doctor's Notes</p>
+                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                          <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Doctor's Notes</p>
                           <p className="text-sm text-[var(--color-ink)]">{c.notes}</p>
                         </div>
                       )}
                     </div>
+
                     {c.follow_up_date && (
-                      <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
-                        <span className="text-xs text-blue-700 font-medium">
+                      <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5">
+                        <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
+                        <p className="text-sm font-semibold text-[var(--color-primary)]">
                           Follow-up: {format(new Date(c.follow_up_date), 'd MMM yyyy')}
-                        </span>
+                        </p>
                       </div>
                     )}
                   </div>

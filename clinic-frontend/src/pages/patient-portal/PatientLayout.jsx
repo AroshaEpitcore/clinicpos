@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { useAuth } from '../../store/AuthContext';
 import { mediaUrl } from '../../utils/mediaUrl';
@@ -7,14 +7,22 @@ import {
   Receipt, User, LogOut, Stethoscope,
 } from 'lucide-react';
 
-const NAV = [
-  { to: '/patient/dashboard',      label: 'Dashboard',     icon: LayoutDashboard },
-  { to: '/patient/appointments',   label: 'Appointments',  icon: CalendarDays    },
-  { to: '/patient/consultations',  label: 'Visits',        icon: Stethoscope     },
-  { to: '/patient/prescriptions',  label: 'Prescriptions', icon: FileText        },
-  { to: '/patient/labs',           label: 'Lab Results',   icon: FlaskConical    },
-  { to: '/patient/invoices',       label: 'Invoices',      icon: Receipt         },
-  { to: '/patient/profile',        label: 'Profile',       icon: User            },
+const BOTTOM_NAV = [
+  { to: '/patient/dashboard',     label: 'Home',    icon: LayoutDashboard },
+  { to: '/patient/appointments',  label: 'Appts',   icon: CalendarDays    },
+  { to: '/patient/consultations', label: 'Visits',  icon: Stethoscope     },
+  { to: '/patient/prescriptions', label: 'Rx',      icon: FileText        },
+  { to: '/patient/profile',       label: 'Profile', icon: User            },
+];
+
+const SIDEBAR_NAV = [
+  { to: '/patient/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
+  { to: '/patient/appointments',  label: 'Appointments',  icon: CalendarDays    },
+  { to: '/patient/consultations', label: 'Visit History', icon: Stethoscope     },
+  { to: '/patient/prescriptions', label: 'Prescriptions', icon: FileText        },
+  { to: '/patient/labs',          label: 'Lab Results',   icon: FlaskConical    },
+  { to: '/patient/invoices',      label: 'Invoices',      icon: Receipt         },
+  { to: '/patient/profile',       label: 'Profile',       icon: User            },
 ];
 
 export default function PatientLayout({ children }) {
@@ -27,81 +35,110 @@ export default function PatientLayout({ children }) {
     navigate('/patient/login');
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--color-surface)] flex flex-col">
-      {/* Top navbar */}
-      <header className="sticky top-0 z-30 bg-white border-b border-[var(--color-border)] shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            {clinic?.logo_url
-              ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-8 w-8 object-contain rounded" />
-              : <div className="h-8 w-8 rounded bg-[var(--color-primary)] flex items-center justify-center text-white text-xs font-bold">P</div>
-            }
-            <div>
-              <p className="text-xs font-bold text-[var(--color-ink)] leading-none">{clinic?.clinic_name || 'Clinic'}</p>
-              <p className="text-[0.65rem] text-[var(--color-ink-light)] leading-none mt-0.5">Patient Portal</p>
-            </div>
-          </div>
+  const initial = patientName?.[0]?.toUpperCase() || '?';
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--color-ink-light)] hidden sm:block">Hi, <strong className="text-[var(--color-ink)]">{patientName}</strong></span>
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+
+      {/* ── Top bar ─────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 bg-white border-b border-[var(--color-border)] shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          <Link to="/patient/dashboard" className="flex items-center gap-2.5 min-w-0">
+            {clinic?.logo_url
+              ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-8 w-8 object-contain rounded-lg shrink-0" />
+              : <div className="h-8 w-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white text-xs font-black shrink-0">
+                  {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
+                </div>
+            }
+            <div className="leading-none min-w-0">
+              <p className="text-xs font-bold text-[var(--color-ink)] truncate">{clinic?.clinic_name || 'Clinic'}</p>
+              <p className="text-[0.6rem] text-[var(--color-ink-light)] mt-0.5">Patient Portal</p>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="hidden sm:block text-sm text-[var(--color-ink-light)]">
+              Hi, <strong className="text-[var(--color-ink)]">{patientName}</strong>
+            </span>
+            <div className="sm:hidden w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-black">
+              {initial}
+            </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-[var(--color-ink-light)] hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
+              className="p-2 rounded-lg text-[var(--color-ink-light)] hover:text-red-500 hover:bg-red-50 transition-colors"
+              title="Logout"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto w-full px-4 py-6 flex gap-6 flex-1">
-        {/* Sidebar — desktop */}
-        <aside className="hidden md:flex flex-col w-52 shrink-0 gap-0.5">
-          {NAV.map(({ to, label, icon: Icon }) => (
+      {/* ── Body ────────────────────────────────────────────────────────── */}
+      <div className="max-w-5xl mx-auto w-full px-4 py-5 flex gap-5 flex-1">
+
+        {/* Sidebar — desktop only */}
+        <aside className="hidden md:flex flex-col w-52 shrink-0">
+          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-2 space-y-0.5 sticky top-20">
+            {SIDEBAR_NAV.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                      : 'text-[var(--color-ink-light)] hover:bg-gray-50 hover:text-[var(--color-ink)]'
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {label}
+              </NavLink>
+            ))}
+            <div className="pt-1 mt-1 border-t border-[var(--color-border)]">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--color-ink-light)] hover:bg-red-50 hover:text-red-500 transition-all"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Page content */}
+        <main className="flex-1 min-w-0">{children}</main>
+      </div>
+
+      {/* ── Bottom tab bar — mobile ──────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--color-border)]">
+        <div className="flex h-[60px] px-1">
+          {BOTTOM_NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)] font-semibold'
-                    : 'text-[var(--color-ink-light)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]'
+                `flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors ${
+                  isActive ? 'text-[var(--color-primary)]' : 'text-gray-400'
                 }`
               }
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <div className={`px-3 py-1 rounded-xl transition-all ${isActive ? 'bg-[var(--color-primary-light)]' : ''}`}>
+                    <Icon className="w-[22px] h-[22px]" />
+                  </div>
+                  <span className="text-[0.57rem] font-semibold leading-none">{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 min-w-0">{children}</main>
-      </div>
-
-      {/* Bottom tab bar — mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--color-border)] flex">
-        {NAV.slice(0, 5).map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[0.6rem] font-medium transition-colors ${
-                isActive
-                  ? 'text-[var(--color-primary)]'
-                  : 'text-[var(--color-ink-faint)]'
-              }`
-            }
-          >
-            <Icon className="w-5 h-5" />
-            {label}
-          </NavLink>
-        ))}
+        </div>
       </nav>
-      {/* Padding so content isn't hidden behind mobile tab bar */}
-      <div className="h-16 md:hidden" />
+
+      <div className="h-[60px] md:hidden" />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
-import { FileText, ChevronDown, ChevronUp, CheckCircle, Clock } from 'lucide-react';
+import { FileText, ChevronDown, ChevronUp, CheckCircle, Clock, Pill } from 'lucide-react';
 
 export default function PatientPrescriptionsPage() {
   const [list,    setList]    = useState([]);
@@ -22,11 +22,23 @@ export default function PatientPrescriptionsPage() {
         <h1 className="text-lg font-black text-[var(--color-ink)]">Prescriptions</h1>
 
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-[var(--color-ink-faint)] text-sm">Loading…</div>
+          <div className="space-y-3">
+            {[1, 2].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-24" />
+                  <div className="h-3 bg-gray-100 rounded w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : list.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <FileText className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-ink-light)]">No prescriptions on record</p>
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+              <FileText className="w-7 h-7 text-gray-300" />
+            </div>
+            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No prescriptions on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -34,17 +46,21 @@ export default function PatientPrescriptionsPage() {
               <div key={rx.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
                 <button
                   onClick={() => setOpen(open === rx.id ? null : rx.id)}
-                  className="w-full flex items-start gap-3 p-4 text-left hover:bg-[var(--color-surface)] transition-colors"
+                  className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                     <FileText className="w-4.5 h-4.5 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-[var(--color-ink)]">{rx.rx_number}</span>
+                      <span className="text-sm font-bold text-[var(--color-ink)]">{rx.rx_number}</span>
                       {rx.is_dispensed
-                        ? <span className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full"><CheckCircle className="w-3 h-3" />Dispensed</span>
-                        : <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full"><Clock className="w-3 h-3" />Pending</span>
+                        ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">
+                            <CheckCircle className="w-3 h-3" />Dispensed
+                          </span>
+                        : <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <Clock className="w-3 h-3" />Pending
+                          </span>
                       }
                     </div>
                     <p className="text-xs text-[var(--color-ink-light)] mt-0.5">
@@ -54,28 +70,37 @@ export default function PatientPrescriptionsPage() {
                       {rx.items.length} medicine{rx.items.length !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  {open === rx.id ? <ChevronUp className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" /> : <ChevronDown className="w-4 h-4 text-[var(--color-ink-faint)] shrink-0 mt-0.5" />}
+                  <div className="shrink-0 text-gray-400">
+                    {open === rx.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
                 </button>
 
                 {open === rx.id && (
-                  <div className="border-t border-[var(--color-border)] p-4">
-                    <div className="space-y-2">
-                      {rx.items.map((item, i) => (
-                        <div key={i} className="bg-[var(--color-surface-alt)] rounded-xl p-3">
-                          <p className="text-sm font-semibold text-[var(--color-ink)]">{item.medicine_name}</p>
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                            {item.dosage    && <span className="text-xs text-[var(--color-ink-light)]">{item.dosage}</span>}
-                            {item.frequency && <span className="text-xs text-[var(--color-ink-light)]">{item.frequency}</span>}
-                            {item.duration  && <span className="text-xs text-[var(--color-ink-light)]">for {item.duration}</span>}
+                  <div className="border-t border-[var(--color-border)] p-4 space-y-3 bg-gray-50/50">
+                    {rx.items.map((item, i) => (
+                      <div key={i} className="bg-white rounded-xl border border-[var(--color-border)] p-3.5">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                            <Pill className="w-3.5 h-3.5 text-blue-500" />
                           </div>
-                          {item.food_instruction && (
-                            <p className="text-xs text-blue-600 mt-1">{item.food_instruction}</p>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[var(--color-ink)]">{item.medicine_name}</p>
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                              {item.dosage    && <span className="text-xs text-[var(--color-ink-light)]">{item.dosage}</span>}
+                              {item.frequency && <span className="text-xs text-[var(--color-ink-faint)]">· {item.frequency}</span>}
+                              {item.duration  && <span className="text-xs text-[var(--color-ink-faint)]">· {item.duration}</span>}
+                            </div>
+                            {item.food_instruction && (
+                              <p className="text-xs text-[var(--color-primary)] font-medium mt-1.5 bg-[var(--color-primary-light)] rounded-lg px-2 py-1 inline-block">
+                                {item.food_instruction}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                     {rx.notes && (
-                      <p className="text-xs text-[var(--color-ink-faint)] mt-3 italic">{rx.notes}</p>
+                      <p className="text-xs text-[var(--color-ink-light)] italic px-1">{rx.notes}</p>
                     )}
                   </div>
                 )}
