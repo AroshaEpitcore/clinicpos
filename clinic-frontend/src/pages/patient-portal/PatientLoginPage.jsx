@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../store/AuthContext';
@@ -58,13 +58,13 @@ export default function PatientLoginPage() {
 
       {/* ── White login sheet ────────────────────────────────────────────── */}
       <div className="bg-white rounded-t-[2rem] px-6 pt-8 pb-10 shadow-2xl">
-        <h2 className="text-xl font-black text-[var(--color-ink)] mb-0.5">Welcome back</h2>
-        <p className="text-sm text-[var(--color-ink-light)] mb-7">Sign in with your registered phone number</p>
+        <h2 className="text-xl font-black text-[var(--color-text)] mb-0.5">Welcome back</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-7">Sign in with your registered phone number</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Phone */}
           <div>
-            <label className="block text-xs font-bold text-[var(--color-ink)] mb-2">Phone Number</label>
+            <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Phone Number</label>
             <input
               type="tel"
               inputMode="tel"
@@ -79,7 +79,7 @@ export default function PatientLoginPage() {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold text-[var(--color-ink)] mb-2">Password</label>
+            <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Password</label>
             <div className="relative">
               <input
                 type={showPw ? 'text' : 'password'}
@@ -91,7 +91,7 @@ export default function PatientLoginPage() {
                 className="w-full px-4 pr-12 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-gray-50 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white transition-all placeholder:text-gray-300"
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-ink)] transition-colors rounded-lg">
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-text)] transition-colors rounded-lg">
                 {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
@@ -110,7 +110,7 @@ export default function PatientLoginPage() {
         </form>
 
         <div className="mt-7 text-center">
-          <p className="text-sm text-[var(--color-ink-light)]">
+          <p className="text-sm text-[var(--color-text-secondary)]">
             Don't have an account?{' '}
             <Link to="/patient/register" className="text-[var(--color-primary)] font-bold hover:underline">
               Register here
@@ -126,3 +126,4 @@ export default function PatientLoginPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
@@ -19,7 +19,7 @@ export default function PatientPrescriptionsPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-ink)]">Prescriptions</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">Prescriptions</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -38,7 +38,7 @@ export default function PatientPrescriptionsPage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FileText className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No prescriptions on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No prescriptions on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -53,7 +53,7 @@ export default function PatientPrescriptionsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold text-[var(--color-ink)]">{rx.rx_number}</span>
+                      <span className="text-sm font-bold text-[var(--color-text)]">{rx.rx_number}</span>
                       {rx.is_dispensed
                         ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">
                             <CheckCircle className="w-3 h-3" />Dispensed
@@ -63,10 +63,10 @@ export default function PatientPrescriptionsPage() {
                           </span>
                       }
                     </div>
-                    <p className="text-xs text-[var(--color-ink-light)] mt-0.5">
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                       {format(new Date(rx.created_at), 'd MMM yyyy')} · Dr. {rx.doctor_name}
                     </p>
-                    <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                       {rx.items.length} medicine{rx.items.length !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -84,11 +84,11 @@ export default function PatientPrescriptionsPage() {
                             <Pill className="w-3.5 h-3.5 text-blue-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-[var(--color-ink)]">{item.medicine_name}</p>
+                            <p className="text-sm font-bold text-[var(--color-text)]">{item.medicine_name}</p>
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                              {item.dosage    && <span className="text-xs text-[var(--color-ink-light)]">{item.dosage}</span>}
-                              {item.frequency && <span className="text-xs text-[var(--color-ink-faint)]">· {item.frequency}</span>}
-                              {item.duration  && <span className="text-xs text-[var(--color-ink-faint)]">· {item.duration}</span>}
+                              {item.dosage    && <span className="text-xs text-[var(--color-text-secondary)]">{item.dosage}</span>}
+                              {item.frequency && <span className="text-xs text-[var(--color-text-secondary)]">· {item.frequency}</span>}
+                              {item.duration  && <span className="text-xs text-[var(--color-text-secondary)]">· {item.duration}</span>}
                             </div>
                             {item.food_instruction && (
                               <p className="text-xs text-[var(--color-primary)] font-medium mt-1.5 bg-[var(--color-primary-light)] rounded-lg px-2 py-1 inline-block">
@@ -100,7 +100,7 @@ export default function PatientPrescriptionsPage() {
                       </div>
                     ))}
                     {rx.notes && (
-                      <p className="text-xs text-[var(--color-ink-light)] italic px-1">{rx.notes}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)] italic px-1">{rx.notes}</p>
                     )}
                   </div>
                 )}
@@ -112,3 +112,4 @@ export default function PatientPrescriptionsPage() {
     </PatientLayout>
   );
 }
+

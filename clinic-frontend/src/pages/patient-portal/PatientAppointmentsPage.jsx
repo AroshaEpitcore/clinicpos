@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { patientPortalApi } from '../../api/patientPortal';
@@ -58,7 +58,7 @@ export default function PatientAppointmentsPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-ink)]">Appointments</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">Appointments</h1>
 
         {/* Tab switcher */}
         <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
@@ -71,8 +71,8 @@ export default function PatientAppointmentsPage() {
               onClick={() => setTab(t.key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 tab === t.key
-                  ? 'bg-white text-[var(--color-ink)] shadow-sm'
-                  : 'text-[var(--color-ink-light)]'
+                  ? 'bg-white text-[var(--color-text)] shadow-sm'
+                  : 'text-[var(--color-text-secondary)]'
               }`}
             >
               {t.label}
@@ -103,7 +103,7 @@ export default function PatientAppointmentsPage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <CalendarDays className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No {tab} appointments</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No {tab} appointments</p>
             {tab === 'upcoming' && (
               <a href="/book" className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[var(--color-primary)] hover:underline">
                 <BookOpen className="w-4 h-4" /> Book an appointment
@@ -126,11 +126,11 @@ export default function PatientAppointmentsPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[var(--color-ink)]">Dr. {a.doctor_name}</p>
+                  <p className="text-sm font-bold text-[var(--color-text)]">Dr. {a.doctor_name}</p>
                   {a.specialization && (
-                    <p className="text-xs text-[var(--color-ink-faint)]">{a.specialization}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">{a.specialization}</p>
                   )}
-                  <p className="text-xs text-[var(--color-ink-light)] mt-1">
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1">
                     {format(new Date(a.appointment_date), 'EEEE, d MMMM yyyy')}
                     {a.appointment_time ? ` · ${a.appointment_time.slice(0, 5)}` : ''}
                   </p>
@@ -139,12 +139,12 @@ export default function PatientAppointmentsPage() {
                       {a.status}
                     </span>
                     {a.token_number && (
-                      <span className="text-xs text-[var(--color-ink-faint)] bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+                      <span className="text-xs text-[var(--color-text-secondary)] bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
                         Token #{a.token_number}
                       </span>
                     )}
                     {a.booking_reference && (
-                      <span className="text-xs text-[var(--color-ink-faint)]">{a.booking_reference}</span>
+                      <span className="text-xs text-[var(--color-text-secondary)]">{a.booking_reference}</span>
                     )}
                   </div>
                 </div>
@@ -168,3 +168,4 @@ export default function PatientAppointmentsPage() {
     </PatientLayout>
   );
 }
+

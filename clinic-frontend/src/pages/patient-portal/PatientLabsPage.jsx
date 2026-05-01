@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
@@ -19,7 +19,7 @@ export default function PatientLabsPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-ink)]">Lab Results</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">Lab Results</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -38,7 +38,7 @@ export default function PatientLabsPage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FlaskConical className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No lab tests on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No lab tests on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -58,9 +58,9 @@ export default function PatientLabsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div>
-                        <span className="text-sm font-bold text-[var(--color-ink)]">{lab.test_name}</span>
+                        <span className="text-sm font-bold text-[var(--color-text)]">{lab.test_name}</span>
                         {lab.test_code && (
-                          <span className="ml-1.5 text-xs text-[var(--color-ink-faint)]">({lab.test_code})</span>
+                          <span className="ml-1.5 text-xs text-[var(--color-text-secondary)]">({lab.test_code})</span>
                         )}
                       </div>
                       <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${
@@ -72,7 +72,7 @@ export default function PatientLabsPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-[var(--color-ink-light)] mt-0.5">
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                       {lab.category && `${lab.category} · `}
                       Ordered {format(new Date(lab.created_at), 'd MMM yyyy')}
                     </p>
@@ -122,3 +122,4 @@ export default function PatientLabsPage() {
     </PatientLayout>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+﻿import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { useAuth } from '../../store/AuthContext';
 import { mediaUrl } from '../../utils/mediaUrl';
@@ -51,21 +51,21 @@ export default function PatientLayout({ children }) {
                 </div>
             }
             <div className="leading-none min-w-0">
-              <p className="text-xs font-bold text-[var(--color-ink)] truncate">{clinic?.clinic_name || 'Clinic'}</p>
-              <p className="text-[0.6rem] text-[var(--color-ink-light)] mt-0.5">Patient Portal</p>
+              <p className="text-xs font-bold text-[var(--color-text)] truncate">{clinic?.clinic_name || 'Clinic'}</p>
+              <p className="text-[0.6rem] text-[var(--color-text-secondary)] mt-0.5">Patient Portal</p>
             </div>
           </Link>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden sm:block text-sm text-[var(--color-ink-light)]">
-              Hi, <strong className="text-[var(--color-ink)]">{patientName}</strong>
+            <span className="hidden sm:block text-sm text-[var(--color-text-secondary)]">
+              Hi, <strong className="text-[var(--color-text)]">{patientName}</strong>
             </span>
             <div className="sm:hidden w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-black">
               {initial}
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-[var(--color-ink-light)] hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-50 transition-colors"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -88,7 +88,7 @@ export default function PatientLayout({ children }) {
                   `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     isActive
                       ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'text-[var(--color-ink-light)] hover:bg-gray-50 hover:text-[var(--color-ink)]'
+                      : 'text-[var(--color-text-secondary)] hover:bg-gray-50 hover:text-[var(--color-text)]'
                   }`
                 }
               >
@@ -99,7 +99,7 @@ export default function PatientLayout({ children }) {
             <div className="pt-1 mt-1 border-t border-[var(--color-border)]">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--color-ink-light)] hover:bg-red-50 hover:text-red-500 transition-all"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-red-50 hover:text-red-500 transition-all"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
                 Logout
@@ -142,3 +142,4 @@ export default function PatientLayout({ children }) {
     </div>
   );
 }
+

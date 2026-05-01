@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
@@ -9,7 +9,7 @@ function VitalPill({ label, value, unit }) {
   return (
     <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-center min-w-[64px]">
       <p className="text-[0.55rem] text-gray-400 uppercase tracking-wide font-semibold">{label}</p>
-      <p className="text-sm font-black text-[var(--color-ink)] leading-tight">
+      <p className="text-sm font-black text-[var(--color-text)] leading-tight">
         {value}<span className="text-[0.6rem] font-normal text-gray-400 ml-0.5">{unit}</span>
       </p>
     </div>
@@ -32,8 +32,8 @@ export default function PatientConsultationsPage() {
     <PatientLayout>
       <div className="space-y-4">
         <div>
-          <h1 className="text-lg font-black text-[var(--color-ink)]">Visit History</h1>
-          <p className="text-sm text-[var(--color-ink-light)] mt-0.5">Your consultations and clinical notes</p>
+          <h1 className="text-lg font-black text-[var(--color-text)]">Visit History</h1>
+          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">Your consultations and clinical notes</p>
         </div>
 
         {loading ? (
@@ -53,7 +53,7 @@ export default function PatientConsultationsPage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Stethoscope className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No consultations on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No consultations on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -67,14 +67,14 @@ export default function PatientConsultationsPage() {
                     <Stethoscope className="w-4.5 h-4.5 text-purple-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[var(--color-ink)]">
+                    <p className="text-sm font-bold text-[var(--color-text)]">
                       {format(new Date(c.created_at), 'd MMM yyyy')}
                     </p>
-                    <p className="text-xs text-[var(--color-ink-light)]">
+                    <p className="text-xs text-[var(--color-text-secondary)]">
                       Dr. {c.doctor_name}{c.specialization ? ` · ${c.specialization}` : ''}
                     </p>
                     {c.chief_complaint && (
-                      <p className="text-xs text-[var(--color-ink-faint)] mt-0.5 truncate">{c.chief_complaint}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 truncate">{c.chief_complaint}</p>
                     )}
                   </div>
                   <div className="shrink-0 text-gray-400">
@@ -90,7 +90,7 @@ export default function PatientConsultationsPage() {
                     {/* Vitals */}
                     {(c.bp_systolic || c.pulse || c.temperature || c.weight) && (
                       <div>
-                        <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide mb-2">Vitals</p>
+                        <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Vitals</p>
                         <div className="flex flex-wrap gap-2">
                           {c.bp_systolic && c.bp_diastolic && (
                             <VitalPill label="BP" value={`${c.bp_systolic}/${c.bp_diastolic}`} unit="mmHg" />
@@ -107,13 +107,13 @@ export default function PatientConsultationsPage() {
                       {c.chief_complaint && (
                         <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Chief Complaint</p>
-                          <p className="text-sm text-[var(--color-ink)]">{c.chief_complaint}</p>
+                          <p className="text-sm text-[var(--color-text)]">{c.chief_complaint}</p>
                         </div>
                       )}
                       {c.diagnosis && (
                         <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Diagnosis</p>
-                          <p className="text-sm text-[var(--color-ink)]">
+                          <p className="text-sm text-[var(--color-text)]">
                             {c.diagnosis}{c.icd_code ? ` (${c.icd_code})` : ''}
                           </p>
                         </div>
@@ -121,13 +121,13 @@ export default function PatientConsultationsPage() {
                       {c.symptoms && (
                         <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Symptoms</p>
-                          <p className="text-sm text-[var(--color-ink)]">{c.symptoms}</p>
+                          <p className="text-sm text-[var(--color-text)]">{c.symptoms}</p>
                         </div>
                       )}
                       {c.notes && (
                         <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Doctor's Notes</p>
-                          <p className="text-sm text-[var(--color-ink)]">{c.notes}</p>
+                          <p className="text-sm text-[var(--color-text)]">{c.notes}</p>
                         </div>
                       )}
                     </div>
@@ -150,3 +150,4 @@ export default function PatientConsultationsPage() {
     </PatientLayout>
   );
 }
+

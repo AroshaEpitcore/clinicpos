@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
@@ -44,7 +44,7 @@ export default function PatientInvoicesPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-ink)]">Invoices</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">Invoices</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -64,7 +64,7 @@ export default function PatientInvoicesPage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Receipt className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-ink-light)]">No invoices on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No invoices on record</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -79,20 +79,20 @@ export default function PatientInvoicesPage() {
                     className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-xl bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
-                      <Receipt className="w-4.5 h-4.5 text-[var(--color-ink-light)]" />
+                      <Receipt className="w-4.5 h-4.5 text-[var(--color-text-secondary)]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-[var(--color-ink)]">{inv.invoice_number}</span>
+                        <span className="text-sm font-bold text-[var(--color-text)]">{inv.invoice_number}</span>
                         <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border capitalize ${STATUS_STYLE[inv.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                           {inv.status}
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--color-ink-light)] mt-0.5">
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                         {format(new Date(inv.created_at), 'd MMM yyyy')}
                       </p>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-sm font-black text-[var(--color-ink)]">{fmt(inv.total_amount)}</span>
+                        <span className="text-sm font-black text-[var(--color-text)]">{fmt(inv.total_amount)}</span>
                         {parseFloat(inv.balance) > 0 && (
                           <span className="text-xs font-semibold text-red-500">Due: {fmt(inv.balance)}</span>
                         )}
@@ -115,14 +115,14 @@ export default function PatientInvoicesPage() {
                         <>
                           {/* Line items */}
                           <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
-                            <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide px-3 pt-3 pb-1">
+                            <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide px-3 pt-3 pb-1">
                               Items
                             </p>
                             <div className="divide-y divide-[var(--color-border)]">
                               {d.items.map((item, i) => (
                                 <div key={i} className="flex items-center justify-between px-3 py-2.5 gap-3">
-                                  <span className="text-sm text-[var(--color-ink)] truncate">{item.description}</span>
-                                  <span className="text-sm font-semibold text-[var(--color-ink)] shrink-0">{fmt(item.line_total)}</span>
+                                  <span className="text-sm text-[var(--color-text)] truncate">{item.description}</span>
+                                  <span className="text-sm font-semibold text-[var(--color-text)] shrink-0">{fmt(item.line_total)}</span>
                                 </div>
                               ))}
                             </div>
@@ -131,16 +131,16 @@ export default function PatientInvoicesPage() {
                           {/* Totals */}
                           <div className="bg-white rounded-xl border border-[var(--color-border)] px-3 py-3 space-y-2">
                             {parseFloat(d.discount) > 0 && (
-                              <div className="flex justify-between text-xs text-[var(--color-ink-light)]">
+                              <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
                                 <span>Discount</span><span className="text-green-600">− {fmt(d.discount)}</span>
                               </div>
                             )}
                             {parseFloat(d.tax_amount) > 0 && (
-                              <div className="flex justify-between text-xs text-[var(--color-ink-light)]">
+                              <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
                                 <span>Tax</span><span>{fmt(d.tax_amount)}</span>
                               </div>
                             )}
-                            <div className="flex justify-between pt-2 border-t border-[var(--color-border)] text-sm font-black text-[var(--color-ink)]">
+                            <div className="flex justify-between pt-2 border-t border-[var(--color-border)] text-sm font-black text-[var(--color-text)]">
                               <span>Total</span><span>{fmt(d.total_amount)}</span>
                             </div>
                             <div className="flex justify-between text-sm font-semibold text-green-600">
@@ -156,15 +156,15 @@ export default function PatientInvoicesPage() {
                           {/* Payment history */}
                           {d.payments?.length > 0 && (
                             <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
-                              <p className="text-[0.65rem] font-bold text-[var(--color-ink-faint)] uppercase tracking-wide px-3 pt-3 pb-1">
+                              <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide px-3 pt-3 pb-1">
                                 Payment History
                               </p>
                               <div className="divide-y divide-[var(--color-border)]">
                                 {d.payments.map((p, i) => (
                                   <div key={i} className="flex items-center justify-between px-3 py-2.5">
                                     <div>
-                                      <span className="text-sm text-[var(--color-ink)] capitalize font-medium">{p.payment_method}</span>
-                                      {p.reference && <span className="text-xs text-[var(--color-ink-faint)] ml-1.5">({p.reference})</span>}
+                                      <span className="text-sm text-[var(--color-text)] capitalize font-medium">{p.payment_method}</span>
+                                      {p.reference && <span className="text-xs text-[var(--color-text-secondary)] ml-1.5">({p.reference})</span>}
                                     </div>
                                     <span className="text-sm font-semibold text-green-600">{fmt(p.amount)}</span>
                                   </div>
@@ -185,3 +185,4 @@ export default function PatientInvoicesPage() {
     </PatientLayout>
   );
 }
+

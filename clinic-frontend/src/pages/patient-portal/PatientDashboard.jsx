@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
@@ -66,14 +66,14 @@ export default function PatientDashboard() {
                 <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
                   <CalendarDays className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
-                <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Next Appointment</span>
+                <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Next Appointment</span>
               </div>
               {summary?.next_appointment ? (
                 <>
-                  <p className="text-base font-black text-[var(--color-ink)]">
+                  <p className="text-base font-black text-[var(--color-text)]">
                     {format(new Date(summary.next_appointment.appointment_date), 'EEE, d MMM yyyy')}
                   </p>
-                  <p className="text-sm text-[var(--color-ink-light)] mt-0.5">
+                  <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
                     {summary.next_appointment.appointment_time
                       ? summary.next_appointment.appointment_time.slice(0, 5) + ' · '
                       : 'Walk-in · '
@@ -92,7 +92,7 @@ export default function PatientDashboard() {
                 </>
               ) : (
                 <div>
-                  <p className="text-sm text-[var(--color-ink-light)]">No upcoming appointments</p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">No upcoming appointments</p>
                   <a href="/book"
                     className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
                     Book now <ArrowRight className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ export default function PatientDashboard() {
                     : <CheckCircle className="w-4 h-4 text-green-500" />
                   }
                 </div>
-                <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Balance Due</span>
+                <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Balance Due</span>
               </div>
               <p className={`text-xl font-black ${summary?.outstanding_balance > 0 ? 'text-amber-700' : 'text-green-600'}`}>
                 {fmt(summary?.outstanding_balance)}
@@ -140,16 +140,16 @@ export default function PatientDashboard() {
               <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
                 <Stethoscope className="w-4 h-4 text-purple-600" />
               </div>
-              <span className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide">Last Visit</span>
+              <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Last Visit</span>
             </div>
-            <p className="text-sm font-bold text-[var(--color-ink)]">
+            <p className="text-sm font-bold text-[var(--color-text)]">
               {format(new Date(summary.last_visit.created_at), 'd MMM yyyy')} · Dr. {summary.last_visit.doctor_name}
             </p>
             {summary.last_visit.chief_complaint && (
-              <p className="text-sm text-[var(--color-ink-light)] mt-1">{summary.last_visit.chief_complaint}</p>
+              <p className="text-sm text-[var(--color-text-secondary)] mt-1">{summary.last_visit.chief_complaint}</p>
             )}
             {summary.last_visit.diagnosis && (
-              <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">Diagnosis: {summary.last_visit.diagnosis}</p>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Diagnosis: {summary.last_visit.diagnosis}</p>
             )}
             <Link to="/patient/consultations"
               className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
@@ -160,7 +160,7 @@ export default function PatientDashboard() {
 
         {/* ── Quick links grid ─────────────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-bold text-[var(--color-ink-light)] uppercase tracking-wide mb-3 px-0.5">Quick Access</p>
+          <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-3 px-0.5">Quick Access</p>
           <div className="grid grid-cols-2 gap-3">
             {QUICK_LINKS.map(q => (
               <Link
@@ -181,3 +181,4 @@ export default function PatientDashboard() {
     </PatientLayout>
   );
 }
+
