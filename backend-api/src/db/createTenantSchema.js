@@ -53,6 +53,14 @@ async function createTenantSchema(client, schemaName) {
       duplicate_check_enabled  BOOLEAN       DEFAULT TRUE,
       queue_display_enabled    BOOLEAN       DEFAULT FALSE,
       patient_login_enabled    BOOLEAN       DEFAULT FALSE,
+      website_enabled          BOOLEAN       DEFAULT TRUE,
+      website_tagline          VARCHAR(255),
+      website_about            TEXT,
+      website_hours            TEXT,
+      website_map_url          VARCHAR(500),
+      website_whatsapp         VARCHAR(30),
+      website_facebook         VARCHAR(255),
+      website_hero_url         VARCHAR(500),
       updated_at               TIMESTAMP     DEFAULT NOW()
     );
   `);

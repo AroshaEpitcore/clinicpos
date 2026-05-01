@@ -1429,6 +1429,140 @@ async function testE2EJourney() {
   }
 }
 
+// ── 20. Patient Portal — Authenticated ───────────────────────────────────────
+async function testPatientPortalAuth() {
+  sec('20. Patient Portal — Auth & Data');
+
+  // ── Read current state so we can restore at the end ─────────────────────
+  const settingsRes = await req('GET', '/settings', tokens['admin']);
+  const wasEnabled = settingsRes.data.data?.patient_login_enabled === true;
+
+  // ── 20a. Disabled portal blocks register + login ─────────────────────────
+  if (wasEnabled) {
+    await req('PUT', '/settings', tokens['admin'], { patient_login_enabled: false });
+  }
+
+  const regDisabled = await req('POST', '/patient-portal/register', null, { phone: '0770000001', password: 'test123' });
+  expect(regDisabled.status === 403, 'Portal register blocked when login disabled', `got ${regDisabled.status}`);
+
+  const loginDisabled = await req('POST', '/patient-portal/login', null, { phone: '0770000001', password: 'test123' });
+  expect(loginDisabled.status === 403, 'Portal login blocked when login disabled', `got ${loginDisabled.status}`);
+
+  // ── 20b. Enable patient login ─────────────────────────────────────────────
+  const enableRes = await req('PUT', '/settings', tokens['admin'], { patient_login_enabled: true });
+  expect(enableRes.status === 200, 'Admin can enable patient login portal', `got ${enableRes.status}`);
+
+  // ── 20c. Create a fresh patient so we control the portal state ────────────
+  const ts = Date.now();
+  const portalTestPhone = `0770${String(ts).slice(-6)}`;
+  const portalPassword = 'Portal@Test1';
+
+  const newPat = await req('POST', '/patients', tokens['receptionist'], {
+    first_name: 'Portal', last_name: 'Tester',
+    phone: portalTestPhone, gender: 'male',
+  });
+  expect(newPat.status === 201, 'Create fresh patient for portal tests', `got ${newPat.status}`);
+  if (newPat.status !== 201) { warn('Patient creation failed — portal auth section skipped'); return; }
+
+  // ── 20d. Register with non-existent phone → 404 ──────────────────────────
+  const noPhone = await req('POST', '/patient-portal/register', null, { phone: '9999999999', password: 'test123' });
+  expect(noPhone.status === 404, 'Register with unknown phone returns 404', `got ${noPhone.status}`);
+
+  // ── 20e. Missing fields → 400 ────────────────────────────────────────────
+  const missingPw = await req('POST', '/patient-portal/register', null, { phone: portalTestPhone });
+  expect(missingPw.status === 400, 'Register without password returns 400', `got ${missingPw.status}`);
+
+  const shortPw = await req('POST', '/patient-portal/register', null, { phone: portalTestPhone, password: 'abc' });
+  expect(shortPw.status === 400, 'Register with <6-char password returns 400', `got ${shortPw.status}`);
+
+  // ── 20f. Successful registration ─────────────────────────────────────────
+  const regRes = await req('POST', '/patient-portal/register', null, { phone: portalTestPhone, password: portalPassword });
+  expect(regRes.status === 200, 'Portal registration succeeds', `got ${regRes.status}`);
+
+  // ── 20g. Duplicate registration → 409 ────────────────────────────────────
+  const dupReg = await req('POST', '/patient-portal/register', null, { phone: portalTestPhone, password: 'other123' });
+  expect(dupReg.status === 409, 'Duplicate portal registration returns 409', `got ${dupReg.status}`);
+
+  // ── 20h. Login: missing fields → 400 ─────────────────────────────────────
+  const missingLogin = await req('POST', '/patient-portal/login', null, { phone: portalTestPhone });
+  expect(missingLogin.status === 400, 'Login without password returns 400', `got ${missingLogin.status}`);
+
+  // ── 20i. Login: wrong password → 401 ─────────────────────────────────────
+  const badLogin = await req('POST', '/patient-portal/login', null, { phone: portalTestPhone, password: 'wrongpassword' });
+  expect(badLogin.status === 401, 'Login with wrong password returns 401', `got ${badLogin.status}`);
+
+  // ── 20j. Login: correct credentials → token ──────────────────────────────
+  const goodLogin = await req('POST', '/patient-portal/login', null, { phone: portalTestPhone, password: portalPassword });
+  expect(goodLogin.status === 200 && !!goodLogin.data.data?.token, 'Login with correct credentials returns token', `got ${goodLogin.status}`);
+
+  if (goodLogin.status !== 200 || !goodLogin.data.data?.token) {
+    warn('Login failed — skipping authenticated endpoint tests');
+    if (!wasEnabled) await req('PUT', '/settings', tokens['admin'], { patient_login_enabled: false });
+    return;
+  }
+
+  const patientToken = goodLogin.data.data.token;
+
+  // ── 20k. Unauthenticated access → 401 ────────────────────────────────────
+  const noTok = await req('GET', '/patient-portal/me', null);
+  expect(noTok.status === 401, 'Protected route without token returns 401', `got ${noTok.status}`);
+
+  const badTok = await req('GET', '/patient-portal/me', 'notavalidtoken');
+  expect(badTok.status === 401 || badTok.status === 403, 'Protected route with invalid token returns 401/403', `got ${badTok.status}`);
+
+  // ── 20l. All data endpoints return 200 ───────────────────────────────────
+  const me = await req('GET', '/patient-portal/me', patientToken);
+  expect(me.status === 200, 'GET /patient-portal/me returns 200', `got ${me.status}`);
+  expect(me.data.data?.first_name === 'Portal', '/me returns correct patient name', `got "${me.data.data?.first_name}"`);
+
+  const appts = await req('GET', '/patient-portal/appointments', patientToken);
+  expect(appts.status === 200, 'GET /patient-portal/appointments returns 200', `got ${appts.status}`);
+  expect(Array.isArray(appts.data.data), 'Appointments response is an array', `got ${typeof appts.data.data}`);
+
+  const consults = await req('GET', '/patient-portal/consultations', patientToken);
+  expect(consults.status === 200, 'GET /patient-portal/consultations returns 200', `got ${consults.status}`);
+
+  const rxList = await req('GET', '/patient-portal/prescriptions', patientToken);
+  expect(rxList.status === 200, 'GET /patient-portal/prescriptions returns 200', `got ${rxList.status}`);
+
+  const labs = await req('GET', '/patient-portal/labs', patientToken);
+  expect(labs.status === 200, 'GET /patient-portal/labs returns 200', `got ${labs.status}`);
+
+  const invoices = await req('GET', '/patient-portal/invoices', patientToken);
+  expect(invoices.status === 200, 'GET /patient-portal/invoices returns 200', `got ${invoices.status}`);
+
+  const summary = await req('GET', '/patient-portal/summary', patientToken);
+  expect(summary.status === 200, 'GET /patient-portal/summary returns 200', `got ${summary.status}`);
+  expect(typeof summary.data.data?.next_appointment !== 'undefined', 'Summary contains next_appointment field', `got ${JSON.stringify(summary.data.data)}`);
+
+  // ── 20m. Cancel appointment — non-existent ID → 404 ──────────────────────
+  const badCancel = await req('POST', '/patient-portal/appointments/00000000-0000-0000-0000-000000000000/cancel', patientToken);
+  expect(
+    badCancel.status === 404 || badCancel.status === 400 || badCancel.status === 403,
+    'Cancel non-existent appointment returns an error', `got ${badCancel.status}`
+  );
+
+  // ── 20n. Invoice detail — non-existent ID → 404 ──────────────────────────
+  const badInv = await req('GET', '/patient-portal/invoices/00000000-0000-0000-0000-000000000000', patientToken);
+  expect(badInv.status === 404 || badInv.status === 403, 'Invoice detail for unknown ID returns 404/403', `got ${badInv.status}`);
+
+  // ── 20o. Change password ──────────────────────────────────────────────────
+  const wrongCurrent = await req('POST', '/patient-portal/change-password', patientToken, {
+    current_password: 'wrongoldpassword', new_password: 'NewPass@456',
+  });
+  expect(wrongCurrent.status === 401, 'Change password with wrong current returns 401', `got ${wrongCurrent.status}`);
+
+  const changePw = await req('POST', '/patient-portal/change-password', patientToken, {
+    current_password: portalPassword, new_password: portalPassword,
+  });
+  expect(changePw.status === 200, 'Change password with correct current succeeds', `got ${changePw.status}`);
+
+  // ── 20p. Restore settings ────────────────────────────────────────────────
+  if (!wasEnabled) {
+    await req('PUT', '/settings', tokens['admin'], { patient_login_enabled: false });
+  }
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 function printSummary() {
   console.log('\n' + '═'.repeat(60));
@@ -1487,6 +1621,7 @@ async function run() {
     await testCustomServices();
     await testDoctorFees();
     await testPatientPortal();
+    await testPatientPortalAuth();
     await testSuperAdmin();
     await testE2EJourney();
   } catch (err) {

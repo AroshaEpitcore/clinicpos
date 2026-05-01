@@ -240,7 +240,7 @@ router.get('/consultations', patientAuthMiddleware, async (req, res) => {
   const schema = req.tenantSchema;
   try {
     const r = await queryTenant(schema,
-      `SELECT c.id, c.created_at, c.chief_complaint, c.diagnosis, c.icd10_code,
+      `SELECT c.id, c.created_at, c.chief_complaint, c.diagnosis, c.icd_code,
               c.symptoms, c.notes, c.follow_up_date,
               c.bp_systolic, c.bp_diastolic, c.pulse, c.temperature, c.weight,
               s.full_name AS doctor_name, s.specialization
@@ -306,8 +306,8 @@ router.get('/labs', patientAuthMiddleware, async (req, res) => {
     const r = await queryTenant(schema,
       `SELECT lr.id, lr.created_at, lr.status,
               lt.name AS test_name, lt.code AS test_code, lt.category,
-              res.result_value, res.result_unit, res.reference_range, res.notes AS result_notes,
-              res.result_file_url, res.recorded_at
+              res.result_value, res.notes AS result_notes,
+              res.result_file_url, res.resulted_at
        FROM lab_requests lr
        LEFT JOIN lab_tests    lt  ON lt.id  = lr.test_id
        LEFT JOIN lab_results  res ON res.request_id = lr.id
@@ -327,7 +327,7 @@ router.get('/invoices', patientAuthMiddleware, async (req, res) => {
   const schema = req.tenantSchema;
   try {
     const r = await queryTenant(schema,
-      `SELECT i.id, i.invoice_number, i.created_at, i.status,
+      `SELECT i.id, i.invoice_number, i.created_at, i.payment_status AS status,
               i.total_amount, i.paid_amount,
               (i.total_amount - i.paid_amount) AS balance
        FROM invoices i
@@ -347,8 +347,8 @@ router.get('/invoices/:id', patientAuthMiddleware, async (req, res) => {
   const schema = req.tenantSchema;
   try {
     const inv = await queryTenant(schema,
-      `SELECT i.id, i.invoice_number, i.created_at, i.status,
-              i.subtotal, i.discount, i.tax_amount, i.total_amount, i.paid_amount,
+      `SELECT i.id, i.invoice_number, i.created_at, i.payment_status AS status,
+              i.subtotal, i.discount_amount AS discount, i.tax_amount, i.total_amount, i.paid_amount,
               (i.total_amount - i.paid_amount) AS balance,
               i.notes
        FROM invoices i
@@ -399,7 +399,7 @@ router.get('/summary', patientAuthMiddleware, async (req, res) => {
       ),
       queryTenant(schema,
         `SELECT COALESCE(SUM(total_amount - paid_amount), 0) AS outstanding
-         FROM invoices WHERE patient_id = $1 AND status != 'paid'`,
+         FROM invoices WHERE patient_id = $1 AND payment_status != 'paid'`,
         [pid]
       ),
     ]);

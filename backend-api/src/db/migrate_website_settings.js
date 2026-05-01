@@ -13,7 +13,7 @@ async function run() {
       console.log(`  Migrating ${schema}…`);
 
       await client.query(`
-        ALTER TABLE ${schema}.clinic_settings
+        ALTER TABLE "${schema}".clinic_settings
           ADD COLUMN IF NOT EXISTS website_enabled   BOOLEAN      DEFAULT TRUE,
           ADD COLUMN IF NOT EXISTS website_tagline   VARCHAR(255),
           ADD COLUMN IF NOT EXISTS website_about     TEXT,
