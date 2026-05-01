@@ -1,10 +1,12 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../store/AuthContext';
 import { patientPortalApi } from '../../api/patientPortal';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { Eye, EyeOff, ArrowRight, ShieldCheck, Info } from 'lucide-react';
+import { formatPhoneInput } from '../../utils/format';
+import { Button } from '../../components/ui/Button';
+import { Eye, EyeOff, ShieldCheck, Info } from 'lucide-react';
 
 export default function PatientRegisterPage() {
   const { clinic } = useAuth();
@@ -34,55 +36,57 @@ export default function PatientRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-primary)' }}>
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-4">
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center flex-1 px-6 pt-10 pb-6 text-white min-h-[180px]">
-        <div className="mb-4">
-          {clinic?.logo_url
-            ? <img src={mediaUrl(clinic.logo_url)} alt=""
-                className="h-14 w-14 object-contain rounded-2xl shadow-xl border-2 border-white/30 mx-auto" />
-            : <div className="h-14 w-14 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-xl mx-auto shadow-xl">
-                {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
-              </div>
-          }
-        </div>
-        <h1 className="text-xl font-black text-white text-center">{clinic?.clinic_name || 'Patient Portal'}</h1>
-        <p className="text-blue-100 text-sm mt-1 text-center">Create your health account</p>
+      {/* Branding */}
+      <div className="flex flex-col items-center mb-6">
+        {clinic?.logo_url
+          ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-14 w-14 object-contain rounded-[var(--radius-lg)] mb-3" />
+          : <div className="h-14 w-14 rounded-[var(--radius-lg)] bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-2xl mb-3">
+              {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
+            </div>
+        }
+        <h1 className="text-lg font-bold text-[var(--color-text)]">{clinic?.clinic_name || 'Patient Portal'}</h1>
+        <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">Patient Portal</p>
       </div>
 
-      {/* ── White register sheet ─────────────────────────────────────────── */}
-      <div className="bg-white rounded-t-[2rem] px-6 pt-8 pb-10 shadow-2xl">
-        <h2 className="text-xl font-black text-[var(--color-text)] mb-0.5">Create account</h2>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-6">Use the phone number registered at the clinic</p>
+      {/* Form card */}
+      <div className="w-full max-w-sm bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-6">
+        <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">Create account</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4">Use the phone number registered at the clinic</p>
 
         {/* Info notice */}
-        <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-6">
+        <div className="flex items-start gap-2 bg-[var(--color-primary-light)] border border-blue-100 rounded-[var(--radius)] px-3 py-2.5 mb-5">
           <Info className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700 leading-relaxed">
-            Your phone number must already be registered with the clinic. If you're unsure, please contact clinic staff.
+          <p className="text-xs text-[var(--color-primary)] leading-relaxed">
+            Your phone number must already be registered with the clinic. Contact clinic staff if you're unsure.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
           {/* Phone */}
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Phone Number</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-[var(--color-text)]">
+              Phone Number <span className="text-[var(--color-danger)]">*</span>
+            </label>
             <input
               type="tel"
               inputMode="tel"
               autoComplete="tel"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="07X XXX XXXX"
+              onChange={e => setPhone(formatPhoneInput(e.target.value))}
+              placeholder="077 123 4567"
               required
-              className="w-full px-4 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-gray-50 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white transition-all placeholder:text-gray-300"
+              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
           </div>
 
           {/* Password */}
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Password</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-[var(--color-text)]">
+              Password <span className="text-[var(--color-danger)]">*</span>
+            </label>
             <div className="relative">
               <input
                 type={showPw ? 'text' : 'password'}
@@ -92,18 +96,20 @@ export default function PatientRegisterPage() {
                 placeholder="Min. 6 characters"
                 required
                 minLength={6}
-                className="w-full px-4 pr-12 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-gray-50 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white transition-all placeholder:text-gray-300"
+                className="w-full px-3 py-2 pr-10 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-text)] rounded-lg transition-colors">
-                {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
           {/* Confirm */}
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Confirm Password</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-[var(--color-text)]">
+              Confirm Password <span className="text-[var(--color-danger)]">*</span>
+            </label>
             <input
               type={showPw ? 'text' : 'password'}
               autoComplete="new-password"
@@ -111,40 +117,30 @@ export default function PatientRegisterPage() {
               onChange={e => setConfirm(e.target.value)}
               placeholder="Re-enter your password"
               required
-              className={`w-full px-4 py-3.5 text-base border-2 rounded-2xl bg-gray-50 focus:outline-none focus:bg-white transition-all placeholder:text-gray-300 ${
+              className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
                 pwMatch
-                  ? 'border-red-400 focus:border-red-500'
-                  : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'
+                  ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                  : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
               }`}
             />
-            {pwMatch && <p className="text-xs text-red-500 mt-1.5 ml-1">Passwords do not match</p>}
+            {pwMatch && <span className="text-xs text-[var(--color-danger)]">Passwords do not match</span>}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || !!pwMatch}
-            className="w-full mt-2 py-4 rounded-2xl bg-[var(--color-primary)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
-          >
-            {loading
-              ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Creating…</span>
-              : <span className="flex items-center gap-2">Create Account <ArrowRight className="w-5 h-5" /></span>
-            }
-          </button>
+          <Button type="submit" loading={loading} disabled={!!pwMatch} className="w-full mt-1">
+            Create Account
+          </Button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Already have an account?{' '}
-            <Link to="/patient/login" className="text-[var(--color-primary)] font-bold hover:underline">Sign in</Link>
-          </p>
-        </div>
+        <p className="text-center text-sm text-[var(--color-text-secondary)] mt-5">
+          Already have an account?{' '}
+          <Link to="/patient/login" className="text-[var(--color-primary)] font-medium hover:underline">Sign in</Link>
+        </p>
+      </div>
 
-        <div className="mt-5 flex items-center justify-center gap-1.5 text-[0.65rem] text-gray-400">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Your health data is private and encrypted
-        </div>
+      <div className="flex items-center gap-1.5 mt-5 text-xs text-[var(--color-text-secondary)]">
+        <ShieldCheck className="w-3.5 h-3.5" />
+        Your health data is private and encrypted
       </div>
     </div>
   );
 }
-

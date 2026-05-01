@@ -49,8 +49,8 @@ export default function PatientInvoicesPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-[var(--radius)] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-100 rounded w-28" />
                   <div className="h-3 bg-gray-100 rounded w-20" />
@@ -60,8 +60,8 @@ export default function PatientInvoicesPage() {
             ))}
           </div>
         ) : invoices.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-10 text-center">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Receipt className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No invoices on record</p>
@@ -72,13 +72,13 @@ export default function PatientInvoicesPage() {
               const d = detail[inv.id];
               const isOpen = open === inv.id;
               return (
-                <div key={inv.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
+                <div key={inv.id} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
                   {/* Row */}
                   <button
                     onClick={() => toggleDetail(inv.id)}
                     className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-[var(--radius)] bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
                       <Receipt className="w-4.5 h-4.5 text-[var(--color-text-secondary)]" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -114,7 +114,7 @@ export default function PatientInvoicesPage() {
                       ) : d ? (
                         <>
                           {/* Line items */}
-                          <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+                          <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
                             <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide px-3 pt-3 pb-1">
                               Items
                             </p>
@@ -129,7 +129,7 @@ export default function PatientInvoicesPage() {
                           </div>
 
                           {/* Totals */}
-                          <div className="bg-white rounded-xl border border-[var(--color-border)] px-3 py-3 space-y-2">
+                          <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-3 space-y-2">
                             {parseFloat(d.discount) > 0 && (
                               <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
                                 <span>Discount</span><span className="text-green-600">− {fmt(d.discount)}</span>
@@ -155,7 +155,7 @@ export default function PatientInvoicesPage() {
 
                           {/* Payment history */}
                           {d.payments?.length > 0 && (
-                            <div className="bg-white rounded-xl border border-[var(--color-border)] overflow-hidden">
+                            <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
                               <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide px-3 pt-3 pb-1">
                                 Payment History
                               </p>
@@ -185,4 +185,5 @@ export default function PatientInvoicesPage() {
     </PatientLayout>
   );
 }
+
 

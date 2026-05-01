@@ -15,10 +15,10 @@ function Field({ label, value, onChange, type = 'text', readOnly = false, inputM
         value={value ?? ''}
         onChange={onChange}
         readOnly={readOnly}
-        className={`w-full px-4 py-3.5 text-base border-2 rounded-2xl transition-all placeholder:text-gray-300 ${
+        className={`w-full px-4 py-2 text-base border rounded-[var(--radius-lg)] transition-all placeholder:text-gray-300 ${
           readOnly
             ? 'bg-gray-50 border-gray-100 text-[var(--color-text-secondary)] cursor-not-allowed'
-            : 'bg-gray-50 border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] focus:bg-white'
+            : 'bg-gray-50 border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] focus:bg-[var(--color-surface)]'
         }`}
       />
     </div>
@@ -87,8 +87,8 @@ export default function PatientProfilePage() {
     return (
       <PatientLayout>
         <div className="space-y-4 animate-pulse">
-          <div className="h-24 bg-white rounded-2xl border border-[var(--color-border)]" />
-          <div className="h-64 bg-white rounded-2xl border border-[var(--color-border)]" />
+          <div className="h-24 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]" />
+          <div className="h-64 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]" />
         </div>
       </PatientLayout>
     );
@@ -103,8 +103,8 @@ export default function PatientProfilePage() {
 
         {/* ── Patient card ─────────────────────────────────────────────── */}
         {profile && (
-          <div className="rounded-2xl p-5 text-white flex items-center gap-4" style={{ background: 'var(--color-primary)' }}>
-            <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-xl font-black shrink-0">
+          <div className="rounded-[var(--radius-lg)] p-5 text-white flex items-center gap-4 bg-[var(--color-primary)]">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--color-surface)]/20 border border-white/30 flex items-center justify-center text-white text-xl font-black shrink-0">
               {initial}
             </div>
             <div>
@@ -121,7 +121,7 @@ export default function PatientProfilePage() {
 
         {/* ── Clinical info (read-only) ─────────────────────────────────── */}
         {profile && (profile.blood_group || profile.allergies || profile.insurance_provider) && (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4 text-[var(--color-text-secondary)]" />
               <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">
@@ -130,25 +130,25 @@ export default function PatientProfilePage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {profile.blood_group && (
-                <div className="bg-red-50 rounded-xl px-3 py-2.5">
+                <div className="bg-red-50 rounded-[var(--radius)] px-3 py-2.5">
                   <p className="text-[0.6rem] text-red-400 font-bold uppercase tracking-wide">Blood Group</p>
                   <p className="text-base font-black text-red-700 mt-0.5">{profile.blood_group}</p>
                 </div>
               )}
               {profile.allergies && (
-                <div className="col-span-2 bg-amber-50 rounded-xl px-3 py-2.5">
+                <div className="col-span-2 bg-amber-50 rounded-[var(--radius)] px-3 py-2.5">
                   <p className="text-[0.6rem] text-amber-500 font-bold uppercase tracking-wide">Allergies</p>
                   <p className="text-sm font-semibold text-amber-800 mt-0.5">{profile.allergies}</p>
                 </div>
               )}
               {profile.insurance_provider && (
-                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                <div className="bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
                   <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-wide">Insurance</p>
                   <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">{profile.insurance_provider}</p>
                 </div>
               )}
               {profile.insurance_number && (
-                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                <div className="bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
                   <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-wide">Policy No.</p>
                   <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">{profile.insurance_number}</p>
                 </div>
@@ -158,7 +158,7 @@ export default function PatientProfilePage() {
         )}
 
         {/* ── Editable personal details ─────────────────────────────────── */}
-        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-[var(--color-border)] p-5 space-y-4">
+        <form onSubmit={handleSave} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5 space-y-4">
           <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Personal Details</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -174,7 +174,7 @@ export default function PatientProfilePage() {
             <Field label="Contact Phone" value={form.emergency_phone} onChange={e => setForm(f => ({ ...f, emergency_phone: e.target.value }))} type="tel" inputMode="tel" />
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
             <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <p className="text-xs text-[var(--color-text-secondary)]">
               Phone number and clinical data can only be updated by clinic staff.
@@ -184,19 +184,19 @@ export default function PatientProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-3.5 rounded-2xl bg-[var(--color-primary)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-md shadow-blue-500/20"
+            className="w-full py-2 rounded-[var(--radius-lg)] bg-[var(--color-primary)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-md shadow-blue-500/20"
           >
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </form>
 
         {/* ── Change password ───────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <button
             onClick={() => setShowPwForm(v => !v)}
             className="w-full flex items-center gap-3 p-5 text-left active:bg-gray-50 transition-colors"
           >
-            <div className="w-9 h-9 rounded-xl bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-[var(--radius)] bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4 text-[var(--color-text-secondary)]" />
             </div>
             <span className="flex-1 text-sm font-bold text-[var(--color-text)]">Change Password</span>
@@ -215,7 +215,7 @@ export default function PatientProfilePage() {
                     onChange={e => setCurrentPw(e.target.value)}
                     required
                     placeholder="Enter current password"
-                    className="w-full px-4 pr-12 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-white focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
+                    className="w-full px-4 pr-12 py-2 text-base border border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
                   />
                   <button type="button" onClick={() => setShowPw(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-text)] rounded-lg transition-colors">
@@ -233,13 +233,13 @@ export default function PatientProfilePage() {
                   required
                   minLength={6}
                   placeholder="Min. 6 characters"
-                  className="w-full px-4 py-3.5 text-base border-2 border-[var(--color-border)] rounded-2xl bg-white focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
+                  className="w-full px-4 py-2 text-base border border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
                 />
               </div>
               <button
                 type="submit"
                 disabled={savingPw}
-                className="w-full py-3.5 rounded-2xl bg-[var(--color-text)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
+                className="w-full py-2 rounded-[var(--radius-lg)] bg-[var(--color-text)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
               >
                 {savingPw ? 'Updating…' : 'Update Password'}
               </button>
@@ -251,4 +251,5 @@ export default function PatientProfilePage() {
     </PatientLayout>
   );
 }
+
 

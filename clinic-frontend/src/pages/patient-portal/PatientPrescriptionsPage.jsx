@@ -24,8 +24,8 @@ export default function PatientPrescriptionsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-[var(--radius)] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-100 rounded w-24" />
                   <div className="h-3 bg-gray-100 rounded w-36" />
@@ -34,8 +34,8 @@ export default function PatientPrescriptionsPage() {
             ))}
           </div>
         ) : list.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-10 text-center">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FileText className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No prescriptions on record</p>
@@ -43,12 +43,12 @@ export default function PatientPrescriptionsPage() {
         ) : (
           <div className="space-y-3">
             {list.map(rx => (
-              <div key={rx.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
+              <div key={rx.id} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
                 <button
                   onClick={() => setOpen(open === rx.id ? null : rx.id)}
                   className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-[var(--radius)] bg-blue-50 flex items-center justify-center shrink-0">
                     <FileText className="w-4.5 h-4.5 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -78,7 +78,7 @@ export default function PatientPrescriptionsPage() {
                 {open === rx.id && (
                   <div className="border-t border-[var(--color-border)] p-4 space-y-3 bg-gray-50/50">
                     {rx.items.map((item, i) => (
-                      <div key={i} className="bg-white rounded-xl border border-[var(--color-border)] p-3.5">
+                      <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] p-3.5">
                         <div className="flex items-start gap-2.5">
                           <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
                             <Pill className="w-3.5 h-3.5 text-blue-500" />
@@ -112,4 +112,5 @@ export default function PatientPrescriptionsPage() {
     </PatientLayout>
   );
 }
+
 

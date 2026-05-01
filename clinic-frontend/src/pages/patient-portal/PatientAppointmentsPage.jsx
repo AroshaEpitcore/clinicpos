@@ -61,7 +61,7 @@ export default function PatientAppointmentsPage() {
         <h1 className="text-lg font-black text-[var(--color-text)]">Appointments</h1>
 
         {/* Tab switcher */}
-        <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
+        <div className="flex bg-gray-100 rounded-[var(--radius-lg)] p-1 gap-1">
           {[
             { key: 'upcoming', label: `Upcoming`, count: upcoming.length },
             { key: 'past',     label: `Past`,     count: past.length     },
@@ -69,9 +69,9 @@ export default function PatientAppointmentsPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius)] text-sm font-semibold transition-all ${
                 tab === t.key
-                  ? 'bg-white text-[var(--color-text)] shadow-sm'
+                  ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm'
                   : 'text-[var(--color-text-secondary)]'
               }`}
             >
@@ -89,8 +89,8 @@ export default function PatientAppointmentsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl shrink-0" />
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 animate-pulse flex gap-4">
+                <div className="w-12 h-12 bg-gray-100 rounded-[var(--radius)] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-100 rounded w-32" />
                   <div className="h-3 bg-gray-100 rounded w-48" />
@@ -99,8 +99,8 @@ export default function PatientAppointmentsPage() {
             ))}
           </div>
         ) : list.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-10 text-center">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <CalendarDays className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No {tab} appointments</p>
@@ -113,14 +113,13 @@ export default function PatientAppointmentsPage() {
         ) : (
           <div className="space-y-3">
             {list.map(a => (
-              <div key={a.id} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 flex items-start gap-3">
+              <div key={a.id} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-start gap-3">
                 {/* Date badge */}
-                <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0"
-                  style={{ background: 'var(--color-primary-light)' }}>
-                  <span className="text-[0.6rem] font-bold leading-none" style={{ color: 'var(--color-primary)' }}>
+                <div className="w-12 h-12 rounded-[var(--radius)] flex flex-col items-center justify-center shrink-0 bg-[var(--color-primary-light)]">
+                  <span className="text-[0.6rem] font-bold leading-none text-[var(--color-primary)]">
                     {format(new Date(a.appointment_date), 'MMM').toUpperCase()}
                   </span>
-                  <span className="text-lg font-black leading-tight" style={{ color: 'var(--color-primary)' }}>
+                  <span className="text-lg font-black leading-tight text-[var(--color-primary)]">
                     {format(new Date(a.appointment_date), 'd')}
                   </span>
                 </div>
@@ -154,7 +153,7 @@ export default function PatientAppointmentsPage() {
                   <button
                     onClick={() => handleCancel(a.id)}
                     disabled={cancelling === a.id}
-                    className="shrink-0 w-8 h-8 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
+                    className="shrink-0 w-8 h-8 rounded-[var(--radius)] text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
                     title="Cancel appointment"
                   >
                     <X className="w-4 h-4" />
@@ -168,4 +167,5 @@ export default function PatientAppointmentsPage() {
     </PatientLayout>
   );
 }
+
 

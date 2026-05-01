@@ -40,7 +40,7 @@ export default function PatientDashboard() {
       <div className="space-y-4">
 
         {/* ── Greeting banner ─────────────────────────────────────────────── */}
-        <div className="rounded-2xl p-5 text-white" style={{ background: 'var(--color-primary)' }}>
+        <div className="rounded-[var(--radius-lg)] p-5 text-white bg-[var(--color-primary)]">
           <p className="text-sm font-medium text-blue-100">{greeting}</p>
           <h1 className="text-xl font-black mt-0.5">{patientName}</h1>
           <p className="text-sm text-blue-100 mt-1">Here's your health summary</p>
@@ -50,7 +50,7 @@ export default function PatientDashboard() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[1, 2].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-5 animate-pulse">
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5 animate-pulse">
                 <div className="h-3 bg-gray-100 rounded w-24 mb-3" />
                 <div className="h-5 bg-gray-100 rounded w-40 mb-2" />
                 <div className="h-3 bg-gray-100 rounded w-32" />
@@ -61,9 +61,9 @@ export default function PatientDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
             {/* Next appointment */}
-            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5">
+            <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--color-primary-light)] flex items-center justify-center">
                   <CalendarDays className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Next Appointment</span>
@@ -102,13 +102,13 @@ export default function PatientDashboard() {
             </div>
 
             {/* Balance */}
-            <div className={`rounded-2xl border p-5 ${
+            <div className={`rounded-[var(--radius-lg)] border p-5 ${
               summary?.outstanding_balance > 0
                 ? 'bg-amber-50 border-amber-200'
-                : 'bg-white border-[var(--color-border)]'
+                : 'bg-[var(--color-surface)] border-[var(--color-border)]'
             }`}>
               <div className="flex items-center gap-2 mb-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                <div className={`w-8 h-8 rounded-[var(--radius)] flex items-center justify-center ${
                   summary?.outstanding_balance > 0 ? 'bg-amber-100' : 'bg-green-50'
                 }`}>
                   {summary?.outstanding_balance > 0
@@ -135,9 +135,9 @@ export default function PatientDashboard() {
 
         {/* ── Last visit ──────────────────────────────────────────────────── */}
         {!loading && summary?.last_visit && (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-[var(--radius)] bg-purple-50 flex items-center justify-center">
                 <Stethoscope className="w-4 h-4 text-purple-600" />
               </div>
               <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Last Visit</span>
@@ -166,9 +166,9 @@ export default function PatientDashboard() {
               <Link
                 key={q.to}
                 to={q.to}
-                className={`${q.light} rounded-2xl border border-transparent p-4 flex items-center gap-3 hover:opacity-80 active:scale-[0.98] transition-all`}
+                className={`${q.light} rounded-[var(--radius-lg)] border border-transparent p-4 flex items-center gap-3 hover:opacity-80 active:scale-[0.98] transition-all`}
               >
-                <div className={`w-10 h-10 rounded-xl ${q.bg} flex items-center justify-center shadow-sm shrink-0`}>
+                <div className={`w-10 h-10 rounded-[var(--radius)] ${q.bg} flex items-center justify-center shadow-sm shrink-0`}>
                   <q.icon className="w-5 h-5 text-white" />
                 </div>
                 <span className={`text-sm font-bold ${q.text}`}>{q.label}</span>
@@ -181,4 +181,5 @@ export default function PatientDashboard() {
     </PatientLayout>
   );
 }
+
 

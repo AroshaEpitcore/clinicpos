@@ -24,8 +24,8 @@ export default function PatientLabsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-[var(--radius)] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-100 rounded w-32" />
                   <div className="h-3 bg-gray-100 rounded w-24" />
@@ -34,8 +34,8 @@ export default function PatientLabsPage() {
             ))}
           </div>
         ) : list.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-10 text-center">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FlaskConical className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No lab tests on record</p>
@@ -43,10 +43,10 @@ export default function PatientLabsPage() {
         ) : (
           <div className="space-y-3">
             {list.map(lab => (
-              <div key={lab.id} className="bg-white rounded-2xl border border-[var(--color-border)] p-4">
+              <div key={lab.id} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4">
                 <div className="flex items-start gap-3">
                   {/* Status icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  <div className={`w-10 h-10 rounded-[var(--radius)] flex items-center justify-center shrink-0 ${
                     lab.status === 'completed' ? 'bg-green-50' : 'bg-amber-50'
                   }`}>
                     {lab.status === 'completed'
@@ -79,7 +79,7 @@ export default function PatientLabsPage() {
 
                     {/* Result box */}
                     {lab.status === 'completed' && lab.result_value && (
-                      <div className="mt-3 bg-green-50 border border-green-100 rounded-xl p-3.5 space-y-1.5">
+                      <div className="mt-3 bg-green-50 border border-green-100 rounded-[var(--radius)] p-3.5 space-y-1.5">
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-base font-black text-green-800">{lab.result_value}</span>
                         </div>
@@ -122,4 +122,5 @@ export default function PatientLabsPage() {
     </PatientLayout>
   );
 }
+
 

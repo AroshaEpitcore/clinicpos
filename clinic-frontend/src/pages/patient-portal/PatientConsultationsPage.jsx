@@ -7,7 +7,7 @@ import { Stethoscope, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 function VitalPill({ label, value, unit }) {
   if (!value) return null;
   return (
-    <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-center min-w-[64px]">
+    <div className="bg-gray-50 border border-gray-100 rounded-[var(--radius)] px-3 py-2 text-center min-w-[64px]">
       <p className="text-[0.55rem] text-gray-400 uppercase tracking-wide font-semibold">{label}</p>
       <p className="text-sm font-black text-[var(--color-text)] leading-tight">
         {value}<span className="text-[0.6rem] font-normal text-gray-400 ml-0.5">{unit}</span>
@@ -39,8 +39,8 @@ export default function PatientConsultationsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+              <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-[var(--radius)] shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-100 rounded w-24" />
                   <div className="h-3 bg-gray-100 rounded w-36" />
@@ -49,8 +49,8 @@ export default function PatientConsultationsPage() {
             ))}
           </div>
         ) : list.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-border)] p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-10 text-center">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Stethoscope className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No consultations on record</p>
@@ -58,12 +58,12 @@ export default function PatientConsultationsPage() {
         ) : (
           <div className="space-y-3">
             {list.map(c => (
-              <div key={c.id} className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
+              <div key={c.id} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
                 <button
                   onClick={() => setOpen(open === c.id ? null : c.id)}
                   className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-[var(--radius)] bg-purple-50 flex items-center justify-center shrink-0">
                     <Stethoscope className="w-4.5 h-4.5 text-purple-600" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -105,13 +105,13 @@ export default function PatientConsultationsPage() {
                     {/* Clinical details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {c.chief_complaint && (
-                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                        <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Chief Complaint</p>
                           <p className="text-sm text-[var(--color-text)]">{c.chief_complaint}</p>
                         </div>
                       )}
                       {c.diagnosis && (
-                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                        <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Diagnosis</p>
                           <p className="text-sm text-[var(--color-text)]">
                             {c.diagnosis}{c.icd_code ? ` (${c.icd_code})` : ''}
@@ -119,13 +119,13 @@ export default function PatientConsultationsPage() {
                         </div>
                       )}
                       {c.symptoms && (
-                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                        <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Symptoms</p>
                           <p className="text-sm text-[var(--color-text)]">{c.symptoms}</p>
                         </div>
                       )}
                       {c.notes && (
-                        <div className="bg-white rounded-xl border border-[var(--color-border)] p-3">
+                        <div className="bg-[var(--color-surface)] rounded-[var(--radius)] border border-[var(--color-border)] p-3">
                           <p className="text-[0.6rem] font-bold text-gray-400 uppercase tracking-wide mb-1">Doctor's Notes</p>
                           <p className="text-sm text-[var(--color-text)]">{c.notes}</p>
                         </div>
@@ -133,7 +133,7 @@ export default function PatientConsultationsPage() {
                     </div>
 
                     {c.follow_up_date && (
-                      <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-[var(--radius)] px-4 py-2.5">
                         <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
                         <p className="text-sm font-semibold text-[var(--color-primary)]">
                           Follow-up: {format(new Date(c.follow_up_date), 'd MMM yyyy')}
@@ -150,4 +150,5 @@ export default function PatientConsultationsPage() {
     </PatientLayout>
   );
 }
+
 
