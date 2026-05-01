@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
@@ -28,7 +29,7 @@ export default function PatientDashboard() {
   useEffect(() => {
     patientPortalApi.getSummary()
       .then(r => setSummary(r.data.data))
-      .catch(() => {})
+      .catch(() => { toast.error("Something went wrong. Please try again."); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -181,5 +182,7 @@ export default function PatientDashboard() {
     </PatientLayout>
   );
 }
+
+
 
 

@@ -277,7 +277,7 @@ router.get('/prescriptions', patientAuthMiddleware, async (req, res) => {
     const items = await queryTenant(schema,
       `SELECT pi.prescription_id,
               COALESCE(m.name, pi.custom_medicine_name) AS medicine_name,
-              pi.dosage, pi.frequency, pi.duration, pi.food_instruction, pi.quantity_given
+              pi.dosage, pi.frequency, pi.duration, pi.instructions AS food_instruction, pi.quantity_given
        FROM prescription_items pi
        LEFT JOIN medicines m ON m.id = pi.medicine_id
        WHERE pi.prescription_id = ANY($1::uuid[])
@@ -358,11 +358,11 @@ router.get('/invoices/:id', patientAuthMiddleware, async (req, res) => {
     if (!inv.rows.length) return res.status(404).json({ status: 'error', message: 'Invoice not found' });
 
     const items = await queryTenant(schema,
-      `SELECT description, quantity, unit_price, line_total FROM invoice_items WHERE invoice_id = $1 ORDER BY id`,
+      `SELECT description, quantity, unit_price, total_price AS line_total FROM invoice_items WHERE invoice_id = $1 ORDER BY id`,
       [req.params.id]
     );
     const splits = await queryTenant(schema,
-      `SELECT payment_method, amount, reference, created_at FROM payment_splits WHERE invoice_id = $1 ORDER BY created_at`,
+      `SELECT payment_method, amount, reference, recorded_at AS created_at FROM payment_splits WHERE invoice_id = $1 ORDER BY recorded_at`,
       [req.params.id]
     );
 
