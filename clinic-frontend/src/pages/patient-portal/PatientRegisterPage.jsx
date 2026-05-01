@@ -2,27 +2,41 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../store/AuthContext';
+import { useTheme } from '../../store/ThemeContext';
 import { patientPortalApi } from '../../api/patientPortal';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { formatPhoneInput } from '../../utils/format';
+import { formatPhoneInput, validatePhone } from '../../utils/format';
 import { Button } from '../../components/ui/Button';
-import { Eye, EyeOff, ShieldCheck, Info } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Info, Sun, Moon } from 'lucide-react';
 
 export default function PatientRegisterPage() {
   const { clinic } = useAuth();
-  const navigate   = useNavigate();
+  const { theme, toggle } = useTheme();
+  const navigate = useNavigate();
 
   const [phone,    setPhone]    = useState('');
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
+  const [errors,   setErrors]   = useState({});
 
-  const pwMatch = confirm && password !== confirm;
+  function validate() {
+    const errs = {};
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) errs.phone = phoneErr;
+    if (!password) errs.password = 'Password is required';
+    else if (password.length < 6) errs.password = 'Password must be at least 6 characters';
+    if (!confirm) errs.confirm = 'Please confirm your password';
+    else if (password !== confirm) errs.confirm = 'Passwords do not match';
+    return errs;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (password !== confirm) { toast.error('Passwords do not match'); return; }
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
     setLoading(true);
     try {
       await patientPortalApi.register({ phone: phone.replace(/\D/g, ''), password });
@@ -37,6 +51,17 @@ export default function PatientRegisterPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-4">
+
+      {/* Theme toggle */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={toggle}
+          className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] transition-colors"
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Branding */}
       <div className="flex flex-col items-center mb-6">
@@ -75,11 +100,15 @@ export default function PatientRegisterPage() {
               inputMode="tel"
               autoComplete="tel"
               value={phone}
-              onChange={e => setPhone(formatPhoneInput(e.target.value))}
+              onChange={e => { setPhone(formatPhoneInput(e.target.value)); setErrors(v => ({ ...v, phone: undefined })); }}
               placeholder="077 123 4567"
-              required
-              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+              className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                errors.phone
+                  ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                  : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+              }`}
             />
+            {errors.phone && <span className="text-xs text-[var(--color-danger)]">{errors.phone}</span>}
           </div>
 
           {/* Password */}
@@ -92,17 +121,20 @@ export default function PatientRegisterPage() {
                 type={showPw ? 'text' : 'password'}
                 autoComplete="new-password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); setErrors(v => ({ ...v, password: undefined })); }}
                 placeholder="Min. 6 characters"
-                required
-                minLength={6}
-                className="w-full px-3 py-2 pr-10 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                  errors.password
+                    ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+                }`}
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {errors.password && <span className="text-xs text-[var(--color-danger)]">{errors.password}</span>}
           </div>
 
           {/* Confirm */}
@@ -114,19 +146,18 @@ export default function PatientRegisterPage() {
               type={showPw ? 'text' : 'password'}
               autoComplete="new-password"
               value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              onChange={e => { setConfirm(e.target.value); setErrors(v => ({ ...v, confirm: undefined })); }}
               placeholder="Re-enter your password"
-              required
               className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
-                pwMatch
+                errors.confirm
                   ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
                   : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
               }`}
             />
-            {pwMatch && <span className="text-xs text-[var(--color-danger)]">Passwords do not match</span>}
+            {errors.confirm && <span className="text-xs text-[var(--color-danger)]">{errors.confirm}</span>}
           </div>
 
-          <Button type="submit" loading={loading} disabled={!!pwMatch} className="w-full mt-1">
+          <Button type="submit" loading={loading} className="w-full mt-1">
             Create Account
           </Button>
         </form>

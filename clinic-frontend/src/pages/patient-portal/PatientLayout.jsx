@@ -1,10 +1,11 @@
-﻿import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { useAuth } from '../../store/AuthContext';
+import { useTheme } from '../../store/ThemeContext';
 import { mediaUrl } from '../../utils/mediaUrl';
 import {
   LayoutDashboard, CalendarDays, FileText, FlaskConical,
-  Receipt, User, LogOut, Stethoscope,
+  Receipt, User, LogOut, Stethoscope, Sun, Moon,
 } from 'lucide-react';
 
 const BOTTOM_NAV = [
@@ -28,6 +29,7 @@ const SIDEBAR_NAV = [
 export default function PatientLayout({ children }) {
   const { patientName, logoutPatient } = usePatientAuth();
   const { clinic } = useAuth();
+  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -38,15 +40,15 @@ export default function PatientLayout({ children }) {
   const initial = patientName?.[0]?.toUpperCase() || '?';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <Link to="/patient/dashboard" className="flex items-center gap-2.5 min-w-0">
             {clinic?.logo_url
-              ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-8 w-8 object-contain rounded-lg shrink-0" />
-              : <div className="h-8 w-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white text-xs font-black shrink-0">
+              ? <img src={mediaUrl(clinic.logo_url)} alt="" className="h-8 w-8 object-contain rounded-[var(--radius)] shrink-0" />
+              : <div className="h-8 w-8 rounded-[var(--radius)] bg-[var(--color-primary)] flex items-center justify-center text-white text-xs font-black shrink-0">
                   {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
                 </div>
             }
@@ -56,16 +58,23 @@ export default function PatientLayout({ children }) {
             </div>
           </Link>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden sm:block text-sm text-[var(--color-text-secondary)]">
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="hidden sm:block text-sm text-[var(--color-text-secondary)] mr-1">
               Hi, <strong className="text-[var(--color-text)]">{patientName}</strong>
             </span>
             <div className="sm:hidden w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-black">
               {initial}
             </div>
             <button
+              onClick={toggle}
+              className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] transition-colors"
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-50 transition-colors"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -88,7 +97,7 @@ export default function PatientLayout({ children }) {
                   `flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] text-sm font-medium transition-all ${
                     isActive
                       ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:bg-gray-50 hover:text-[var(--color-text)]'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
                   }`
                 }
               >
@@ -121,7 +130,7 @@ export default function PatientLayout({ children }) {
               to={to}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-colors ${
-                  isActive ? 'text-[var(--color-primary)]' : 'text-gray-400'
+                  isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'
                 }`
               }
             >
@@ -142,5 +151,3 @@ export default function PatientLayout({ children }) {
     </div>
   );
 }
-
-

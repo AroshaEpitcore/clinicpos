@@ -1,26 +1,33 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
 import PatientLayout from './PatientLayout';
+import { Button } from '../../components/ui/Button';
+import { Spinner } from '../../components/ui/Spinner';
 import { User, Lock, Eye, EyeOff, ChevronRight, Shield, Phone } from 'lucide-react';
 
-function Field({ label, value, onChange, type = 'text', readOnly = false, inputMode }) {
+function Field({ label, value, onChange, type = 'text', readOnly = false, inputMode, error, required }) {
   return (
-    <div>
-      <label className="block text-xs font-bold text-[var(--color-text)] mb-2">{label}</label>
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-[var(--color-text)]">
+        {label} {required && <span className="text-[var(--color-danger)]">*</span>}
+      </label>
       <input
         type={type}
         inputMode={inputMode}
         value={value ?? ''}
         onChange={onChange}
         readOnly={readOnly}
-        className={`w-full px-4 py-2 text-base border rounded-[var(--radius-lg)] transition-all placeholder:text-gray-300 ${
+        className={`w-full px-3 py-2 text-sm border rounded-[var(--radius)] transition-all placeholder:text-[var(--color-text-secondary)] ${
           readOnly
-            ? 'bg-gray-50 border-gray-100 text-[var(--color-text-secondary)] cursor-not-allowed'
-            : 'bg-gray-50 border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] focus:bg-[var(--color-surface)]'
+            ? 'bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text-secondary)] cursor-not-allowed'
+            : error
+            ? 'bg-[var(--color-surface)] border-[var(--color-danger)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-danger)] focus:border-transparent'
+            : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent'
         }`}
       />
+      {error && <span className="text-xs text-[var(--color-danger)]">{error}</span>}
     </div>
   );
 }
@@ -30,12 +37,14 @@ export default function PatientProfilePage() {
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [form,     setForm]     = useState({});
+  const [formErrors, setFormErrors] = useState({});
 
   const [showPwForm,  setShowPwForm]  = useState(false);
   const [currentPw,   setCurrentPw]  = useState('');
   const [newPw,       setNewPw]      = useState('');
   const [showPw,      setShowPw]     = useState(false);
   const [savingPw,    setSavingPw]   = useState(false);
+  const [pwErrors,    setPwErrors]   = useState({});
 
   async function load() {
     try {
@@ -55,29 +64,50 @@ export default function PatientProfilePage() {
 
   useEffect(() => { load(); }, []);
 
+  function validateForm() {
+    const errs = {};
+    if (!form.first_name?.trim()) errs.first_name = 'First name is required';
+    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) errs.email = 'Enter a valid email address';
+    return errs;
+  }
+
   async function handleSave(e) {
     e.preventDefault();
+    const errs = validateForm();
+    if (Object.keys(errs).length) { setFormErrors(errs); return; }
+    setFormErrors({});
     setSaving(true);
     try {
       await patientPortalApi.updateMe(form);
-      toast.success('Profile updated');
+      toast.success('Changes saved successfully');
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
   }
 
+  function validatePw() {
+    const errs = {};
+    if (!currentPw) errs.currentPw = 'Current password is required';
+    if (!newPw) errs.newPw = 'New password is required';
+    else if (newPw.length < 6) errs.newPw = 'Password must be at least 6 characters';
+    return errs;
+  }
+
   async function handleChangePassword(e) {
     e.preventDefault();
+    const errs = validatePw();
+    if (Object.keys(errs).length) { setPwErrors(errs); return; }
+    setPwErrors({});
     setSavingPw(true);
     try {
       await patientPortalApi.changePassword({ current_password: currentPw, new_password: newPw });
-      toast.success('Password changed');
+      toast.success('Password changed successfully');
       setCurrentPw(''); setNewPw(''); setShowPwForm(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to change password');
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setSavingPw(false);
     }
@@ -86,9 +116,8 @@ export default function PatientProfilePage() {
   if (loading) {
     return (
       <PatientLayout>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-24 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]" />
-          <div className="h-64 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]" />
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="lg" />
         </div>
       </PatientLayout>
     );
@@ -99,16 +128,16 @@ export default function PatientProfilePage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-text)]">My Profile</h1>
+        <h1 className="text-lg font-semibold text-[var(--color-text)]">My Profile</h1>
 
         {/* ── Patient card ─────────────────────────────────────────────── */}
         {profile && (
           <div className="rounded-[var(--radius-lg)] p-5 text-white flex items-center gap-4 bg-[var(--color-primary)]">
-            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--color-surface)]/20 border border-white/30 flex items-center justify-center text-white text-xl font-black shrink-0">
+            <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-white/20 border border-white/30 flex items-center justify-center text-white text-xl font-bold shrink-0">
               {initial}
             </div>
             <div>
-              <p className="font-black text-base">{profile.first_name} {profile.last_name || ''}</p>
+              <p className="font-semibold text-base">{profile.first_name} {profile.last_name || ''}</p>
               <p className="text-blue-100 text-sm font-mono">{profile.patient_code}</p>
               {profile.created_at && (
                 <p className="text-blue-200 text-xs mt-0.5">
@@ -124,32 +153,32 @@ export default function PatientProfilePage() {
           <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4 text-[var(--color-text-secondary)]" />
-              <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">
+              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
                 Medical Info — managed by clinic
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {profile.blood_group && (
                 <div className="bg-red-50 rounded-[var(--radius)] px-3 py-2.5">
-                  <p className="text-[0.6rem] text-red-400 font-bold uppercase tracking-wide">Blood Group</p>
-                  <p className="text-base font-black text-red-700 mt-0.5">{profile.blood_group}</p>
+                  <p className="text-[0.65rem] text-red-400 font-semibold uppercase tracking-wide">Blood Group</p>
+                  <p className="text-base font-bold text-red-700 mt-0.5">{profile.blood_group}</p>
                 </div>
               )}
               {profile.allergies && (
                 <div className="col-span-2 bg-amber-50 rounded-[var(--radius)] px-3 py-2.5">
-                  <p className="text-[0.6rem] text-amber-500 font-bold uppercase tracking-wide">Allergies</p>
+                  <p className="text-[0.65rem] text-amber-500 font-semibold uppercase tracking-wide">Allergies</p>
                   <p className="text-sm font-semibold text-amber-800 mt-0.5">{profile.allergies}</p>
                 </div>
               )}
               {profile.insurance_provider && (
-                <div className="bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
-                  <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-wide">Insurance</p>
+                <div className="bg-[var(--color-bg)] rounded-[var(--radius)] px-3 py-2.5">
+                  <p className="text-[0.65rem] text-[var(--color-text-secondary)] font-semibold uppercase tracking-wide">Insurance</p>
                   <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">{profile.insurance_provider}</p>
                 </div>
               )}
               {profile.insurance_number && (
-                <div className="bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
-                  <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-wide">Policy No.</p>
+                <div className="bg-[var(--color-bg)] rounded-[var(--radius)] px-3 py-2.5">
+                  <p className="text-[0.65rem] text-[var(--color-text-secondary)] font-semibold uppercase tracking-wide">Policy No.</p>
                   <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">{profile.insurance_number}</p>
                 </div>
               )}
@@ -159,90 +188,125 @@ export default function PatientProfilePage() {
 
         {/* ── Editable personal details ─────────────────────────────────── */}
         <form onSubmit={handleSave} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5 space-y-4">
-          <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">Personal Details</p>
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Personal Details</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="First Name *" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} />
-            <Field label="Last Name"    value={form.last_name}  onChange={e => setForm(f => ({ ...f, last_name:  e.target.value }))} />
-            <Field label="Email"        value={form.email}      onChange={e => setForm(f => ({ ...f, email:      e.target.value }))} type="email" inputMode="email" />
-            <Field label="Address"      value={form.address}    onChange={e => setForm(f => ({ ...f, address:    e.target.value }))} />
+            <Field
+              label="First Name" required
+              value={form.first_name}
+              onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); setFormErrors(v => ({ ...v, first_name: undefined })); }}
+              error={formErrors.first_name}
+            />
+            <Field
+              label="Last Name"
+              value={form.last_name}
+              onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+            />
+            <Field
+              label="Email"
+              value={form.email}
+              onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFormErrors(v => ({ ...v, email: undefined })); }}
+              type="email" inputMode="email"
+              error={formErrors.email}
+            />
+            <Field
+              label="Address"
+              value={form.address}
+              onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+            />
           </div>
 
-          <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">Emergency Contact</p>
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">Emergency Contact</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Contact Name"  value={form.emergency_name}  onChange={e => setForm(f => ({ ...f, emergency_name:  e.target.value }))} />
-            <Field label="Contact Phone" value={form.emergency_phone} onChange={e => setForm(f => ({ ...f, emergency_phone: e.target.value }))} type="tel" inputMode="tel" />
+            <Field
+              label="Contact Name"
+              value={form.emergency_name}
+              onChange={e => setForm(f => ({ ...f, emergency_name: e.target.value }))}
+            />
+            <Field
+              label="Contact Phone"
+              value={form.emergency_phone}
+              onChange={e => setForm(f => ({ ...f, emergency_phone: e.target.value }))}
+              type="tel" inputMode="tel"
+            />
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-50 rounded-[var(--radius)] px-3 py-2.5">
-            <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2 bg-[var(--color-bg)] rounded-[var(--radius)] px-3 py-2.5">
+            <Phone className="w-3.5 h-3.5 text-[var(--color-text-secondary)] shrink-0" />
             <p className="text-xs text-[var(--color-text-secondary)]">
               Phone number and clinical data can only be updated by clinic staff.
             </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-2 rounded-[var(--radius-lg)] bg-[var(--color-primary)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-md shadow-blue-500/20"
-          >
-            {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+          <Button type="submit" loading={saving} className="w-full">
+            Save Changes
+          </Button>
         </form>
 
         {/* ── Change password ───────────────────────────────────────────── */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
           <button
-            onClick={() => setShowPwForm(v => !v)}
-            className="w-full flex items-center gap-3 p-5 text-left active:bg-gray-50 transition-colors"
+            onClick={() => { setShowPwForm(v => !v); setPwErrors({}); }}
+            className="w-full flex items-center gap-3 p-5 text-left hover:bg-[var(--color-bg)] transition-colors"
           >
-            <div className="w-9 h-9 rounded-[var(--radius)] bg-gray-50 border border-[var(--color-border)] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4 text-[var(--color-text-secondary)]" />
             </div>
-            <span className="flex-1 text-sm font-bold text-[var(--color-text)]">Change Password</span>
-            <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showPwForm ? 'rotate-90' : ''}`} />
+            <span className="flex-1 text-sm font-medium text-[var(--color-text)]">Change Password</span>
+            <ChevronRight className={`w-4 h-4 text-[var(--color-text-secondary)] transition-transform ${showPwForm ? 'rotate-90' : ''}`} />
           </button>
 
           {showPwForm && (
-            <form onSubmit={handleChangePassword} className="border-t border-[var(--color-border)] p-5 space-y-4 bg-gray-50/50">
-              <div>
-                <label className="block text-xs font-bold text-[var(--color-text)] mb-2">Current Password</label>
+            <form onSubmit={handleChangePassword} className="border-t border-[var(--color-border)] p-5 space-y-4 bg-[var(--color-bg)]">
+              {/* Current password */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-[var(--color-text)]">
+                  Current Password <span className="text-[var(--color-danger)]">*</span>
+                </label>
                 <div className="relative">
                   <input
                     type={showPw ? 'text' : 'password'}
                     autoComplete="current-password"
                     value={currentPw}
-                    onChange={e => setCurrentPw(e.target.value)}
-                    required
+                    onChange={e => { setCurrentPw(e.target.value); setPwErrors(v => ({ ...v, currentPw: undefined })); }}
                     placeholder="Enter current password"
-                    className="w-full px-4 pr-12 py-2 text-base border border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
+                    className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                      pwErrors.currentPw
+                        ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                        : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+                    }`}
                   />
                   <button type="button" onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[var(--color-text)] rounded-lg transition-colors">
-                    {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {pwErrors.currentPw && <span className="text-xs text-[var(--color-danger)]">{pwErrors.currentPw}</span>}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[var(--color-text)] mb-2">New Password</label>
+
+              {/* New password */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-[var(--color-text)]">
+                  New Password <span className="text-[var(--color-danger)]">*</span>
+                </label>
                 <input
                   type={showPw ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={newPw}
-                  onChange={e => setNewPw(e.target.value)}
-                  required
-                  minLength={6}
+                  onChange={e => { setNewPw(e.target.value); setPwErrors(v => ({ ...v, newPw: undefined })); }}
                   placeholder="Min. 6 characters"
-                  className="w-full px-4 py-2 text-base border border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-gray-300"
+                  className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                    pwErrors.newPw
+                      ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                      : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+                  }`}
                 />
+                {pwErrors.newPw && <span className="text-xs text-[var(--color-danger)]">{pwErrors.newPw}</span>}
               </div>
-              <button
-                type="submit"
-                disabled={savingPw}
-                className="w-full py-2 rounded-[var(--radius-lg)] bg-[var(--color-text)] text-white text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
-              >
-                {savingPw ? 'Updating…' : 'Update Password'}
-              </button>
+
+              <Button type="submit" loading={savingPw} variant="secondary" className="w-full">
+                Update Password
+              </Button>
             </form>
           )}
         </div>
@@ -251,5 +315,3 @@ export default function PatientProfilePage() {
     </PatientLayout>
   );
 }
-
-

@@ -2,26 +2,39 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../store/AuthContext';
+import { useTheme } from '../../store/ThemeContext';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { patientPortalApi } from '../../api/patientPortal';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { formatPhoneInput } from '../../utils/format';
+import { formatPhoneInput, validatePhone } from '../../utils/format';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Sun, Moon } from 'lucide-react';
 
 export default function PatientLoginPage() {
   const { clinic } = useAuth();
   const { loginPatient } = usePatientAuth();
+  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
   const [phone,    setPhone]    = useState('');
   const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
+  const [errors,   setErrors]   = useState({});
+
+  function validate() {
+    const errs = {};
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) errs.phone = phoneErr;
+    if (!password) errs.password = 'Password is required';
+    return errs;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
     setLoading(true);
     try {
       const r = await patientPortalApi.login({ phone: phone.replace(/\D/g, ''), password });
@@ -41,6 +54,17 @@ export default function PatientLoginPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-4">
+
+      {/* Theme toggle */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={toggle}
+          className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] transition-colors"
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Branding */}
       <div className="flex flex-col items-center mb-6">
@@ -71,11 +95,15 @@ export default function PatientLoginPage() {
               inputMode="tel"
               autoComplete="tel"
               value={phone}
-              onChange={e => setPhone(formatPhoneInput(e.target.value))}
+              onChange={e => { setPhone(formatPhoneInput(e.target.value)); setErrors(v => ({ ...v, phone: undefined })); }}
               placeholder="077 123 4567"
-              required
-              className="w-full px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+              className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                errors.phone
+                  ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                  : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+              }`}
             />
+            {errors.phone && <span className="text-xs text-[var(--color-danger)]">{errors.phone}</span>}
           </div>
 
           {/* Password */}
@@ -88,16 +116,20 @@ export default function PatientLoginPage() {
                 type={showPw ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); setErrors(v => ({ ...v, password: undefined })); }}
                 placeholder="Your password"
-                required
-                className="w-full px-3 py-2 pr-10 rounded-[var(--radius)] border border-[var(--color-border)] text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
+                  errors.password
+                    ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]'
+                }`}
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {errors.password && <span className="text-xs text-[var(--color-danger)]">{errors.password}</span>}
           </div>
 
           <Button type="submit" loading={loading} className="w-full mt-1">
