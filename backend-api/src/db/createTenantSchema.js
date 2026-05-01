@@ -52,6 +52,7 @@ async function createTenantSchema(client, schemaName) {
       allow_walk_ins           BOOLEAN       DEFAULT TRUE,
       duplicate_check_enabled  BOOLEAN       DEFAULT TRUE,
       queue_display_enabled    BOOLEAN       DEFAULT FALSE,
+      patient_login_enabled    BOOLEAN       DEFAULT FALSE,
       updated_at               TIMESTAMP     DEFAULT NOW()
     );
   `);
@@ -85,10 +86,13 @@ async function createTenantSchema(client, schemaName) {
       national_id        VARCHAR(50),
       insurance_provider VARCHAR(100),
       insurance_number   VARCHAR(100),
-      is_active          BOOLEAN      DEFAULT TRUE,
-      registered_by      UUID REFERENCES staff(id),
-      created_at         TIMESTAMP    DEFAULT NOW(),
-      updated_at         TIMESTAMP    DEFAULT NOW()
+      is_active              BOOLEAN      DEFAULT TRUE,
+      registered_by          UUID REFERENCES staff(id),
+      portal_password_hash   TEXT,
+      portal_registered_at   TIMESTAMPTZ,
+      portal_last_login_at   TIMESTAMPTZ,
+      created_at             TIMESTAMP    DEFAULT NOW(),
+      updated_at             TIMESTAMP    DEFAULT NOW()
     );
   `);
 

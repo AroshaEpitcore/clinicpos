@@ -46,6 +46,7 @@ app.use('/api/v1/pharmacy',       require('./routes/pharmacy.routes'));
 app.use('/api/v1/lab',            require('./routes/lab.routes'));
 app.use('/api/v1/insurance',      require('./routes/insurance.routes'));
 app.use('/api/v1/portal',         require('./routes/portal.routes'));
+app.use('/api/v1/patient-portal', require('./routes/patient-portal.routes'));
 app.use('/api/v1/staff',          require('./routes/staff.routes'));
 app.use('/api/v1/vitals',         require('./routes/vitals.routes'));
 app.use('/api/v1/public',         require('./routes/public.routes'));

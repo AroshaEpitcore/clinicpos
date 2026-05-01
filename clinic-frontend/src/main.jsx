@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
+import { PatientAuthProvider } from './store/PatientAuthContext';
 import App from './App';
 import './index.css';
 
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
       <AuthProvider>
+      <PatientAuthProvider>
         <App />
         <Toaster
           position="top-right"
@@ -32,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             },
           }}
         />
+      </PatientAuthProvider>
       </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

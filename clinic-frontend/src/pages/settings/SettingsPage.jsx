@@ -653,6 +653,7 @@ function SecurityTab({ settings, onSave, saving }) {
     setForm({
       session_timeout_minutes: settings.session_timeout_minutes ?? 30,
       patient_portal_enabled:  settings.patient_portal_enabled  ?? false,
+      patient_login_enabled:   settings.patient_login_enabled   ?? false,
       queue_display_enabled:   settings.queue_display_enabled   ?? false,
     });
   }, [settings]);
@@ -805,6 +806,35 @@ function SecurityTab({ settings, onSave, saving }) {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Patient Login Portal">
+        <Toggle
+          label="Enable Patient Login Portal"
+          description="Allow registered patients to log in at /patient/login to view their visit history, prescriptions, lab results, and invoices."
+          checked={!!form.patient_login_enabled}
+          onChange={v => setForm(f => ({ ...f, patient_login_enabled: v }))}
+        />
+        {form.patient_login_enabled && (
+          <div className="mt-4 p-3 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)]">
+            <p className="text-xs text-[var(--color-text-secondary)] mb-1">Patient Portal URL</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs text-[var(--color-primary)] break-all">
+                {window.location.origin}/patient/login
+              </code>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/patient/login`); }}
+                className="text-xs px-2 py-1 rounded border border-[var(--color-border)] hover:bg-[var(--color-bg-alt)] shrink-0"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+              Patients register using the phone number on file at your clinic. They can view visits, Rx, lab results, and invoices.
+            </p>
           </div>
         )}
       </SectionCard>

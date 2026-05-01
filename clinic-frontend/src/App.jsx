@@ -61,6 +61,23 @@ import SystemLogsPage from './pages/system/SystemLogsPage';
 // Public clinic website
 import PublicClinicPage from './pages/public/PublicClinicPage';
 
+// Patient Login Portal
+import PatientLoginPage        from './pages/patient-portal/PatientLoginPage';
+import PatientRegisterPage     from './pages/patient-portal/PatientRegisterPage';
+import PatientDashboard        from './pages/patient-portal/PatientDashboard';
+import PatientAppointmentsPage from './pages/patient-portal/PatientAppointmentsPage';
+import PatientConsultationsPage from './pages/patient-portal/PatientConsultationsPage';
+import PatientPrescriptionsPage from './pages/patient-portal/PatientPrescriptionsPage';
+import PatientLabsPage         from './pages/patient-portal/PatientLabsPage';
+import PatientInvoicesPage     from './pages/patient-portal/PatientInvoicesPage';
+import PatientProfilePage      from './pages/patient-portal/PatientProfilePage';
+import { usePatientAuth }      from './store/PatientAuthContext';
+
+function PatientProtectedRoute({ children }) {
+  const { patientToken } = usePatientAuth();
+  return patientToken ? children : <Navigate to="/patient/login" replace />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -181,6 +198,18 @@ export default function App() {
           <SystemLogsPage />
         </ProtectedRoute>
       } />
+
+      {/* Patient Login Portal */}
+      <Route path="/patient/login"    element={<PatientLoginPage />} />
+      <Route path="/patient/register" element={<PatientRegisterPage />} />
+      <Route path="/patient/dashboard"      element={<PatientProtectedRoute><PatientDashboard /></PatientProtectedRoute>} />
+      <Route path="/patient/appointments"   element={<PatientProtectedRoute><PatientAppointmentsPage /></PatientProtectedRoute>} />
+      <Route path="/patient/consultations"  element={<PatientProtectedRoute><PatientConsultationsPage /></PatientProtectedRoute>} />
+      <Route path="/patient/prescriptions"  element={<PatientProtectedRoute><PatientPrescriptionsPage /></PatientProtectedRoute>} />
+      <Route path="/patient/labs"           element={<PatientProtectedRoute><PatientLabsPage /></PatientProtectedRoute>} />
+      <Route path="/patient/invoices"       element={<PatientProtectedRoute><PatientInvoicesPage /></PatientProtectedRoute>} />
+      <Route path="/patient/profile"        element={<PatientProtectedRoute><PatientProfilePage /></PatientProtectedRoute>} />
+      <Route path="/patient"                element={<Navigate to="/patient/login" replace />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
