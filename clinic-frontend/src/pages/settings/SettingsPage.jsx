@@ -684,7 +684,7 @@ function PortalHoursCard() {
     }
   }
 
-  if (loading) return <SectionCard title="Online Booking Hours"><Spinner /></SectionCard>;
+  if (loading) return <SectionCard title="Online Booking Hours"><LoadingState message="Loading hours…" /></SectionCard>;
 
   return (
     <SectionCard
