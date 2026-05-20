@@ -562,7 +562,7 @@ function QueueRow({ appt, user, isAdmin, dualQueueOn, onStatusChange, onMakeEmer
         <div className="flex items-stretch flex-1 min-w-0">
 
         {/* ── Token column ─────────────────────────────────────── */}
-        <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${tokenBg}`}>
+        <div className={`flex flex-col items-center justify-center w-40 shrink-0 py-4 ${tokenBg}`}>
           {isEmergency ? (
             <>
               <Zap className="w-6 h-6 mb-1" />

@@ -276,7 +276,7 @@ export default function PrescriptionsPage() {
               <div className="flex items-stretch">
 
                 {/* ── Token column ── */}
-                <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${
+                <div className={`flex flex-col items-center justify-center w-40 shrink-0 py-4 ${
                   rx.token_number
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'

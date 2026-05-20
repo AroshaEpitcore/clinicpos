@@ -306,6 +306,50 @@ currency: s.currency || 'LKR',
 
 ---
 
+---
+
+## Bug #16 — `api/index.js` baseURL falls back to localhost in production
+
+**File:** `clinic-frontend/src/api/index.js`
+**Severity:** Critical
+**Found:** 2026-05-01 — patient portal API calls hitting `localhost:4000` in production (visible in browser network tab as 400 errors)
+
+**Problem:**
+```javascript
+// Before — broken
+baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
+```
+In production, `VITE_API_URL` is intentionally left as an empty string so Nginx proxies `/api/` transparently. Empty string is falsy in JavaScript — the `||` fallback always triggered, sending every API request to `http://localhost:4000` on the user's own machine.
+
+**Fix:**
+```javascript
+// After — dynamic fallback
+baseURL: import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.host}/api/v1`
+```
+`window.location.host` resolves to `demo.healthcenter.lk` in production — relative to whatever subdomain the user is on. Still works in local dev when `VITE_API_URL=http://localhost:4000/api/v1` is set.
+
+---
+
+## Bug #17 — Patient portal backend column name mismatches causing silent 500s
+
+**File:** `backend-api/src/routes/patient-portal.routes.js`
+**Severity:** High
+**Found:** 2026-05-01 — portal data pages showed empty lists despite data existing in admin view
+
+**Problem:**
+Four wrong column names in SQL queries — PostgreSQL threw `column X does not exist` (error code 42703). All portal frontend pages had `.catch(() => {})` that silently discarded the error, so patients just saw empty lists with no error message.
+
+| Endpoint | Wrong column | Correct column | Fix |
+|----------|-------------|----------------|-----|
+| `GET /prescriptions` | `pi.food_instruction` | `pi.instructions` | `pi.instructions AS food_instruction` |
+| `GET /invoices/:id` (items) | `line_total` | `total_price` | `total_price AS line_total` |
+| `GET /invoices/:id` (payments) | `created_at` | `recorded_at` | `recorded_at AS created_at` |
+| `GET /invoices` | `i.status` | `i.payment_status` | `i.payment_status AS status` |
+
+**Fix:** Corrected all four column references with SQL aliases so frontend field names remain unchanged. Replaced all `.catch(() => {})` with `toast.error("Something went wrong. Please try again.")` across all portal data pages so future errors are visible.
+
+---
+
 ## Fix Status
 
 | # | Bug | Severity | Status |
@@ -325,3 +369,5 @@ currency: s.currency || 'LKR',
 | 13 | Platform Settings empty fields overwrote existing DB values | Medium | ✅ Fixed |
 | 14 | Logo update not visible in other browsers — fixed filename caused browser caching | Medium | ✅ Fixed |
 | 15 | Currency always resets to 'LKR' after session restore — wrong field name `currency_code` | Low | ✅ Fixed |
+| 16 | `api/index.js` baseURL falls back to `localhost:4000` in production — empty string is falsy | Critical | ✅ Fixed |
+| 17 | Patient portal data pages show empty lists — 4 wrong column names in SQL causing silent 500s | High | ✅ Fixed |
