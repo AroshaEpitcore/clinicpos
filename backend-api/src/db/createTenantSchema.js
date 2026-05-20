@@ -52,6 +52,7 @@ async function createTenantSchema(client, schemaName) {
       allow_walk_ins           BOOLEAN       DEFAULT TRUE,
       duplicate_check_enabled  BOOLEAN       DEFAULT TRUE,
       queue_display_enabled    BOOLEAN       DEFAULT FALSE,
+      dual_queue_enabled       BOOLEAN       DEFAULT FALSE,
       patient_login_enabled    BOOLEAN       DEFAULT FALSE,
       website_enabled          BOOLEAN       DEFAULT TRUE,
       website_tagline          VARCHAR(255),

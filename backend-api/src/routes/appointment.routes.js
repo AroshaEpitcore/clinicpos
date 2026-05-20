@@ -138,10 +138,17 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     }
 
     // ── Dual-queue logic ──────────────────────────────────────────────────────
-    // When the flag is on we maintain two independent token series (new/returning).
-    // When off, the legacy single-series behavior runs and patient_visit_type
-    // is left at the default ('returning') for backward-compatibility.
-    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    // Two-level gate: super-admin enables the capability (feature_flags.dual_queue);
+    // clinic admin then opts in via clinic_settings.dual_queue_enabled. Both must
+    // be true for the dual token series to apply. When off, the legacy
+    // single-series behavior runs and patient_visit_type defaults to 'returning'.
+    const superFlag = !!req.tenantFlags?.dual_queue;
+    let clinicFlag = false;
+    if (superFlag) {
+      const dq = await queryTenant(req.tenantSchema, `SELECT dual_queue_enabled FROM clinic_settings LIMIT 1`);
+      clinicFlag = !!dq.rows[0]?.dual_queue_enabled;
+    }
+    const dualQueueOn = superFlag && clinicFlag;
     let visitType = 'returning';
     if (dualQueueOn) {
       const detected = await detectVisitType(req.tenantSchema, patient_id);

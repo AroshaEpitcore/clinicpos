@@ -58,7 +58,8 @@ export default function AppointmentsPage() {
   const { user, clinic, tenantFlags } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'receptionist';
   const canManage = user?.role === 'admin';
-  const dualQueueOn = !!tenantFlags?.dual_queue;
+  // Two-level gate: super-admin capability AND clinic-admin opt-in
+  const dualQueueOn = !!tenantFlags?.dual_queue && !!clinic?.dual_queue_enabled;
 
   const [date,         setDate]         = useState(todayStr());
   const [appointments, setAppointments] = useState([]);

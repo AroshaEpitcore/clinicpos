@@ -121,7 +121,7 @@ const ALL_MODULES = [
   { key: 'lab',           label: 'Lab',            description: 'Lab test requests and results' },
   { key: 'insurance',     label: 'Insurance',      description: 'Insurance claims & corporate billing' },
   { key: 'online_booking',label: 'Online Booking', description: 'Patient self-booking portal' },
-  { key: 'dual_queue',    label: 'Dual Queue',     description: 'Separate token series for new (red) and returning (blue) patients' },
+  { key: 'dual_queue',    label: 'Dual Queue',     description: 'Allow clinic to enable separate token series for new (red) / returning (blue) patients' },
   { key: 'multi_branch',  label: 'Multi Branch',   description: 'Multiple branch management' },
   { key: 'custom_domain', label: 'Custom Domain',  description: "Use clinic's own domain name" },
 ];

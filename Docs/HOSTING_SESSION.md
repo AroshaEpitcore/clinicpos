@@ -493,6 +493,8 @@ No new prod runtime dependencies. Only devDeps (`jest`, `supertest`) for tests.
 
 ## Deploy commands — run on server (in order)
 
+> Frontends are static, served by nginx directly from `dist/` — only the backend runs under pm2. The build step alone is enough; no pm2 restart for clinic/admin frontends.
+
 ```bash
 cd /var/www/clinicpos
 git pull origin development
@@ -501,35 +503,40 @@ git pull origin development
 cd backend-api
 npm install --no-audit --no-fund
 
-# One-time migration: adds appointments.patient_visit_type + index in every
-# tenant schema, and registers the `dual_queue` feature flag (default OFF).
-node src/db/migrate_dual_queue.js
+# One-time migrations — both are idempotent (safe to re-run)
+node src/db/migrate_dual_queue.js                # appointments.patient_visit_type + feature_flags row
+node src/db/migrate_dual_queue_clinic_toggle.js  # clinic_settings.dual_queue_enabled (clinic-admin toggle)
 
-# (Optional) Verify nothing regressed
+# (Optional) Verify nothing regressed — 16 tests
 npm test
 
 pm2 restart clinicpos-api
 pm2 logs clinicpos-api --lines 30   # confirm clean boot
 
-# ── 2. Clinic frontend ─────────────────────────────────────────────────────
+# ── 2. Clinic frontend (static, served by nginx) ──────────────────────────
 cd ../clinic-frontend
 npm install --no-audit --no-fund
-npm run build
-pm2 restart clinicpos-clinic
+npm run build                       # dist/ is updated, nginx picks it up
 
-# ── 3. Admin frontend ──────────────────────────────────────────────────────
+# ── 3. Admin frontend (static, served by nginx) ───────────────────────────
 cd ../admin-frontend
 npm install --no-audit --no-fund
 npm run build
-pm2 restart clinicpos-admin
+
+# Optional: reload nginx if you've enabled aggressive caching
+sudo systemctl reload nginx
 ```
 
 ## Post-deploy smoke test
 
-### Dual-queue
+### Dual-queue (two-level gate)
 
-1. Super-admin → open any clinic → **Feature Flags** card. A new row "Dual Queue" appears. Leave OFF first and confirm legacy POS still works.
-2. Toggle ON for a test clinic → "Login as Clinic" to impersonate.
+The feature now has TWO toggles that must both be ON for dual-queue to take effect:
+- **Super-admin** capability gate (`public.feature_flags.dual_queue`)
+- **Clinic-admin** opt-in (`clinic_settings.dual_queue_enabled`)
+
+1. Super-admin → open any clinic → **Feature Flags** card. Toggle the new "Dual Queue" row ON to give the clinic access. (Description: "Allow clinic to enable separate token series…")
+2. "Login as Clinic" to impersonate. Open **Settings → Security & Patient Access tab** (or wherever the existing toggles like Patient Portal/Queue Display live). A new **"Dual Queue (New / Returning Patients)"** section appears — this only shows when the super-admin flag is on. Toggle it on and save.
 3. **Appointments → + Add to Queue**:
    - Pick an existing patient with prior consultations → segmented control defaults to **Returning (blue)**.
    - Submit → slip shows blue token, e.g. `03`.
@@ -541,7 +548,8 @@ pm2 restart clinicpos-admin
    WHERE action = 'visit_type_override'
    ORDER BY created_at DESC LIMIT 5;
    ```
-6. **Queue display** (`/display`) — "Next Up" splits into "New Patients" / "Returning" columns when flag is on.
+6. **Queue display** (`/display`) — "Next Up" splits into "New Patients" / "Returning" columns.
+7. **Gate verification**: turn the clinic-admin toggle OFF (but keep super-admin ON) → POS reverts to single-series tokens, no override audit log, online booking returns plain numbers. Turn super-admin OFF → the clinic-admin toggle row disappears from settings entirely.
 
 ### Online booking dual-queue
 
@@ -563,7 +571,7 @@ pm2 restart clinicpos-admin
 cd /var/www/clinicpos/backend-api
 npm test
 ```
-Expected: `Tests: 12 passed, 12 total`.
+Expected: `Tests: 16 passed, 16 total` (12 original + 4 covering the two-level gate).
 
 ## Rollback
 

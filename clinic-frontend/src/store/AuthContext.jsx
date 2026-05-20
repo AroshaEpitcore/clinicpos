@@ -74,9 +74,10 @@ export function AuthProvider({ children }) {
         const s = res.data?.data;
         if (!s) return;
         const fresh = {
-          name:     s.clinic_name     || null,
-          logo_url: s.clinic_logo_url || null,
-          currency: s.currency        || 'LKR',
+          name:               s.clinic_name        || null,
+          logo_url:           s.clinic_logo_url    || null,
+          currency:           s.currency           || 'LKR',
+          dual_queue_enabled: s.dual_queue_enabled === true,
         };
         localStorage.setItem('clinic', JSON.stringify(fresh));
         setClinic(fresh);

@@ -646,8 +646,11 @@ function NotificationsTab({ settings, onSave, saving }) {
 
 function SecurityTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
-  const { clinic } = useAuth();
+  const { clinic, tenantFlags } = useAuth();
   const qrCanvasRef = useRef(null);
+
+  // Show the dual-queue toggle only if super-admin has enabled the capability
+  const dualQueueAvailable = !!tenantFlags?.dual_queue;
 
   useEffect(() => {
     setForm({
@@ -655,6 +658,7 @@ function SecurityTab({ settings, onSave, saving }) {
       patient_portal_enabled:  settings.patient_portal_enabled  ?? false,
       patient_login_enabled:   settings.patient_login_enabled   ?? false,
       queue_display_enabled:   settings.queue_display_enabled   ?? false,
+      dual_queue_enabled:      settings.dual_queue_enabled      ?? false,
     });
   }, [settings]);
 
@@ -838,6 +842,17 @@ function SecurityTab({ settings, onSave, saving }) {
           </div>
         )}
       </SectionCard>
+
+      {dualQueueAvailable && (
+        <SectionCard title="Dual Queue (New / Returning Patients)">
+          <Toggle
+            label="Enable separate token series for new and returning patients"
+            description="When on, new patients receive RED tokens (e.g. N-01) and returning patients receive BLUE tokens (01). Visible in POS, online booking, and the queue display."
+            checked={!!form.dual_queue_enabled}
+            onChange={v => setForm(f => ({ ...f, dual_queue_enabled: v }))}
+          />
+        </SectionCard>
+      )}
 
       <SectionCard title="Waiting Room Display">
         <Toggle
@@ -1393,6 +1408,11 @@ export default function SettingsPage() {
       const res = await settingsApi.update(partial);
       setSettings(res.data.data);
       if (partial.clinic_name) updateClinic({ name: partial.clinic_name });
+      // Mirror dual_queue_enabled onto the AuthContext so the appointments UI
+      // picks it up immediately without requiring a logout/login cycle.
+      if (Object.prototype.hasOwnProperty.call(partial, 'dual_queue_enabled')) {
+        updateClinic({ dual_queue_enabled: partial.dual_queue_enabled === true });
+      }
       toast.success('Settings saved');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not save settings');

@@ -24,7 +24,8 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   const today = defaultDate || new Date().toISOString().split('T')[0];
   const availableModes = MODES.filter(m => m.value !== 'walkin' || allowWalkIns);
   const { clinic, tenantFlags } = useAuth();
-  const dualQueueOn = !!tenantFlags?.dual_queue;
+  // Two-level gate: super-admin capability AND clinic-admin opt-in
+  const dualQueueOn = !!tenantFlags?.dual_queue && !!clinic?.dual_queue_enabled;
 
   const [bookedSlip, setBookedSlip] = useState(null); // shown after successful booking
 

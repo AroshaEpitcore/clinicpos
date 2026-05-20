@@ -46,11 +46,11 @@ function generateSlots(startTime, endTime, durationMinutes) {
   return slots;
 }
 
-// ── Helper: check portal is enabled ──────────────────────────────────────────
+// ── Helper: check portal is enabled. Also returns clinic-level dual_queue toggle. ──
 async function checkPortalEnabled(schema, res) {
   const cfg = await queryTenant(
     schema,
-    `SELECT patient_portal_enabled FROM clinic_settings LIMIT 1`
+    `SELECT patient_portal_enabled, dual_queue_enabled FROM clinic_settings LIMIT 1`
   );
   if (!cfg.rows.length || cfg.rows[0].patient_portal_enabled === false) {
     res.status(403).json({
@@ -59,7 +59,7 @@ async function checkPortalEnabled(schema, res) {
     });
     return false;
   }
-  return true;
+  return cfg.rows[0];
 }
 
 // ── GET /api/v1/portal/info ───────────────────────────────────────────────────
@@ -69,15 +69,18 @@ router.get('/info', async (req, res) => {
     const result = await queryTenant(
       req.tenantSchema,
       `SELECT clinic_name, clinic_address, clinic_phone, clinic_email,
-              clinic_logo_url AS logo_url, allow_walk_ins, patient_portal_enabled
+              clinic_logo_url AS logo_url, allow_walk_ins, patient_portal_enabled,
+              dual_queue_enabled
        FROM clinic_settings LIMIT 1`
     );
+    // Effective flag = super-admin capability AND clinic-admin opt-in
+    const effectiveDualQueue = !!req.tenantFlags?.dual_queue && !!result.rows[0]?.dual_queue_enabled;
     if (!result.rows.length) {
-      return res.json({ status: 'success', data: { dual_queue_enabled: !!req.tenantFlags?.dual_queue } });
+      return res.json({ status: 'success', data: { dual_queue_enabled: false } });
     }
     res.json({
       status: 'success',
-      data: { ...result.rows[0], dual_queue_enabled: !!req.tenantFlags?.dual_queue },
+      data: { ...result.rows[0], dual_queue_enabled: effectiveDualQueue },
     });
   } catch (err) {
     console.error(err);
@@ -193,7 +196,8 @@ router.post('/book', async (req, res) => {
   }
 
   try {
-    if (!(await checkPortalEnabled(req.tenantSchema, res))) return;
+    const portalCfg = await checkPortalEnabled(req.tenantSchema, res);
+    if (!portalCfg) return;
 
     // Holiday check
     const holiday = await queryTenant(
@@ -266,9 +270,9 @@ router.post('/book', async (req, res) => {
       visitType = 'new';
     }
 
-    // When dual_queue is off, fall back to legacy single-series tokens and
-    // keep patient_visit_type at its default ('returning').
-    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    // Two-level gate: super-admin (feature_flags.dual_queue) AND clinic admin
+    // (clinic_settings.dual_queue_enabled). Both must be true for dual series.
+    const dualQueueOn = !!req.tenantFlags?.dual_queue && !!portalCfg.dual_queue_enabled;
     const storedVisitType = dualQueueOn ? visitType : 'returning';
 
     // Generate booking reference and assign token number (series scoped by type when on)
@@ -356,9 +360,11 @@ router.get('/booking/:reference', async (req, res) => {
       });
     }
 
+    const dq = await queryTenant(req.tenantSchema, `SELECT dual_queue_enabled FROM clinic_settings LIMIT 1`);
+    const effectiveDualQueue = !!req.tenantFlags?.dual_queue && !!dq.rows[0]?.dual_queue_enabled;
     res.json({
       status: 'success',
-      data: { ...result.rows[0], dual_queue_enabled: !!req.tenantFlags?.dual_queue },
+      data: { ...result.rows[0], dual_queue_enabled: effectiveDualQueue },
     });
   } catch (err) {
     console.error(err);
@@ -493,8 +499,8 @@ router.get('/queue-display', async (req, res) => {
       };
     }));
 
-    // Expose the dual-queue flag so the display screen can render the two-column layout
-    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    // Effective dual-queue flag = super-admin capability AND clinic-admin opt-in
+    const dualQueueOn = !!req.tenantFlags?.dual_queue && !!settings.dual_queue_enabled;
     res.json({
       status: 'success',
       data: { clinic, doctors, dual_queue_enabled: dualQueueOn, generated_at: new Date().toISOString() },
