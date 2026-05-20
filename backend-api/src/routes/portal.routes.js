@@ -11,6 +11,8 @@ const { queryTenant } = require('../config/db');
 const { tenantMiddleware } = require('../middleware/tenant');
 const { nextPatientCode }     = require('../utils/patientCode');
 const { nextBookingReference } = require('../utils/bookingReference');
+const { checkDailyCap, capErrorMessage } = require('../utils/dailyCap');
+const { getPortalHoursStatus } = require('../utils/portalHours');
 
 const router = express.Router();
 router.use(tenantMiddleware);
@@ -75,12 +77,27 @@ router.get('/info', async (req, res) => {
     );
     // Effective flag = super-admin capability AND clinic-admin opt-in
     const effectiveDualQueue = !!req.tenantFlags?.dual_queue && !!result.rows[0]?.dual_queue_enabled;
+    const hours = await getPortalHoursStatus(req.tenantSchema);
     if (!result.rows.length) {
-      return res.json({ status: 'success', data: { dual_queue_enabled: false } });
+      return res.json({
+        status: 'success',
+        data: {
+          dual_queue_enabled: false,
+          portal_open_now: hours.open_now,
+          portal_next_open: hours.next_open,
+          portal_hours: hours.hours,
+        },
+      });
     }
     res.json({
       status: 'success',
-      data: { ...result.rows[0], dual_queue_enabled: effectiveDualQueue },
+      data: {
+        ...result.rows[0],
+        dual_queue_enabled: effectiveDualQueue,
+        portal_open_now: hours.open_now,
+        portal_next_open: hours.next_open,
+        portal_hours: hours.hours,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -199,6 +216,16 @@ router.post('/book', async (req, res) => {
     const portalCfg = await checkPortalEnabled(req.tenantSchema, res);
     if (!portalCfg) return;
 
+    // Portal-hours: reject if the public portal is closed right now
+    const hoursStatus = await getPortalHoursStatus(req.tenantSchema);
+    if (!hoursStatus.open_now) {
+      const nx = hoursStatus.next_open;
+      const msg = nx
+        ? `Online booking is closed right now. Opens ${nx.is_today ? 'today' : nx.day_label} at ${nx.open_time}.`
+        : 'Online booking is closed right now.';
+      return res.status(403).json({ status: 'error', message: msg, data: { next_open: nx } });
+    }
+
     // Holiday check
     const holiday = await queryTenant(
       req.tenantSchema,
@@ -210,6 +237,12 @@ router.post('/book', async (req, res) => {
         status: 'error',
         message: 'This date is a clinic holiday. Booking not allowed.',
       });
+    }
+
+    // Daily cap — clinic-wide and per-doctor
+    const cap = await checkDailyCap(req.tenantSchema, doctor_id, appointment_date);
+    if (!cap.ok) {
+      return res.status(409).json({ status: 'error', message: capErrorMessage(cap), data: cap });
     }
 
     // Slot conflict check — prevent double booking (any appointment type at this time)

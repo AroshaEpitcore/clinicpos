@@ -35,17 +35,32 @@ function mountWithFlag(superFlag) {
 // order. With type='walkin' and no appointment_time, the order is:
 //   1. allow_walk_ins lookup
 //   2. holiday check
-//   3. dual_queue_enabled (clinic-admin flag) — ONLY when superFlag is true
-// (slot-conflict check is skipped when appointment_time is null)
+//   3. checkDailyCap — clinic settings (max_patients_per_day)
+//   4. checkDailyCap — staff (per-doctor max_patients_per_day)
+//   5. dual_queue_enabled (clinic-admin flag) — ONLY when superFlag is true
+// (slot-conflict check is skipped when appointment_time is null;
+// cap counting queries only fire when the respective cap > 0.)
 function arrangeBaseChecks(q, {
   walkInsAllowed = true,
   isHoliday = false,
   superFlag = false,
   clinicFlag = false,
+  clinicCap = 0,
+  doctorCap = 0,
+  clinicCount = 0,
+  doctorCount = 0,
 } = {}) {
   q.queryTenant
     .mockResolvedValueOnce({ rows: [{ allow_walk_ins: walkInsAllowed }] })
-    .mockResolvedValueOnce({ rows: isHoliday ? [{ id: 'h' }] : [] });
+    .mockResolvedValueOnce({ rows: isHoliday ? [{ id: 'h' }] : [] })
+    .mockResolvedValueOnce({ rows: [{ max_patients_per_day: clinicCap }] });
+  if (clinicCap > 0) {
+    q.queryTenant.mockResolvedValueOnce({ rows: [{ n: clinicCount }] });
+  }
+  q.queryTenant.mockResolvedValueOnce({ rows: [{ max_patients_per_day: doctorCap }] });
+  if (doctorCap > 0) {
+    q.queryTenant.mockResolvedValueOnce({ rows: [{ n: doctorCount }] });
+  }
   if (superFlag) {
     q.queryTenant.mockResolvedValueOnce({ rows: [{ dual_queue_enabled: clinicFlag }] });
   }
@@ -240,6 +255,50 @@ describe('POST /api/v1/appointments — super-admin ON, clinic-admin OFF (two-le
     // nextToken SQL must NOT include patient_visit_type filter
     const tokenCall = q.queryTenant.mock.calls.find(c => c[1].includes('MAX(token_number)'));
     expect(tokenCall[1]).not.toContain('patient_visit_type');
+  });
+});
+
+describe('POST /api/v1/appointments — daily cap enforcement', () => {
+  test('returns 409 when the clinic-wide cap is hit', async () => {
+    const { app, q } = mountWithFlag(false);
+    arrangeBaseChecks(q, { clinicCap: 30, clinicCount: 30 });   // count == limit
+
+    const res = await request(app)
+      .post('/api/v1/appointments')
+      .send({ patient_id: 'p-1', doctor_id: 'd-1', appointment_date: '2026-05-20', type: 'walkin' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/Clinic is fully booked/i);
+    expect(res.body.data.scope).toBe('clinic');
+    expect(res.body.data.limit).toBe(30);
+  });
+
+  test('returns 409 when the per-doctor cap is hit (clinic cap not set)', async () => {
+    const { app, q } = mountWithFlag(false);
+    arrangeBaseChecks(q, { clinicCap: 0, doctorCap: 20, doctorCount: 20 });
+
+    const res = await request(app)
+      .post('/api/v1/appointments')
+      .send({ patient_id: 'p-1', doctor_id: 'd-1', appointment_date: '2026-05-20', type: 'walkin' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/doctor is fully booked/i);
+    expect(res.body.data.scope).toBe('doctor');
+  });
+
+  test('emergency bypasses caps even when both are at limit', async () => {
+    const { app, q } = mountWithFlag(false);
+    // Emergency skips walk-ins check AND skips cap check entirely
+    q.queryTenant
+      .mockResolvedValueOnce({ rows: [] })                                   // holiday
+      .mockResolvedValueOnce({ rows: [{ id: 'appt-emrg' }] });               // INSERT
+
+    const res = await request(app)
+      .post('/api/v1/appointments')
+      .send({ patient_id: 'p-1', doctor_id: 'd-1', appointment_date: '2026-05-20', type: 'emergency' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.token_number).toBe(0);
   });
 });
 

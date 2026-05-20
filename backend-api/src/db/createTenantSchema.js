@@ -11,19 +11,20 @@ async function createTenantSchema(client, schemaName) {
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS staff (
-      id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      full_name        VARCHAR(255) NOT NULL,
-      email            VARCHAR(255) NOT NULL UNIQUE,
-      phone            VARCHAR(20),
-      password_hash    VARCHAR(255) NOT NULL,
-      role             VARCHAR(50)  NOT NULL,
-      specialization   VARCHAR(100),
-      signature_url    VARCHAR(500),
-      avatar_url       VARCHAR(500),
-      registration_no  VARCHAR(100),
-      is_active        BOOLEAN      DEFAULT TRUE,
-      created_at       TIMESTAMP    DEFAULT NOW(),
-      updated_at       TIMESTAMP    DEFAULT NOW()
+      id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      full_name             VARCHAR(255) NOT NULL,
+      email                 VARCHAR(255) NOT NULL UNIQUE,
+      phone                 VARCHAR(20),
+      password_hash         VARCHAR(255) NOT NULL,
+      role                  VARCHAR(50)  NOT NULL,
+      specialization        VARCHAR(100),
+      signature_url         VARCHAR(500),
+      avatar_url            VARCHAR(500),
+      registration_no       VARCHAR(100),
+      max_patients_per_day  INTEGER      NOT NULL DEFAULT 0,
+      is_active             BOOLEAN      DEFAULT TRUE,
+      created_at            TIMESTAMP    DEFAULT NOW(),
+      updated_at            TIMESTAMP    DEFAULT NOW()
     );
   `);
 
@@ -120,6 +121,29 @@ async function createTenantSchema(client, schemaName) {
       created_by   UUID REFERENCES staff(id),
       created_at   TIMESTAMP    DEFAULT NOW()
     );
+  `);
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS portal_hours (
+      day_of_week  INTEGER PRIMARY KEY CHECK (day_of_week BETWEEN 0 AND 6),
+      is_open      BOOLEAN NOT NULL DEFAULT TRUE,
+      open_time    TIME    NOT NULL DEFAULT '08:00',
+      close_time   TIME    NOT NULL DEFAULT '17:00',
+      updated_at   TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  // Seed defaults: Mon-Fri 8-17 open, Sat 9-13 open, Sun closed
+  await client.query(`
+    INSERT INTO portal_hours (day_of_week, is_open, open_time, close_time) VALUES
+      (0, FALSE, '09:00', '13:00'),
+      (1, TRUE,  '08:00', '17:00'),
+      (2, TRUE,  '08:00', '17:00'),
+      (3, TRUE,  '08:00', '17:00'),
+      (4, TRUE,  '08:00', '17:00'),
+      (5, TRUE,  '08:00', '17:00'),
+      (6, TRUE,  '09:00', '13:00')
+    ON CONFLICT (day_of_week) DO NOTHING;
   `);
 
   await client.query(`

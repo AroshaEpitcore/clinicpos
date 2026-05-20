@@ -13,7 +13,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
   try {
     const result = await queryTenant(
       req.tenantSchema,
-      `SELECT id, full_name, email, phone, role, specialization, registration_no, is_active, created_at
+      `SELECT id, full_name, email, phone, role, specialization, registration_no, max_patients_per_day, is_active, created_at
        FROM staff
        ORDER BY role, full_name`
     );
@@ -78,27 +78,31 @@ router.post('/', requireRole('admin'), async (req, res) => {
 // ── PUT /api/v1/staff/:id ─────────────────────────────────────────────────────
 // Admin only — update staff details (not password)
 router.put('/:id', requireRole('admin'), async (req, res) => {
-  const { full_name, email, phone, role, specialization, registration_no, is_active } = req.body;
+  const { full_name, email, phone, role, specialization, registration_no, max_patients_per_day, is_active } = req.body;
 
   const VALID_ROLES = ['doctor', 'nurse', 'receptionist', 'admin'];
   if (role && !VALID_ROLES.includes(role)) {
     return res.status(400).json({ status: 'error', message: `role must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+  if (max_patients_per_day != null && (Number(max_patients_per_day) < 0 || !Number.isInteger(Number(max_patients_per_day)))) {
+    return res.status(400).json({ status: 'error', message: 'max_patients_per_day must be a non-negative integer (0 = unlimited)' });
   }
 
   try {
     const result = await queryTenant(
       req.tenantSchema,
       `UPDATE staff
-       SET full_name       = COALESCE($1, full_name),
-           email           = COALESCE($2, email),
-           phone           = COALESCE($3, phone),
-           role            = COALESCE($4, role),
-           specialization  = COALESCE($5, specialization),
-           registration_no = COALESCE($6, registration_no),
-           is_active       = COALESCE($7, is_active),
-           updated_at      = NOW()
-       WHERE id = $8
-       RETURNING id, full_name, email, phone, role, specialization, registration_no, is_active, created_at`,
+       SET full_name             = COALESCE($1, full_name),
+           email                 = COALESCE($2, email),
+           phone                 = COALESCE($3, phone),
+           role                  = COALESCE($4, role),
+           specialization        = COALESCE($5, specialization),
+           registration_no       = COALESCE($6, registration_no),
+           max_patients_per_day  = COALESCE($7, max_patients_per_day),
+           is_active             = COALESCE($8, is_active),
+           updated_at            = NOW()
+       WHERE id = $9
+       RETURNING id, full_name, email, phone, role, specialization, registration_no, max_patients_per_day, is_active, created_at`,
       [
         full_name  || null,
         email      ? email.toLowerCase().trim() : null,
@@ -106,6 +110,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
         role       || null,
         specialization  !== undefined ? specialization  : null,
         registration_no !== undefined ? registration_no : null,
+        max_patients_per_day != null ? Number(max_patients_per_day) : null,
         is_active  !== undefined ? is_active : null,
         req.params.id,
       ]

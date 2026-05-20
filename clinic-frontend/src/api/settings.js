@@ -28,4 +28,6 @@ export const settingsApi = {
     return api.post('/settings/qr-image', form, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   deleteQrImage:    ()           => api.delete('/settings/qr-image'),
+  getPortalHours:   ()           => api.get('/settings/portal-hours'),
+  updatePortalHours:(hours)      => api.put('/settings/portal-hours', { hours }),
 };

@@ -644,6 +644,80 @@ function NotificationsTab({ settings, onSave, saving }) {
   );
 }
 
+function PortalHoursCard() {
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const [hours,   setHours]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
+
+  useEffect(() => {
+    settingsApi.getPortalHours()
+      .then(r => {
+        const seeded = Array.from({ length: 7 }, (_, dow) => {
+          const row = r.data.data.find(x => x.day_of_week === dow);
+          return {
+            day_of_week: dow,
+            is_open:     row?.is_open ?? (dow !== 0),
+            open_time:   (row?.open_time  || '08:00').slice(0, 5),
+            close_time:  (row?.close_time || '17:00').slice(0, 5),
+          };
+        });
+        setHours(seeded);
+      })
+      .catch(() => toast.error('Could not load portal hours'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function update(dow, patch) {
+    setHours(hs => hs.map(h => h.day_of_week === dow ? { ...h, ...patch } : h));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await settingsApi.updatePortalHours(hours);
+      toast.success('Online booking hours saved');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not save');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <SectionCard title="Online Booking Hours"><Spinner /></SectionCard>;
+
+  return (
+    <SectionCard
+      title="Online Booking Hours"
+      description="Days and times when the public booking portal accepts new appointments. Outside these windows patients see a closed-for-now message."
+    >
+      <div className="space-y-2">
+        {hours.map(h => (
+          <div key={h.day_of_week} className="flex items-center gap-3 p-2 rounded-[var(--radius)] border border-[var(--color-border)]">
+            <div className="w-12 text-sm font-semibold text-[var(--color-text)]">{DAYS[h.day_of_week]}</div>
+            <label className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] cursor-pointer">
+              <input type="checkbox" checked={h.is_open} onChange={e => update(h.day_of_week, { is_open: e.target.checked })} />
+              Open
+            </label>
+            <div className="flex items-center gap-2 ml-auto">
+              <input type="time" value={h.open_time}  disabled={!h.is_open}
+                onChange={e => update(h.day_of_week, { open_time: e.target.value })}
+                className="px-2 py-1 text-sm rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] disabled:opacity-40" />
+              <span className="text-xs text-[var(--color-text-secondary)]">to</span>
+              <input type="time" value={h.close_time} disabled={!h.is_open}
+                onChange={e => update(h.day_of_week, { close_time: e.target.value })}
+                className="px-2 py-1 text-sm rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] disabled:opacity-40" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end mt-3">
+        <Button onClick={save} loading={saving}>Save Hours</Button>
+      </div>
+    </SectionCard>
+  );
+}
+
 function SecurityTab({ settings, onSave, saving }) {
   const [form, setForm] = useState({});
   const { clinic, tenantFlags } = useAuth();
@@ -842,6 +916,8 @@ function SecurityTab({ settings, onSave, saving }) {
           </div>
         )}
       </SectionCard>
+
+      {form.patient_portal_enabled && <PortalHoursCard />}
 
       {dualQueueAvailable && (
         <SectionCard title="Dual Queue (New / Returning Patients)">

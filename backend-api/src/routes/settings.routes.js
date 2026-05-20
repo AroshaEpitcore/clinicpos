@@ -384,6 +384,64 @@ router.get('/subscription', requireRole('admin'), async (req, res) => {
   }
 });
 
+// ── GET /api/v1/settings/portal-hours ────────────────────────────────────────
+// Returns 7 rows (0=Sun .. 6=Sat) controlling when the public booking portal is open.
+router.get('/portal-hours', async (req, res) => {
+  try {
+    const r = await queryTenant(req.tenantSchema,
+      `SELECT day_of_week, is_open, open_time, close_time FROM portal_hours ORDER BY day_of_week`);
+    res.json({ status: 'success', data: r.rows });
+  } catch (err) {
+    console.error('GET /settings/portal-hours', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
+// ── PUT /api/v1/settings/portal-hours ────────────────────────────────────────
+// Body: { hours: [{ day_of_week, is_open, open_time, close_time }, ...] }
+router.put('/portal-hours', requireRole('admin'), async (req, res) => {
+  const { hours } = req.body;
+  if (!Array.isArray(hours)) {
+    return res.status(400).json({ status: 'error', message: 'hours array is required' });
+  }
+  const TIME_RE = /^\d{2}:\d{2}(:\d{2})?$/;
+  for (const h of hours) {
+    if (!Number.isInteger(h.day_of_week) || h.day_of_week < 0 || h.day_of_week > 6) {
+      return res.status(400).json({ status: 'error', message: 'day_of_week must be 0..6' });
+    }
+    if (typeof h.is_open !== 'boolean') {
+      return res.status(400).json({ status: 'error', message: 'is_open must be boolean' });
+    }
+    if (!TIME_RE.test(String(h.open_time)) || !TIME_RE.test(String(h.close_time))) {
+      return res.status(400).json({ status: 'error', message: 'open_time/close_time must be HH:MM' });
+    }
+    if (h.is_open && String(h.open_time) >= String(h.close_time)) {
+      return res.status(400).json({ status: 'error', message: 'open_time must be before close_time' });
+    }
+  }
+
+  try {
+    for (const h of hours) {
+      await queryTenant(req.tenantSchema,
+        `INSERT INTO portal_hours (day_of_week, is_open, open_time, close_time, updated_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (day_of_week) DO UPDATE
+           SET is_open    = EXCLUDED.is_open,
+               open_time  = EXCLUDED.open_time,
+               close_time = EXCLUDED.close_time,
+               updated_at = NOW()`,
+        [h.day_of_week, h.is_open, h.open_time, h.close_time]
+      );
+    }
+    const r = await queryTenant(req.tenantSchema,
+      `SELECT day_of_week, is_open, open_time, close_time FROM portal_hours ORDER BY day_of_week`);
+    res.json({ status: 'success', message: 'Portal hours saved', data: r.rows });
+  } catch (err) {
+    console.error('PUT /settings/portal-hours', err);
+    res.status(500).json({ status: 'error', message: 'Server error', detail: err.message });
+  }
+});
+
 // ── GET /api/v1/settings/announcements ───────────────────────────────────────
 // Returns published, non-expired announcements not yet dismissed by this clinic
 router.get('/announcements', async (req, res) => {

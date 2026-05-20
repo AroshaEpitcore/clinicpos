@@ -503,11 +503,12 @@ git pull origin development
 cd backend-api
 npm install --no-audit --no-fund
 
-# One-time migrations — both are idempotent (safe to re-run)
+# One-time migrations — all idempotent (safe to re-run)
 node src/db/migrate_dual_queue.js                # appointments.patient_visit_type + feature_flags row
 node src/db/migrate_dual_queue_clinic_toggle.js  # clinic_settings.dual_queue_enabled (clinic-admin toggle)
+node src/db/migrate_caps_and_portal_hours.js     # staff.max_patients_per_day + portal_hours table
 
-# (Optional) Verify nothing regressed — 16 tests
+# (Optional) Verify nothing regressed — 22 tests
 npm test
 
 pm2 restart clinicpos-api
@@ -571,7 +572,15 @@ The feature now has TWO toggles that must both be ON for dual-queue to take effe
 cd /var/www/clinicpos/backend-api
 npm test
 ```
-Expected: `Tests: 16 passed, 16 total` (12 original + 4 covering the two-level gate).
+Expected: `Tests: 22 passed, 22 total` (12 dual-queue + 4 two-level-gate + 3 caps + 3 portal-hours).
+
+### Daily caps + portal hours
+
+1. **Clinic-wide cap** — Settings → Appointments → "Max patients per day" (existing field). 0 = unlimited.
+2. **Per-doctor cap** — Staff page → edit a doctor → "Max patients per day" field appears (doctors only). 0 = unlimited.
+3. **Behavior**: when either cap is reached, POS *and* online booking return 409 with a clear message. Emergencies always bypass.
+4. **Portal hours** — Settings → Security & Patient Access → "Online Booking Hours" card (only visible when Patient Portal is enabled). Seven-day editor (Sun–Sat) with open/close times and an "Open" checkbox.
+5. **Closed-state UI** — visit `<subdomain>.healthcenter.lk/book` outside open hours and the page shows a closed-with-next-open-time card; `/portal/info` returns `portal_open_now: false` + `portal_next_open`.
 
 ## Rollback
 

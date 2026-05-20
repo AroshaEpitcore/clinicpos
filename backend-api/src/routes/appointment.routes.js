@@ -3,6 +3,7 @@ const { queryTenant }                  = require('../config/db');
 const { authMiddleware, requireRole }  = require('../middleware/auth');
 const { tenantMiddleware }             = require('../middleware/tenant');
 const { nextBookingReference }         = require('../utils/bookingReference');
+const { checkDailyCap, capErrorMessage } = require('../utils/dailyCap');
 
 const router = express.Router();
 router.use(tenantMiddleware, authMiddleware);
@@ -135,6 +136,14 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
     );
     if (holiday.rows.length > 0) {
       return res.status(400).json({ status: 'error', message: 'This date is a clinic holiday. Booking not allowed.' });
+    }
+
+    // Daily cap — emergencies bypass (they must be admitted regardless of cap).
+    if (type !== 'emergency') {
+      const cap = await checkDailyCap(req.tenantSchema, doctor_id, appointment_date);
+      if (!cap.ok) {
+        return res.status(409).json({ status: 'error', message: capErrorMessage(cap), data: cap });
+      }
     }
 
     // ── Dual-queue logic ──────────────────────────────────────────────────────

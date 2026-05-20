@@ -689,14 +689,19 @@ export default function BookingPage() {
   // Step 4
   const [booking, setBooking] = useState(null);
 
-  const [dualQueueOn, setDualQueueOn] = useState(false);
+  const [dualQueueOn,  setDualQueueOn]  = useState(false);
+  const [portalOpenNow, setPortalOpenNow] = useState(true);
+  const [nextOpen,      setNextOpen]      = useState(null);
 
   useEffect(() => {
     portalApi.getInfo()
       .then(r => {
-        setClinicInfo(r.data.data || {});
-        setPortalEnabled(r.data.data?.patient_portal_enabled !== false);
-        setDualQueueOn(!!r.data.data?.dual_queue_enabled);
+        const d = r.data.data || {};
+        setClinicInfo(d);
+        setPortalEnabled(d.patient_portal_enabled !== false);
+        setDualQueueOn(!!d.dual_queue_enabled);
+        setPortalOpenNow(d.portal_open_now !== false);
+        setNextOpen(d.portal_next_open || null);
       })
       .catch(() => setPortalEnabled(false));
   }, []);
@@ -789,6 +794,49 @@ export default function BookingPage() {
         style={{ background: 'var(--color-bg)' }}
       >
         <RefreshCw className="w-7 h-7 animate-spin" style={{ color: 'var(--color-primary)' }} />
+      </div>
+    );
+  }
+
+  // ── Portal closed right now (outside scheduled hours) ─────────────────────
+  if (portalEnabled === true && portalOpenNow === false) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <div
+          className="rounded-[var(--radius-lg)] border p-8 max-w-sm w-full text-center"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <Clock className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--color-text-secondary)' }} />
+          <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
+            {t('book.closedTitle')}
+          </h2>
+          <p className="text-sm mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+            {t('book.closedNow')}
+          </p>
+          {nextOpen && (
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+              {nextOpen.is_today
+                ? t('book.opensToday', { time: nextOpen.open_time })
+                : t('book.opensNext', { day: nextOpen.day_label, time: nextOpen.open_time })}
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-2 mt-5">
+            <LangToggle />
+            {clinicInfo?.clinic_phone && (
+              <a
+                href={`tel:${clinicInfo.clinic_phone}`}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius)] font-semibold text-sm text-white"
+                style={{ background: 'var(--color-primary)' }}
+              >
+                <Phone className="w-4 h-4" />
+                {clinicInfo.clinic_phone}
+              </a>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

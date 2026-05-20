@@ -16,7 +16,7 @@ const ROLE_COLORS = {
 
 function StaffModal({ open, onClose, existing, onSaved }) {
   const isEdit = Boolean(existing);
-  const EMPTY = { full_name: '', email: '', password: '', role: 'doctor', phone: '', specialization: '', registration_no: '' };
+  const EMPTY = { full_name: '', email: '', password: '', role: 'doctor', phone: '', specialization: '', registration_no: '', max_patients_per_day: 0 };
   const [form,   setForm]   = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -24,13 +24,14 @@ function StaffModal({ open, onClose, existing, onSaved }) {
   useEffect(() => {
     if (open) {
       setForm(isEdit ? {
-        full_name:       existing.full_name       || '',
-        email:           existing.email           || '',
-        password:        '',
-        role:            existing.role            || 'doctor',
-        phone:           existing.phone           || '',
-        specialization:  existing.specialization  || '',
-        registration_no: existing.registration_no || '',
+        full_name:            existing.full_name            || '',
+        email:                existing.email                || '',
+        password:             '',
+        role:                 existing.role                 || 'doctor',
+        phone:                existing.phone                || '',
+        specialization:       existing.specialization       || '',
+        registration_no:      existing.registration_no      || '',
+        max_patients_per_day: existing.max_patients_per_day ?? 0,
       } : EMPTY);
       setErrors({});
     }
@@ -53,7 +54,11 @@ function StaffModal({ open, onClose, existing, onSaved }) {
     setSaving(true);
     try {
       if (isEdit) {
-        const payload = { full_name: form.full_name, email: form.email, phone: form.phone, role: form.role, specialization: form.specialization, registration_no: form.registration_no };
+        const payload = {
+          full_name: form.full_name, email: form.email, phone: form.phone, role: form.role,
+          specialization: form.specialization, registration_no: form.registration_no,
+          max_patients_per_day: Number(form.max_patients_per_day) || 0,
+        };
         const res = await api.put(`/staff/${existing.id}`, payload);
         toast.success('Staff member updated');
         onSaved(res.data.data, false);
@@ -126,10 +131,23 @@ function StaffModal({ open, onClose, existing, onSaved }) {
               <input value={form.specialization} onChange={e => onChange('specialization', e.target.value)} placeholder="General Medicine" className={inputCls('specialization')} />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <label className={labelCls}>Registration No.</label>
               <input value={form.registration_no} onChange={e => onChange('registration_no', e.target.value)} placeholder="SLMC/12345" className={inputCls('registration_no')} />
             </div>
+
+            {form.role === 'doctor' && (
+              <div>
+                <label className={labelCls}>Max patients per day (0 = unlimited)</label>
+                <input
+                  type="number" min="0"
+                  value={form.max_patients_per_day}
+                  onChange={e => onChange('max_patients_per_day', e.target.value)}
+                  placeholder="0"
+                  className={inputCls('max_patients_per_day')}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-1">

@@ -159,6 +159,11 @@ export const TRANSLATIONS = {
     'book.bookAnother':        'Book Another Appointment',
     'book.unavailable':        'Online Booking Unavailable',
     'book.unavailableMsg':     'This clinic has not enabled online booking. Please call the clinic to schedule an appointment.',
+    'book.closedTitle':        'Online Booking is Closed',
+    'book.closedNow':          'We are not accepting online bookings right now.',
+    'book.opensNext':          'Opens {day} at {time}',
+    'book.opensToday':         'Opens today at {time}',
+    'book.openingHours':       'Booking Hours',
     'book.footer':             'Powered by Doctor POS — Secure Online Booking',
 
     // ── Consultations / Prescriptions / Labs / Invoices / Profile ──────────
@@ -361,6 +366,11 @@ export const TRANSLATIONS = {
     'book.bookAnother':        'තවත් වෙන්කිරීමක් කරන්න',
     'book.unavailable':        'ඔන්ලයින් වෙන්කිරීම ලබා ගත නොහැක',
     'book.unavailableMsg':     'මෙම සායනයේ ඔන්ලයින් වෙන්කිරීම සක්‍රීය කර නැත. වෙන්කිරීමක් සඳහා සායනය අමතන්න.',
+    'book.closedTitle':        'ඔන්ලයින් වෙන්කිරීම් වසා ඇත',
+    'book.closedNow':          'මේ වන විට අපි ඔන්ලයින් වෙන්කිරීම් භාර ගන්නේ නැත.',
+    'book.opensNext':          '{day} දින {time} ට විවෘත වේ',
+    'book.opensToday':         'අද {time} ට විවෘත වේ',
+    'book.openingHours':       'වෙන්කිරීමේ වේලාවන්',
     'book.footer':             'Doctor POS මගින් — ආරක්ෂිත ඔන්ලයින් වෙන්කිරීම',
 
     // ── Consultations / Prescriptions / Labs / Invoices / Profile ──────────
