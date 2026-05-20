@@ -7,10 +7,15 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay },
 });
 
-function QueueRow({ token, name, detail, badge, badgeCls, emergency }) {
+function QueueRow({ token, name, detail, badge, badgeCls, emergency, newPatient }) {
+  const tokenBg = emergency
+    ? 'bg-gradient-to-br from-red-500 to-red-700'
+    : newPatient
+      ? 'bg-gradient-to-br from-red-500 to-red-600'
+      : 'bg-gradient-to-br from-primary to-teal';
   return (
     <div className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 border border-primary/10 bg-surface">
-      <div className={`w-[34px] h-[34px] rounded-lg flex items-center justify-center font-bold text-sm text-white shrink-0 ${emergency ? 'bg-gradient-to-br from-red-500 to-red-700' : 'bg-gradient-to-br from-primary to-teal'}`}>
+      <div className={`w-[34px] h-[34px] rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0 ${tokenBg}`}>
         {token}
       </div>
       <div className="flex-1 min-w-0">
@@ -101,7 +106,7 @@ export default function HeroSection() {
               </div>
               <div className="flex flex-col gap-2.5">
                 <QueueRow token="3" name="Kasun Jayawardena" detail="09:15 AM · Walk-in"  badge="With Doctor" badgeCls="bg-primary/10 text-primary" />
-                <QueueRow token="4" name="Nimal Perera"       detail="09:30 AM · Online"   badge="Waiting"     badgeCls="bg-amber-100 text-amber-700" />
+                <QueueRow token="N-2" name="Nimal Perera"     detail="09:30 AM · Online · New patient" badge="Waiting" badgeCls="bg-amber-100 text-amber-700" newPatient />
                 <QueueRow token="!" name="Saman Fernando"     detail="Emergency · Priority" badge="Emergency"   badgeCls="bg-red-100 text-red-600" emergency />
                 <QueueRow token="2" name="Dilani Silva"        detail="09:00 AM · Walk-in"  badge="Completed"   badgeCls="bg-teal/10 text-teal" />
               </div>

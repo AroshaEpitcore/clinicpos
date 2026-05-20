@@ -1122,6 +1122,145 @@ You manage all clinics from one place. Clinics cannot see each other. You can cr
 
 ---
 
+## 18. Dual Token Queue 🔴🔵 *(Phase 5.6 — Feature Flag: `dual_queue` + Settings Toggle)*
+
+### Purpose
+Separate token series for **new** (first-time) and **returning** patients. Solves the common Sri Lankan clinic workflow where new patients are placed in a different queue and given a visibly distinct token.
+
+### How it Works
+- **New patients** → RED token, prefix `N-` (e.g. `N-01`, `N-02`, `N-03`)
+- **Returning patients** → BLUE token, plain number (e.g. `01`, `02`, `03`)
+- Each series counts **independently per doctor per day**
+- Visible everywhere: POS queue list, the AppointmentModal slip, queue display TV, online booking confirmation, printed thermal token slips
+
+### Two-Level Gating
+1. **Super-admin capability** — `feature_flags.dual_queue` must be ON for the clinic to access the feature
+2. **Clinic-admin opt-in** — `clinic_settings.dual_queue_enabled` toggle in **Settings → Security** must be ON
+3. Both required for the feature to activate. Either OFF → legacy single-series tokens.
+
+### Auto-Detection with Override
+- POS auto-detects from `consultations` history: any prior consultation = returning, no prior = new
+- Reception can manually override the segmented control (New / Returning)
+- Override is **audit-logged** to `audit_logs` with action `visit_type_override` (old_value: detected, new_value: chosen + patient_id)
+
+### Online Booking Logic
+- Phone-match lookup drives the decision — match found ⇒ returning, no match ⇒ new + auto-create patient
+- Patients **cannot self-declare** new/returning — prevents gaming the queue
+
+### Emergency Bypass
+Emergency appointments (type=`emergency`) get token=0 and skip the dual-queue series — they always go to top of queue.
+
+### Queue Display (TV)
+When dual-queue is on, the "Next Up" section on `/display` splits into two side-by-side columns: **New Patients** (red) and **Returning** (blue), each showing the next 3-4 tokens.
+
+### Database
+```
+appointments table:
+  + patient_visit_type VARCHAR(10) CHECK IN ('new','returning') DEFAULT 'returning'
+  + INDEX (doctor_id, appointment_date, patient_visit_type)
+
+clinic_settings:
+  + dual_queue_enabled BOOLEAN DEFAULT FALSE
+
+public.feature_flags:
+  + 'dual_queue' module per tenant (default OFF)
+```
+
+### Migrations
+```bash
+node src/db/migrate_dual_queue.js                # column + flag
+node src/db/migrate_dual_queue_clinic_toggle.js  # clinic_settings.dual_queue_enabled
+```
+
+---
+
+## 19. Sinhala Patient Portal 🇱🇰 *(English ⇄ Sinhala Toggle)*
+
+### Purpose
+All patient-facing pages can be viewed in **English or Sinhala** with a one-click toggle in the header. Built for Sri Lankan patients who prefer their primary language.
+
+### Covered Pages
+- `/book` — public online booking flow (4 steps + confirmation)
+- `/patient/login`, `/patient/register`
+- `/patient/dashboard`, `/patient/appointments`, `/patient/consultations`, `/patient/prescriptions`, `/patient/labs`, `/patient/invoices`, `/patient/profile`
+
+### How It Works
+- Language pill (`සිං` / `EN`) in every patient-page header
+- Choice persisted per-browser in `localStorage` (`patient_lang`)
+- In-house translator (`src/i18n/LangContext.jsx`) — `t('key')` lookup with English fallback
+- Translation dictionary at `src/i18n/translations.js` (EN + SI keys grouped by area: common, auth, nav, dash, appts, book, visit, rx, lab, inv, profile)
+
+### Not Affected
+Clinic staff UI (POS, admin) remains in English. The toggle only shows on patient-facing pages.
+
+---
+
+## 20. Daily Patient Caps 🚦 *(Per-Doctor + Clinic-Wide)*
+
+### Purpose
+Control daily queue size to protect doctor workload and clinic capacity. Two layers of caps are checked on every new appointment.
+
+### Caps
+- **Clinic-wide** — `clinic_settings.max_patients_per_day` (Settings → Appointments). 0 = unlimited.
+- **Per-doctor** — `staff.max_patients_per_day` (Staff edit modal, visible only for `role='doctor'`). 0 = unlimited.
+
+### Enforcement
+- **Both POS and online booking** check both caps before issuing a token
+- If clinic cap reached → 409 with "Clinic is fully booked for this day"
+- If per-doctor cap reached → 409 with "This doctor is fully booked for this day"
+- **Emergencies bypass** — `type='emergency'` always succeeds regardless of caps
+
+### Backend Helper
+`src/utils/dailyCap.js` exports `checkDailyCap(schema, doctorId, date)` used by both `appointment.routes.js` and `portal.routes.js`.
+
+### Migration
+```bash
+node src/db/migrate_caps_and_portal_hours.js   # adds staff.max_patients_per_day
+```
+
+---
+
+## 21. Online Booking Hours Schedule ⏰ *(Per-Day-of-Week)*
+
+### Purpose
+Restrict the public booking portal to specific days and time windows. Outside the scheduled hours, the page shows a polite closed-with-next-open-time message instead of accepting bookings.
+
+### Configuration
+- **Settings → Security → Online Booking Hours** card (only visible when Patient Portal is enabled)
+- 7 rows (Sun–Sat), each with:
+  - "Open" checkbox
+  - Open time (HH:MM)
+  - Close time (HH:MM)
+- Saved independently via the "Save Hours" button on the card
+
+### Defaults
+- Mon–Fri: Open 08:00–17:00
+- Sat: Open 09:00–13:00
+- Sun: Closed
+
+### Closed-State UI
+When `current_day.is_open = false` OR current time is outside the day's window:
+- `/portal/info` returns `portal_open_now: false` + `portal_next_open` (day_label, open_time, is_today)
+- `BookingPage` renders a closed card with "Opens today at 09:00" or "Opens Monday at 08:00"
+- `POST /portal/book` returns 403 with "Online booking is closed right now. Opens …"
+- The clinic phone number is shown as fallback contact
+
+### Database
+```
+portal_hours table (per tenant, 7 rows):
+  day_of_week INTEGER PRIMARY KEY CHECK (0..6)   -- 0=Sun, 6=Sat
+  is_open     BOOLEAN
+  open_time   TIME
+  close_time  TIME
+```
+
+### Migration
+```bash
+node src/db/migrate_caps_and_portal_hours.js   # also creates portal_hours
+```
+
+---
+
 ## Key System Rules
 
 - **Secure login** — every staff member has their own login with username and password

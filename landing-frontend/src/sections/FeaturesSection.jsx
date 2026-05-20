@@ -2,7 +2,7 @@ import FadeIn from '../components/ui/FadeIn';
 
 const features = [
   { n:'01', icon:'🏥', title:'Patient Management',       desc:'Full patient profiles with medical history, visit records, allergies, and document uploads. Find any patient in seconds with smart search.' },
-  { n:'02', icon:'📅', title:'Appointment Scheduling',   desc:'Smart queuing with token numbers, online booking via patient portal, doctor-wise schedules, and holiday management. Eliminate waiting-room chaos.' },
+  { n:'02', icon:'📅', title:'Appointment Scheduling',   desc:'Smart queuing with token numbers, online booking via patient portal, doctor-wise schedules, daily caps per doctor and per clinic, and holiday management. Eliminate waiting-room chaos.' },
   { n:'03', icon:'💊', title:'Digital Prescriptions',    desc:'Write prescriptions with auto-suggest medicines, dosage chips, food instructions, and custom medicines — all in one combined consultation step.' },
   { n:'04', icon:'🧪', title:'Lab Management',           desc:'Order tests, track sample collection, enter results with values or file uploads, and show results in the patient\'s consultation history.' },
   { n:'05', icon:'💉', title:'In-Clinic Pharmacy',       desc:'Real-time stock tracking, dispense queue, purchase orders, supplier management, expiry alerts, and automatic stock deduction on dispensing.' },
@@ -11,13 +11,16 @@ const features = [
   { n:'08', icon:'👨‍⚕️',title:'Multi-Doctor Support',     desc:'Unlimited doctors, each with their own schedule, consultation fees, and signature. Role-based access for doctors, nurses, receptionists, and admins.' },
   { n:'09', icon:'📊', title:'Reports & Analytics',      desc:'7 report types: daily, monthly, doctor performance, medicines, patients, appointments, and EOD history — all with CSV export and live charts.' },
   { n:'10', icon:'📺', title:'Waiting Room Display',     desc:'A full-screen TV display shows the live queue so patients know their turn. Auto-refreshes every 10 seconds. Emergency alerts in red.' },
-  { n:'11', icon:'🌐', title:'Patient Portal',           desc:'Patients book appointments online from any device — 24/7, no app required. Unique BK-XXXXXX booking reference shown on confirmation. Online bookings sync instantly to the clinic queue.' },
+  { n:'11', icon:'🌐', title:'Patient Portal',           desc:'Patients book appointments online from any device, fully translated into English and Sinhala with a one-click language toggle. Unique BK-XXXXXX booking reference shown on confirmation. Online bookings sync instantly to the clinic queue.' },
   { n:'12', icon:'☁️', title:'Cloud & Secure',           desc:'Hosted on enterprise servers with SSL encryption, daily backups, and 99.9% uptime. Access your clinic from any device, anywhere, securely.' },
   { n:'13', icon:'🩺', title:'Nurse Vitals Workflow',    desc:'Nurses record BP, pulse, SpO₂, temperature, weight, and height before the doctor sees the patient. Vitals auto-populate the consultation modal — zero double-entry.' },
   { n:'14', icon:'📱', title:'QR Booking Cards',         desc:'Generate a branded QR code card to print and place at your front desk. Patients scan it to open your booking page instantly — no URL to type, no app to download.' },
   { n:'15', icon:'📖', title:'Built-in Staff Training',  desc:'Every staff member gets a guided help page with their own role tab highlighted. Step-by-step workflows for receptionist, doctor, nurse, and admin — no external training needed.' },
   { n:'16', icon:'🌍', title:'Your Own Clinic Website',  desc:'Every clinic gets a branded public website at its own link — showing doctors, services, hours, and a booking button. Auto-generated, always up-to-date, zero extra cost.' },
   { n:'17', icon:'📲', title:'Lanka QR Payments',        desc:'Accept payments via Lanka QR at the counter. Patient scans your bank QR with any Sri Lankan bank app — Commercial Bank, Sampath, HNB, BOC and more. Instant transfer, zero card fees.' },
+  { n:'18', icon:'🔴', title:'Dual Token Queue',         desc:'Separate token series for new (red N-01) and returning (blue 01) patients. Auto-detected from visit history with an audit-logged override. Visible in POS, online booking, and the queue display.' },
+  { n:'19', icon:'🇱🇰', title:'Sinhala Patient Portal',    desc:'Every patient-facing page — public booking and the logged-in portal — switches between English and Sinhala with one button. Choice persists across sessions. Built for Sri Lankan patients.' },
+  { n:'20', icon:'⏰', title:'Booking Hours Schedule',    desc:'Set the days and hours the online portal accepts new appointments — Mon–Fri 8-17, Sat 9-13, Sun closed, or whatever you like. Outside hours, patients see a polite closed message with the next open time.' },
 ];
 
 export default function FeaturesSection() {

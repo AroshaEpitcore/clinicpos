@@ -118,8 +118,11 @@ node src/db/migrate_lab.js
 # Insurance module (insurance_providers, corporate_accounts, insurance_claims + patients.corporate_account_id — seeds 4 providers)
 node src/db/migrate_insurance.js
 
-# Patient Portal module (adds booking_reference, booking_source columns to appointments)
+# Patient Portal — booking columns (booking_reference, booking_source on appointments)
 node src/db/migrate_portal.js
+
+# Patient Portal — patient auth (portal_password_hash, portal_registered_at columns on patients)
+node -r dotenv/config src/db/migrate_patient_portal_auth.js
 
 # Make patient last_name, date_of_birth, gender optional (NOT NULL dropped)
 node src/db/migrate_optional_patient_fields.js
@@ -163,6 +166,13 @@ node -r dotenv/config src/db/migrate_qr_payment.js
 # System audit logs type fix — changes tenant_id and user_id columns from INTEGER to VARCHAR(50) in system_audit_logs
 # NOTE: already run on production server (2026-04-30). Run on fresh installs only if needed.
 node -r dotenv/config src/db/migrate_system_logs_fix.js
+
+# Phase 5.6 — Dual-queue (new vs returning patient tokens)
+node src/db/migrate_dual_queue.js                 # adds appointments.patient_visit_type + dual_queue feature flag
+node src/db/migrate_dual_queue_clinic_toggle.js   # adds clinic_settings.dual_queue_enabled (clinic-admin opt-in)
+
+# Phase 5.6 — Daily caps + per-day-of-week booking-portal hours
+node src/db/migrate_caps_and_portal_hours.js      # adds staff.max_patients_per_day + portal_hours table
 ```
 
 > **Note:** `migrate.js` also runs `seed.js` to create the demo clinic and 4 staff accounts.  
@@ -318,13 +328,15 @@ clinicpos/
 │   │   │   ├── pharmacy.routes.js  — Phase 5.1
 │   │   │   ├── lab.routes.js       — Phase 5.2
 │   │   │   ├── insurance.routes.js — Phase 5.3
-│   │   │   └── portal.routes.js    — Phase 5.4 + 5.5 (public, no auth)
+│   │   │   ├── portal.routes.js    — Phase 5.4 + 5.5 (public booking/website, no auth)
+│   │   │   └── patient-portal.routes.js — Phase 5.5 patient auth + data endpoints
 │   │   ├── db/
 │   │   │   ├── migrate.js                              — Core tables + seed
 │   │   │   ├── migrate_pharmacy.js                     — Phase 5.1 tables
 │   │   │   ├── migrate_lab.js                          — Phase 5.2 tables
 │   │   │   ├── migrate_insurance.js                    — Phase 5.3 tables
-│   │   │   ├── migrate_portal.js                       — Phase 5.4 columns
+│   │   │   ├── migrate_portal.js                       — Phase 5.4 booking columns (booking_reference, booking_source)
+│   │   │   ├── migrate_patient_portal_auth.js          — Phase 5.5 patient auth (portal_password_hash, portal_registered_at)
 │   │   │   ├── migrate_optional_patient_fields.js      — drops NOT NULL from last_name/dob/gender
 │   │   │   ├── migrate_prescription_consultation_nullable.js — drops NOT NULL from consultation_id
 │   │   │   ├── migrate_custom_medicine.js              — nullable medicine_id + custom_medicine_name
@@ -340,11 +352,19 @@ clinicpos/
 │   │   │   ├── migrate_contact_enquiries.js            — public.contact_enquiries table (landing page form)
 │   │   │   ├── migrate_broadcast_announcements.js      — public.broadcast_announcements + announcement_reads
 │   │   │   ├── migrate_qr_payment.js                   — qr_image_url/qr_image_filename in clinic_settings + qr_total in end_of_day
-│   │   │   └── migrate_system_logs_fix.js              — changes tenant_id/user_id in system_audit_logs from INTEGER to VARCHAR(50)
+│   │   │   ├── migrate_system_logs_fix.js              — changes tenant_id/user_id in system_audit_logs from INTEGER to VARCHAR(50)
+│   │   │   ├── migrate_dual_queue.js                   — appointments.patient_visit_type + dual_queue feature flag
+│   │   │   ├── migrate_dual_queue_clinic_toggle.js     — clinic_settings.dual_queue_enabled (clinic-admin opt-in)
+│   │   │   └── migrate_caps_and_portal_hours.js        — staff.max_patients_per_day + portal_hours table
 │   │   ├── utils/
 │   │   │   ├── patientCode.js      — shared PT-XXXXX generator
-│   │   │   └── bookingReference.js — shared BK-XXXXXX generator
+│   │   │   ├── bookingReference.js — shared BK-XXXXXX generator
+│   │   │   ├── dailyCap.js         — daily appointment cap enforcement (clinic + per-doctor)
+│   │   │   └── portalHours.js      — portal-hours status helper (open_now, next_open)
 │   │   └── index.js              — Express entry point
+│   ├── __tests__/                   — Jest + Supertest tests (run with `npm test`)
+│   │   ├── dual_queue/              — Dual-queue, caps, portal-hours suites
+│   │   └── helpers/testApp.js       — Test-app factory with mocked DB + middleware
 │   ├── uploads/                  — Uploaded files (gitignored); subdirs: logo/, signature/, hero/
 │   ├── .env                      — Secrets (gitignored)
 │   ├── .env.example
@@ -368,6 +388,7 @@ clinicpos/
 │   │   │   ├── insurance/        — Phase 5.3 (3 tabs)
 │   │   │   ├── booking/          — Phase 5.4 (public /book page, no auth)
 │   │   │   ├── display/          — Phase 5.5 (public /display TV screen, no auth)
+│   │   │   ├── patient-portal/   — Phase 5.5 (patient login + 8 data pages: dashboard, appointments, consultations, prescriptions, labs, invoices, profile, login, register)
 │   │   │   ├── my-day/           — MyDayPage.jsx — doctor daily view (today's schedule + pending labs + today's Rx)
 │   │   │   ├── public/           — PublicClinicPage.jsx (public / root page, no auth — clinic's own website)
 │   │   │   ├── staff/            — Staff management (admin only) — add/edit/reset-password/deactivate
@@ -376,8 +397,8 @@ clinicpos/
 │   │   ├── components/
 │   │   │   ├── layout/           — Sidebar (collapsible), TopBar (live clock + dark toggle), PageLayout, ProtectedRoute
 │   │   │   └── ui/               — Button, Input, Select, Modal, Drawer, Badge, Card, DatePicker, Spinner, EmptyState, OfflineBanner, ConfirmDialog, DispenseModal, AnnouncementBanner
-│   │   ├── api/                  — One file per module (patients.js, pharmacy.js, lab.js, portal.js, announcements.js, etc.)
-│   │   ├── store/                — AuthContext, ThemeContext
+│   │   ├── api/                  — One file per module (patients.js, pharmacy.js, lab.js, portal.js, patientPortal.js, announcements.js, etc.)
+│   │   ├── store/                — AuthContext, ThemeContext, PatientAuthContext (patient JWT separate from staff JWT)
 │   │   ├── utils/                — format.js, mediaUrl.js, printTokenSlip.js
 │   │   ├── styles/               — variables.css (CSS vars + dark mode overrides)
 │   │   ├── App.jsx               — All routes
