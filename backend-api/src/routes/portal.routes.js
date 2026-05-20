@@ -16,14 +16,17 @@ const router = express.Router();
 router.use(tenantMiddleware);
 
 // ── Helper: next token number for a doctor on a date ─────────────────────────
-async function nextToken(schema, doctorId, date) {
-  const r = await queryTenant(
-    schema,
-    `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
-     FROM appointments
-     WHERE doctor_id = $1 AND appointment_date = $2`,
-    [doctorId, date]
-  );
+// `visitType` scopes the series when dual_queue is on; pass null for legacy.
+async function nextToken(schema, doctorId, date, visitType = null) {
+  const sql = visitType
+    ? `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
+       FROM appointments
+       WHERE doctor_id = $1 AND appointment_date = $2 AND patient_visit_type = $3`
+    : `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
+       FROM appointments
+       WHERE doctor_id = $1 AND appointment_date = $2`;
+  const params = visitType ? [doctorId, date, visitType] : [doctorId, date];
+  const r = await queryTenant(schema, sql, params);
   return r.rows[0].next;
 }
 
@@ -70,9 +73,12 @@ router.get('/info', async (req, res) => {
        FROM clinic_settings LIMIT 1`
     );
     if (!result.rows.length) {
-      return res.json({ status: 'success', data: {} });
+      return res.json({ status: 'success', data: { dual_queue_enabled: !!req.tenantFlags?.dual_queue } });
     }
-    res.json({ status: 'success', data: result.rows[0] });
+    res.json({
+      status: 'success',
+      data: { ...result.rows[0], dual_queue_enabled: !!req.tenantFlags?.dual_queue },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
@@ -220,7 +226,10 @@ router.post('/book', async (req, res) => {
       });
     }
 
-    // Find or create patient by phone number (normalize digits to match stored format)
+    // Find or create patient by phone number (normalize digits to match stored format).
+    // Phone match drives the NEW vs RETURNING decision when dual_queue is on:
+    //   match found  ⇒ 'returning' (cannot be self-declared as new)
+    //   no match     ⇒ 'new'       (patient record created on the spot)
     const phoneDigits = patient_phone.replace(/\D/g, '');
     const existing = await queryTenant(
       req.tenantSchema,
@@ -230,11 +239,13 @@ router.post('/book', async (req, res) => {
 
     let patientId;
     let resolvedPatientName;
+    let visitType;
     if (existing.rows.length > 0) {
       // Use existing patient — return their actual name, not what was typed
       const p = existing.rows[0];
       patientId = p.id;
       resolvedPatientName = p.first_name + (p.last_name ? ' ' + p.last_name : '');
+      visitType = 'returning';
     } else {
       // Create minimal patient record — only first_name and phone are required
       const nameParts = patient_name.trim().split(' ');
@@ -252,19 +263,29 @@ router.post('/book', async (req, res) => {
       );
       patientId = newPatient.rows[0].id;
       resolvedPatientName = patient_name.trim();
+      visitType = 'new';
     }
 
-    // Generate booking reference and assign token number
+    // When dual_queue is off, fall back to legacy single-series tokens and
+    // keep patient_visit_type at its default ('returning').
+    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    const storedVisitType = dualQueueOn ? visitType : 'returning';
+
+    // Generate booking reference and assign token number (series scoped by type when on)
     const bookingRef  = await nextBookingReference(req.tenantSchema);
-    const tokenNumber = await nextToken(req.tenantSchema, doctor_id, appointment_date);
+    const tokenNumber = await nextToken(
+      req.tenantSchema, doctor_id, appointment_date,
+      dualQueueOn ? storedVisitType : null
+    );
 
     // Create appointment
     await queryTenant(
       req.tenantSchema,
       `INSERT INTO appointments
          (patient_id, doctor_id, appointment_date, appointment_time,
-          token_number, type, status, reason, booked_online, booking_reference, booking_source)
-       VALUES ($1,$2,$3,$4,$5,'booked','pending',$6,TRUE,$7,'online')`,
+          token_number, type, status, reason, booked_online, booking_reference, booking_source,
+          patient_visit_type)
+       VALUES ($1,$2,$3,$4,$5,'booked','pending',$6,TRUE,$7,'online',$8)`,
       [
         patientId,
         doctor_id,
@@ -273,6 +294,7 @@ router.post('/book', async (req, res) => {
         tokenNumber,
         reason || null,
         bookingRef,
+        storedVisitType,
       ]
     );
 
@@ -297,6 +319,8 @@ router.post('/book', async (req, res) => {
         patient_name: resolvedPatientName,
         patient_phone,
         reason: reason || null,
+        patient_visit_type: storedVisitType,
+        dual_queue_enabled: dualQueueOn,
       },
     });
   } catch (err) {
@@ -313,7 +337,7 @@ router.get('/booking/:reference', async (req, res) => {
       req.tenantSchema,
       `SELECT
          a.id, a.booking_reference, a.appointment_date, a.appointment_time,
-         a.status, a.reason, a.type,
+         a.status, a.reason, a.type, a.token_number, a.patient_visit_type,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
          p.phone AS patient_phone,
          s.full_name AS doctor_name,
@@ -332,7 +356,10 @@ router.get('/booking/:reference', async (req, res) => {
       });
     }
 
-    res.json({ status: 'success', data: result.rows[0] });
+    res.json({
+      status: 'success',
+      data: { ...result.rows[0], dual_queue_enabled: !!req.tenantFlags?.dual_queue },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
@@ -426,6 +453,7 @@ router.get('/queue-display', async (req, res) => {
       const appts = await queryTenant(schema, `
         SELECT
           a.id, a.token_number, a.status, a.appointment_time, a.type,
+          a.patient_visit_type,
           p.first_name
         FROM appointments a
         JOIN patients p ON p.id = a.patient_id
@@ -451,11 +479,13 @@ router.get('/queue-display', async (req, res) => {
           token:       nowSeeing.token_number,
           first_name:  nowSeeing.first_name,
           type:        nowSeeing.type,
+          visit_type:  nowSeeing.patient_visit_type,
           time:        nowSeeing.appointment_time,
         } : null,
         next_up: waiting.slice(0, 5).map(a => ({
           token: a.token_number,
           type:  a.type,
+          visit_type: a.patient_visit_type,
           time:  a.appointment_time,
         })),
         waiting_count:   waiting.length,
@@ -463,7 +493,12 @@ router.get('/queue-display', async (req, res) => {
       };
     }));
 
-    res.json({ status: 'success', data: { clinic, doctors, generated_at: new Date().toISOString() } });
+    // Expose the dual-queue flag so the display screen can render the two-column layout
+    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    res.json({
+      status: 'success',
+      data: { clinic, doctors, dual_queue_enabled: dualQueueOn, generated_at: new Date().toISOString() },
+    });
   } catch (err) {
     console.error('GET /portal/queue-display', err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });

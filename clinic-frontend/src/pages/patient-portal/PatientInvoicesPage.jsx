@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { Receipt, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -16,6 +17,7 @@ const STATUS_STYLE = {
 };
 
 export default function PatientInvoicesPage() {
+  const { t } = useLang();
   const [invoices,      setInvoices]      = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [open,          setOpen]          = useState(null);
@@ -25,7 +27,7 @@ export default function PatientInvoicesPage() {
   useEffect(() => {
     patientPortalApi.getInvoices()
       .then(r => setInvoices(r.data.data))
-      .catch(() => { toast.error("Something went wrong. Please try again."); })
+      .catch(() => { toast.error(t('common.somethingWrong')); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -45,7 +47,7 @@ export default function PatientInvoicesPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-text)]">Invoices</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">{t('inv.title')}</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -65,7 +67,7 @@ export default function PatientInvoicesPage() {
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Receipt className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No invoices on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{t('inv.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">

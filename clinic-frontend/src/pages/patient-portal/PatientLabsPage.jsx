@@ -2,25 +2,27 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { FlaskConical, CheckCircle, Clock, ExternalLink } from 'lucide-react';
 import { mediaUrl } from '../../utils/mediaUrl';
 
 export default function PatientLabsPage() {
+  const { t } = useLang();
   const [list,    setList]    = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     patientPortalApi.getLabs()
       .then(r => setList(r.data.data))
-      .catch(() => { toast.error("Something went wrong. Please try again."); })
+      .catch(() => { toast.error(t('common.somethingWrong')); })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-text)]">Lab Results</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">{t('lab.title')}</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -39,7 +41,7 @@ export default function PatientLabsPage() {
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FlaskConical className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No lab tests on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{t('lab.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -69,7 +71,7 @@ export default function PatientLabsPage() {
                           ? 'bg-green-100 text-green-700 border-green-200'
                           : 'bg-amber-100 text-amber-700 border-amber-200'
                       }`}>
-                        {lab.status === 'completed' ? 'Completed' : 'Awaiting'}
+                        {lab.status === 'completed' ? t('lab.status.resulted') : t('lab.status.pending')}
                       </span>
                     </div>
 

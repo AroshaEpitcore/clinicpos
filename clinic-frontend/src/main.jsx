@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
 import { PatientAuthProvider } from './store/PatientAuthContext';
+import { LangProvider } from './i18n/LangContext';
 import App from './App';
 import './index.css';
 
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider>
+      <LangProvider>
       <AuthProvider>
       <PatientAuthProvider>
         <App />
@@ -36,6 +38,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         />
       </PatientAuthProvider>
       </AuthProvider>
+      </LangProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>

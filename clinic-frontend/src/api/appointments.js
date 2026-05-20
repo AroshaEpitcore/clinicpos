@@ -1,12 +1,13 @@
 import api from './index';
 
 export const appointmentsApi = {
-  list:         (params) => api.get('/appointments', { params }),
-  myDay:        ()       => api.get('/appointments/my-day'),
-  create:       (data)   => api.post('/appointments', data),
-  updateStatus: (id, status) => api.put(`/appointments/${id}`, { status }),
-  makeEmergency:(id)     => api.put(`/appointments/${id}/emergency`),
-  cancel:       (id)     => api.delete(`/appointments/${id}`),
+  list:             (params)     => api.get('/appointments', { params }),
+  myDay:            ()           => api.get('/appointments/my-day'),
+  create:           (data)       => api.post('/appointments', data),
+  updateStatus:     (id, status) => api.put(`/appointments/${id}`, { status }),
+  makeEmergency:    (id)         => api.put(`/appointments/${id}/emergency`),
+  cancel:           (id)         => api.delete(`/appointments/${id}`),
+  detectVisitType:  (patientId)  => api.get(`/appointments/detect-visit-type/${patientId}`),
 };
 
 export const doctorsApi = {

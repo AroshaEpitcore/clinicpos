@@ -23,7 +23,8 @@ const MODES = [
 export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowWalkIns = true }) {
   const today = defaultDate || new Date().toISOString().split('T')[0];
   const availableModes = MODES.filter(m => m.value !== 'walkin' || allowWalkIns);
-  const { clinic } = useAuth();
+  const { clinic, tenantFlags } = useAuth();
+  const dualQueueOn = !!tenantFlags?.dual_queue;
 
   const [bookedSlip, setBookedSlip] = useState(null); // shown after successful booking
 
@@ -45,6 +46,11 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
   // Auto-register inline (shown only when phone search returns no results)
   const [newFirst, setNewFirst] = useState('');
   const [newLast,  setNewLast]  = useState('');
+
+  // Dual-queue patient type: 'new' | 'returning' | null (not yet decided)
+  // Auto-populated from the API when a patient is selected/registered.
+  const [visitType,         setVisitType]         = useState(null);
+  const [detectedVisitType, setDetectedVisitType] = useState(null);
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -95,6 +101,26 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
       })));
     });
   }, [open, allowWalkIns]);
+
+  // Detect visit type when a patient is selected (dual-queue feature)
+  useEffect(() => {
+    if (!dualQueueOn) return;
+    if (!patient?.id) {
+      setVisitType(null);
+      setDetectedVisitType(null);
+      return;
+    }
+    appointmentsApi.detectVisitType(patient.id)
+      .then(res => {
+        const t = res.data?.data?.patient_visit_type || 'returning';
+        setDetectedVisitType(t);
+        setVisitType(t);
+      })
+      .catch(() => {
+        setDetectedVisitType('returning');
+        setVisitType('returning');
+      });
+  }, [patient?.id, dualQueueOn]);
 
   // Load slots whenever doctor, date, or mode changes (all modes now)
   useEffect(() => {
@@ -155,6 +181,8 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     setMode(allowWalkIns ? 'walkin' : 'booked');
     setNewFirst('');
     setNewLast('');
+    setVisitType(null);
+    setDetectedVisitType(null);
     setFieldErrors({});
     setBookedSlip(null);
     onClose();
@@ -183,6 +211,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
     setFieldErrors({});
 
     // Auto-create patient if no existing patient was selected
+    let wasJustRegistered = false;
     if (!resolvedPatient) {
       try {
         const res = await patientsApi.create({
@@ -191,20 +220,29 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
           phone:      phoneInput.replace(/\D/g, ''),
         });
         resolvedPatient = res.data.data;
+        wasJustRegistered = true;
       } catch (err) {
         toast.error(err.response?.data?.message || 'Could not register patient.');
         return;
       }
     }
 
+    // Decide visit type to submit. When the patient was just registered we know
+    // they're 'new'; otherwise honor the user's segmented-control selection
+    // (which defaulted to the detected value).
+    const submittedVisitType = dualQueueOn
+      ? (wasJustRegistered ? 'new' : (visitType || 'returning'))
+      : undefined;
+
     try {
       const res = await appointmentsApi.create({
-        patient_id:       resolvedPatient.id,
-        doctor_id:        data.doctor_id,
-        appointment_date: data.appointment_date,
-        appointment_time: selectedSlot || null,
-        type:             mode,
-        reason:           data.reason || null,
+        patient_id:         resolvedPatient.id,
+        doctor_id:          data.doctor_id,
+        appointment_date:   data.appointment_date,
+        appointment_time:   selectedSlot || null,
+        type:               mode,
+        reason:             data.reason || null,
+        patient_visit_type: submittedVisitType,
       });
       const appt = res.data?.data || {};
       const doctorOption = doctors.find(d => d.value === data.doctor_id);
@@ -223,6 +261,7 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
         date:        data.appointment_date,
         time:        selectedSlot || null,
         type:        mode,
+        visitType:   appt.patient_visit_type || submittedVisitType || null,
       });
       toast.success(mode === 'emergency' ? 'Emergency patient added' : 'Added to queue');
       onSuccess();
@@ -287,10 +326,20 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
           </div>
 
           {/* Token / Reference */}
-          {bookedSlip.tokenNumber && (
+          {bookedSlip.tokenNumber != null && (
             <div className="text-center">
-              <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-widest mb-1">Token</p>
-              <p className="text-5xl font-black text-[var(--color-text)]">{String(bookedSlip.tokenNumber).padStart(2, '0')}</p>
+              <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-widest mb-1">
+                Token{bookedSlip.visitType === 'new' ? ' · New Patient' : bookedSlip.visitType === 'returning' ? ' · Returning' : ''}
+              </p>
+              <p className={`text-5xl font-black ${
+                bookedSlip.visitType === 'new'
+                  ? 'text-red-600'
+                  : bookedSlip.visitType === 'returning'
+                    ? 'text-blue-600'
+                    : 'text-[var(--color-text)]'
+              }`}>
+                {bookedSlip.visitType === 'new' ? 'N-' : ''}{String(bookedSlip.tokenNumber).padStart(2, '0')}
+              </p>
             </div>
           )}
           {!bookedSlip.tokenNumber && bookedSlip.bookingRef && (
@@ -429,6 +478,44 @@ export function AppointmentModal({ open, onClose, onSuccess, defaultDate, allowW
             </>
           )}
         </div>
+
+        {/* ── Patient type (dual-queue feature) ── */}
+        {dualQueueOn && patient && (
+          <div>
+            <label className="text-sm font-medium text-[var(--color-text)] block mb-2">
+              Patient Type
+            </label>
+            <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setVisitType('new')}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  visitType === 'new'
+                    ? 'bg-red-600 text-white'
+                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
+                }`}
+              >
+                New (Red token)
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisitType('returning')}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  visitType === 'returning'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]'
+                }`}
+              >
+                Returning (Blue token)
+              </button>
+            </div>
+            {detectedVisitType && visitType !== detectedVisitType && (
+              <p className="text-xs text-[var(--color-warning)] mt-1.5">
+                Auto-detected as <strong>{detectedVisitType}</strong> from visit history. Override will be logged.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Doctor ── */}
         <Select

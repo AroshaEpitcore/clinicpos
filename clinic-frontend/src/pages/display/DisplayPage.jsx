@@ -22,24 +22,57 @@ function gridCols(n) {
 }
 
 // ── Token display — large number with colour ─────────────────────────────────
-function TokenBadge({ token, type, size = 'lg' }) {
+function TokenBadge({ token, type, visitType, dualQueueOn, size = 'lg' }) {
   const isEmergency = type === 'emergency';
-  const num  = token != null ? String(token).padStart(2, '0') : '—';
+  const isNew       = dualQueueOn && visitType === 'new';
+  const num  = token != null
+    ? `${isNew ? 'N-' : ''}${String(token).padStart(2, '0')}`
+    : '—';
   const base = size === 'lg'
     ? 'text-7xl font-black leading-none tabular-nums'
     : 'text-3xl font-bold tabular-nums';
   const color = isEmergency
     ? 'text-red-400'
-    : 'text-blue-300';
+    : isNew
+      ? 'text-red-300'
+      : 'text-blue-300';
 
   return (
     <span className={`${base} ${color} block`}>{num}</span>
   );
 }
 
+// ── Next-up sub-column (dual queue mode) ─────────────────────────────────────
+function NextUpColumn({ label, accent, items, dualQueueOn }) {
+  return (
+    <div>
+      <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${accent}`}>{label}</p>
+      {items.length === 0 ? (
+        <span className="text-xs text-white/30 italic">—</span>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          {items.slice(0, 4).map((appt, i) => (
+            <div key={i} className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl ${
+              i === 0 ? 'bg-white/10' : 'bg-white/5'
+            }`}>
+              <TokenBadge token={appt.token} type={appt.type} visitType={appt.visit_type} dualQueueOn={dualQueueOn} size="sm" />
+              {appt.type === 'emergency' && <Zap className="w-3 h-3 text-red-400 mt-0.5" />}
+            </div>
+          ))}
+          {items.length > 4 && (
+            <span className="text-xs text-white/30">+{items.length - 4}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Single doctor column ──────────────────────────────────────────────────────
-function DoctorCard({ doctor, singleDoc }) {
+function DoctorCard({ doctor, singleDoc, dualQueueOn }) {
   const hasPatient = !!doctor.now_seeing;
+  const newQueue       = doctor.next_up.filter(a => a.visit_type === 'new');
+  const returningQueue = doctor.next_up.filter(a => a.visit_type !== 'new');
 
   return (
     <div className={`flex flex-col rounded-2xl overflow-hidden border ${
@@ -81,8 +114,18 @@ function DoctorCard({ doctor, singleDoc }) {
         {hasPatient ? (
           <div className="flex items-end gap-4">
             <div>
-              <p className="text-xs text-white/40 mb-1">Token</p>
-              <TokenBadge token={doctor.now_seeing.token} type={doctor.now_seeing.type} size="lg" />
+              <p className="text-xs text-white/40 mb-1">
+                Token
+                {dualQueueOn && doctor.now_seeing.visit_type === 'new' && ' · New'}
+                {dualQueueOn && doctor.now_seeing.visit_type === 'returning' && ' · Returning'}
+              </p>
+              <TokenBadge
+                token={doctor.now_seeing.token}
+                type={doctor.now_seeing.type}
+                visitType={doctor.now_seeing.visit_type}
+                dualQueueOn={dualQueueOn}
+                size="lg"
+              />
               {doctor.now_seeing.type === 'emergency' && (
                 <span className="flex items-center gap-1 text-xs text-red-400 font-bold mt-1">
                   <Zap className="w-3 h-3" /> Emergency
@@ -110,21 +153,38 @@ function DoctorCard({ doctor, singleDoc }) {
           <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3">
             Next Up
           </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            {doctor.next_up.map((appt, i) => (
-              <div key={i} className={`flex flex-col items-center px-3 py-2 rounded-xl ${
-                i === 0 ? 'bg-white/10' : 'bg-white/5'
-              }`}>
-                <TokenBadge token={appt.token} type={appt.type} size="sm" />
-                {appt.type === 'emergency' && <Zap className="w-3 h-3 text-red-400 mt-0.5" />}
-              </div>
-            ))}
-            {doctor.waiting_count > doctor.next_up.length && (
-              <span className="text-sm text-white/30 ml-1">
-                +{doctor.waiting_count - doctor.next_up.length} more
-              </span>
-            )}
-          </div>
+          {dualQueueOn ? (
+            <div className="grid grid-cols-2 gap-3">
+              <NextUpColumn
+                label="New Patients"
+                accent="text-red-300"
+                items={newQueue}
+                dualQueueOn={dualQueueOn}
+              />
+              <NextUpColumn
+                label="Returning"
+                accent="text-blue-300"
+                items={returningQueue}
+                dualQueueOn={dualQueueOn}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap">
+              {doctor.next_up.map((appt, i) => (
+                <div key={i} className={`flex flex-col items-center px-3 py-2 rounded-xl ${
+                  i === 0 ? 'bg-white/10' : 'bg-white/5'
+                }`}>
+                  <TokenBadge token={appt.token} type={appt.type} visitType={appt.visit_type} dualQueueOn={dualQueueOn} size="sm" />
+                  {appt.type === 'emergency' && <Zap className="w-3 h-3 text-red-400 mt-0.5" />}
+                </div>
+              ))}
+              {doctor.waiting_count > doctor.next_up.length && (
+                <span className="text-sm text-white/30 ml-1">
+                  +{doctor.waiting_count - doctor.next_up.length} more
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -251,7 +311,7 @@ export default function DisplayPage() {
     );
   }
 
-  const { clinic, doctors } = data;
+  const { clinic, doctors, dual_queue_enabled: dualQueueOn } = data;
   const activeDoctors = doctors.filter(d =>
     d.now_seeing || d.waiting_count > 0 || d.completed_today > 0
   );
@@ -302,6 +362,7 @@ export default function DisplayPage() {
                 key={doc.id}
                 doctor={doc}
                 singleDoc={displayDoctors.length === 1}
+                dualQueueOn={!!dualQueueOn}
               />
             ))}
           </div>

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useLang } from '../../i18n/LangContext';
+import { LangToggle } from '../../components/ui/LangToggle';
 import { patientPortalApi } from '../../api/patientPortal';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { formatPhoneInput, validatePhone } from '../../utils/format';
@@ -12,6 +14,7 @@ import { Eye, EyeOff, ShieldCheck, Info, Sun, Moon } from 'lucide-react';
 export default function PatientRegisterPage() {
   const { clinic } = useAuth();
   const { theme, toggle } = useTheme();
+  const { t } = useLang();
   const navigate = useNavigate();
 
   const [phone,    setPhone]    = useState('');
@@ -25,10 +28,10 @@ export default function PatientRegisterPage() {
     const errs = {};
     const phoneErr = validatePhone(phone);
     if (phoneErr) errs.phone = phoneErr;
-    if (!password) errs.password = 'Password is required';
-    else if (password.length < 6) errs.password = 'Password must be at least 6 characters';
-    if (!confirm) errs.confirm = 'Please confirm your password';
-    else if (password !== confirm) errs.confirm = 'Passwords do not match';
+    if (!password) errs.password = t('auth.passwordRequired');
+    else if (password.length < 6) errs.password = t('auth.passwordTooShort');
+    if (!confirm) errs.confirm = t('auth.confirmRequired');
+    else if (password !== confirm) errs.confirm = t('auth.passwordsMismatch');
     return errs;
   }
 
@@ -40,10 +43,10 @@ export default function PatientRegisterPage() {
     setLoading(true);
     try {
       await patientPortalApi.register({ phone: phone.replace(/\D/g, ''), password });
-      toast.success('Account created! Please sign in.');
+      toast.success(t('auth.accountCreated'));
       navigate('/patient/login');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.message || t('auth.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,12 +55,13 @@ export default function PatientRegisterPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-4">
 
-      {/* Theme toggle */}
-      <div className="absolute top-4 right-4">
+      {/* Theme + lang toggles */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <LangToggle />
         <button
           onClick={toggle}
           className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] transition-colors"
-          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          title={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
@@ -71,20 +75,20 @@ export default function PatientRegisterPage() {
               {clinic?.clinic_name?.[0]?.toUpperCase() || 'C'}
             </div>
         }
-        <h1 className="text-lg font-bold text-[var(--color-text)]">{clinic?.clinic_name || 'Patient Portal'}</h1>
-        <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">Patient Portal</p>
+        <h1 className="text-lg font-bold text-[var(--color-text)]">{clinic?.clinic_name || t('auth.patientPortal')}</h1>
+        <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{t('auth.patientPortal')}</p>
       </div>
 
       {/* Form card */}
       <div className="w-full max-w-sm bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-6">
-        <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">Create account</h2>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-4">Use the phone number registered at the clinic</p>
+        <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">{t('auth.createAccount')}</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4">{t('auth.registerSubtitle')}</p>
 
         {/* Info notice */}
         <div className="flex items-start gap-2 bg-[var(--color-primary-light)] border border-blue-100 rounded-[var(--radius)] px-3 py-2.5 mb-5">
           <Info className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" />
           <p className="text-xs text-[var(--color-primary)] leading-relaxed">
-            Your phone number must already be registered with the clinic. Contact clinic staff if you're unsure.
+            {t('auth.registerNotice')}
           </p>
         </div>
 
@@ -93,7 +97,7 @@ export default function PatientRegisterPage() {
           {/* Phone */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-[var(--color-text)]">
-              Phone Number <span className="text-[var(--color-danger)]">*</span>
+              {t('auth.phone')} <span className="text-[var(--color-danger)]">*</span>
             </label>
             <input
               type="tel"
@@ -101,7 +105,7 @@ export default function PatientRegisterPage() {
               autoComplete="tel"
               value={phone}
               onChange={e => { setPhone(formatPhoneInput(e.target.value)); setErrors(v => ({ ...v, phone: undefined })); }}
-              placeholder="077 123 4567"
+              placeholder={t('auth.phonePlaceholder')}
               className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
                 errors.phone
                   ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
@@ -114,7 +118,7 @@ export default function PatientRegisterPage() {
           {/* Password */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-[var(--color-text)]">
-              Password <span className="text-[var(--color-danger)]">*</span>
+              {t('auth.password')} <span className="text-[var(--color-danger)]">*</span>
             </label>
             <div className="relative">
               <input
@@ -122,7 +126,7 @@ export default function PatientRegisterPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setErrors(v => ({ ...v, password: undefined })); }}
-                placeholder="Min. 6 characters"
+                placeholder={t('auth.newPassword')}
                 className={`w-full px-3 py-2 pr-10 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
                   errors.password
                     ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
@@ -140,14 +144,14 @@ export default function PatientRegisterPage() {
           {/* Confirm */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-[var(--color-text)]">
-              Confirm Password <span className="text-[var(--color-danger)]">*</span>
+              {t('auth.confirmPassword')} <span className="text-[var(--color-danger)]">*</span>
             </label>
             <input
               type={showPw ? 'text' : 'password'}
               autoComplete="new-password"
               value={confirm}
               onChange={e => { setConfirm(e.target.value); setErrors(v => ({ ...v, confirm: undefined })); }}
-              placeholder="Re-enter your password"
+              placeholder={t('auth.confirmPlaceholder')}
               className={`w-full px-3 py-2 rounded-[var(--radius)] border text-sm bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:border-transparent ${
                 errors.confirm
                   ? 'border-[var(--color-danger)] focus:ring-[var(--color-danger)]'
@@ -158,19 +162,19 @@ export default function PatientRegisterPage() {
           </div>
 
           <Button type="submit" loading={loading} className="w-full mt-1">
-            Create Account
+            {t('auth.createButton')}
           </Button>
         </form>
 
         <p className="text-center text-sm text-[var(--color-text-secondary)] mt-5">
-          Already have an account?{' '}
-          <Link to="/patient/login" className="text-[var(--color-primary)] font-medium hover:underline">Sign in</Link>
+          {t('auth.alreadyHave')}{' '}
+          <Link to="/patient/login" className="text-[var(--color-primary)] font-medium hover:underline">{t('common.signIn')}</Link>
         </p>
       </div>
 
       <div className="flex items-center gap-1.5 mt-5 text-xs text-[var(--color-text-secondary)]">
         <ShieldCheck className="w-3.5 h-3.5" />
-        Your health data is private and encrypted
+        {t('auth.privateData')}
       </div>
     </div>
   );

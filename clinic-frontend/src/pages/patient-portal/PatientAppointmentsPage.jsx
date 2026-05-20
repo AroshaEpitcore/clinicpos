@@ -2,6 +2,7 @@
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { CalendarDays, X, BookOpen } from 'lucide-react';
 
@@ -14,6 +15,7 @@ const STATUS_STYLE = {
 };
 
 export default function PatientAppointmentsPage() {
+  const { t } = useLang();
   const [appointments, setAppointments] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [cancelling,   setCancelling]   = useState(null);
@@ -40,14 +42,14 @@ export default function PatientAppointmentsPage() {
   );
 
   async function handleCancel(id) {
-    if (!confirm('Cancel this appointment?')) return;
+    if (!confirm(t('appts.cancelConfirm'))) return;
     setCancelling(id);
     try {
       await patientPortalApi.cancelAppointment(id);
-      toast.success('Appointment cancelled');
+      toast.success(t('appts.cancelled'));
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not cancel');
+      toast.error(err.response?.data?.message || t('appts.cancelFail'));
     } finally {
       setCancelling(null);
     }
@@ -58,28 +60,28 @@ export default function PatientAppointmentsPage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-text)]">Appointments</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">{t('appts.title')}</h1>
 
         {/* Tab switcher */}
         <div className="flex bg-gray-100 rounded-[var(--radius-lg)] p-1 gap-1">
           {[
-            { key: 'upcoming', label: `Upcoming`, count: upcoming.length },
-            { key: 'past',     label: `Past`,     count: past.length     },
-          ].map(t => (
+            { key: 'upcoming', label: t('appts.upcoming'), count: upcoming.length },
+            { key: 'past',     label: t('appts.past'),     count: past.length     },
+          ].map(tabDef => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tabDef.key}
+              onClick={() => setTab(tabDef.key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius)] text-sm font-semibold transition-all ${
-                tab === t.key
+                tab === tabDef.key
                   ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm'
                   : 'text-[var(--color-text-secondary)]'
               }`}
             >
-              {t.label}
+              {tabDef.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                tab === t.key ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
+                tab === tabDef.key ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-200 text-gray-500'
               }`}>
-                {t.count}
+                {tabDef.count}
               </span>
             </button>
           ))}
@@ -103,10 +105,10 @@ export default function PatientAppointmentsPage() {
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <CalendarDays className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No {tab} appointments</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{t('appts.empty', { tab: t(`appts.${tab}`) })}</p>
             {tab === 'upcoming' && (
               <a href="/book" className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[var(--color-primary)] hover:underline">
-                <BookOpen className="w-4 h-4" /> Book an appointment
+                <BookOpen className="w-4 h-4" /> {t('appts.bookOne')}
               </a>
             )}
           </div>
@@ -135,11 +137,11 @@ export default function PatientAppointmentsPage() {
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border capitalize ${STATUS_STYLE[a.status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                      {a.status}
+                      {t(`appts.status.${a.status}`)}
                     </span>
-                    {a.token_number && (
+                    {a.token_number != null && (
                       <span className="text-xs text-[var(--color-text-secondary)] bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-                        Token #{a.token_number}
+                        {t('appts.tokenLabel', { n: a.token_number })}
                       </span>
                     )}
                     {a.booking_reference && (
@@ -154,7 +156,7 @@ export default function PatientAppointmentsPage() {
                     onClick={() => handleCancel(a.id)}
                     disabled={cancelling === a.id}
                     className="shrink-0 w-8 h-8 rounded-[var(--radius)] text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
-                    title="Cancel appointment"
+                    title={t('appts.cancelTitle')}
                   >
                     <X className="w-4 h-4" />
                   </button>

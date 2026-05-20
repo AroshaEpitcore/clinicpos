@@ -55,9 +55,10 @@ function addDays(dateStr, n) {
 }
 
 export default function AppointmentsPage() {
-  const { user, clinic } = useAuth();
+  const { user, clinic, tenantFlags } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'receptionist';
   const canManage = user?.role === 'admin';
+  const dualQueueOn = !!tenantFlags?.dual_queue;
 
   const [date,         setDate]         = useState(todayStr());
   const [appointments, setAppointments] = useState([]);
@@ -402,6 +403,7 @@ export default function AppointmentsPage() {
               appt={appt}
               user={user}
               isAdmin={isAdmin}
+              dualQueueOn={dualQueueOn}
               onStatusChange={(newStatus) => setPendingAction({ appointment: appt, newStatus })}
               onMakeEmergency={() => setEmergencyTarget(appt)}
               onVitals={() => setVitalsTarget(appt)}
@@ -420,6 +422,7 @@ export default function AppointmentsPage() {
                   date:        appt.appointment_date,
                   time:        appt.appointment_time,
                   type:        appt.type,
+                  visitType:   dualQueueOn ? appt.patient_visit_type : null,
                 });
                 // Auto-mark arrived when printing for a patient who hasn't arrived yet
                 if (appt.status === 'pending' || appt.status === 'confirmed') {
@@ -520,7 +523,7 @@ export default function AppointmentsPage() {
   );
 }
 
-function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onVitals, onConsult, onWriteRx, onBill, onPrint }) {
+function QueueRow({ appt, user, isAdmin, dualQueueOn, onStatusChange, onMakeEmergency, onVitals, onConsult, onWriteRx, onBill, onPrint }) {
   const actions        = STATUS_ACTIONS[appt.status] || [];
   const isEmergency    = appt.type === 'emergency';
   const isDoctor       = user?.role === 'doctor' || user?.role === 'admin';
@@ -533,6 +536,18 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onVita
   const canBill        = isReceptionist && appt.status === 'completed' && !!appt.consultation_id;
   const canVitals      = (isNurse || isDoctor) && appt.status === 'arrived';
   const hasToken       = appt.token_number != null;
+  const isNewPatient   = dualQueueOn && appt.patient_visit_type === 'new';
+
+  // Token-column color: emergency=danger, dual-queue new=red, returning=blue, otherwise primary
+  const tokenBg = isEmergency
+    ? 'bg-[var(--color-danger)] text-white'
+    : !hasToken
+      ? 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'
+      : isNewPatient
+        ? 'bg-red-600 text-white'
+        : dualQueueOn
+          ? 'bg-blue-600 text-white'
+          : 'bg-[var(--color-primary)] text-white';
 
   return (
     <div className={`rounded-[var(--radius)] border overflow-hidden transition-colors ${
@@ -546,13 +561,7 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onVita
         <div className="flex items-stretch flex-1 min-w-0">
 
         {/* ── Token column ─────────────────────────────────────── */}
-        <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${
-          isEmergency
-            ? 'bg-[var(--color-danger)] text-white'
-            : hasToken
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)]'
-        }`}>
+        <div className={`flex flex-col items-center justify-center w-20 shrink-0 py-4 ${tokenBg}`}>
           {isEmergency ? (
             <>
               <Zap className="w-6 h-6 mb-1" />
@@ -560,9 +569,11 @@ function QueueRow({ appt, user, isAdmin, onStatusChange, onMakeEmergency, onVita
             </>
           ) : hasToken ? (
             <>
-              <span className="text-[10px] font-semibold tracking-widest uppercase opacity-80 mb-0.5">Token</span>
+              <span className="text-[10px] font-semibold tracking-widest uppercase opacity-80 mb-0.5">
+                {isNewPatient ? 'New' : 'Token'}
+              </span>
               <span className="text-5xl font-black leading-none tabular-nums">
-                {String(appt.token_number).padStart(2, '0')}
+                {isNewPatient ? 'N-' : ''}{String(appt.token_number).padStart(2, '0')}
               </span>
             </>
           ) : (

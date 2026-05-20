@@ -2,35 +2,38 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { usePatientAuth } from '../../store/PatientAuthContext';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useLang } from '../../i18n/LangContext';
+import { LangToggle } from '../../components/ui/LangToggle';
 import { mediaUrl } from '../../utils/mediaUrl';
 import {
   LayoutDashboard, CalendarDays, FileText, FlaskConical,
   Receipt, User, LogOut, Stethoscope, Sun, Moon,
 } from 'lucide-react';
 
-const BOTTOM_NAV = [
-  { to: '/patient/dashboard',     label: 'Home',    icon: LayoutDashboard },
-  { to: '/patient/appointments',  label: 'Appts',   icon: CalendarDays    },
-  { to: '/patient/consultations', label: 'Visits',  icon: Stethoscope     },
-  { to: '/patient/prescriptions', label: 'Rx',      icon: FileText        },
-  { to: '/patient/profile',       label: 'Profile', icon: User            },
-];
-
-const SIDEBAR_NAV = [
-  { to: '/patient/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
-  { to: '/patient/appointments',  label: 'Appointments',  icon: CalendarDays    },
-  { to: '/patient/consultations', label: 'Visit History', icon: Stethoscope     },
-  { to: '/patient/prescriptions', label: 'Prescriptions', icon: FileText        },
-  { to: '/patient/labs',          label: 'Lab Results',   icon: FlaskConical    },
-  { to: '/patient/invoices',      label: 'Invoices',      icon: Receipt         },
-  { to: '/patient/profile',       label: 'Profile',       icon: User            },
-];
-
 export default function PatientLayout({ children }) {
   const { patientName, logoutPatient } = usePatientAuth();
   const { clinic } = useAuth();
   const { theme, toggle } = useTheme();
+  const { t } = useLang();
   const navigate = useNavigate();
+
+  const BOTTOM_NAV = [
+    { to: '/patient/dashboard',     label: t('nav.home'),    icon: LayoutDashboard },
+    { to: '/patient/appointments',  label: t('nav.appts'),   icon: CalendarDays    },
+    { to: '/patient/consultations', label: t('nav.visits'),  icon: Stethoscope     },
+    { to: '/patient/prescriptions', label: t('nav.rx'),      icon: FileText        },
+    { to: '/patient/profile',       label: t('nav.profile'), icon: User            },
+  ];
+
+  const SIDEBAR_NAV = [
+    { to: '/patient/dashboard',     label: t('nav.dashboard'),     icon: LayoutDashboard },
+    { to: '/patient/appointments',  label: t('nav.appointments'),  icon: CalendarDays    },
+    { to: '/patient/consultations', label: t('nav.visitHistory'),  icon: Stethoscope     },
+    { to: '/patient/prescriptions', label: t('nav.prescriptions'), icon: FileText        },
+    { to: '/patient/labs',          label: t('nav.labs'),          icon: FlaskConical    },
+    { to: '/patient/invoices',      label: t('nav.invoices'),      icon: Receipt         },
+    { to: '/patient/profile',       label: t('nav.profile'),       icon: User            },
+  ];
 
   function handleLogout() {
     logoutPatient();
@@ -54,28 +57,29 @@ export default function PatientLayout({ children }) {
             }
             <div className="leading-none min-w-0">
               <p className="text-xs font-bold text-[var(--color-text)] truncate">{clinic?.clinic_name || 'Clinic'}</p>
-              <p className="text-[0.6rem] text-[var(--color-text-secondary)] mt-0.5">Patient Portal</p>
+              <p className="text-[0.6rem] text-[var(--color-text-secondary)] mt-0.5">{t('auth.patientPortal')}</p>
             </div>
           </Link>
 
           <div className="flex items-center gap-1 shrink-0">
             <span className="hidden sm:block text-sm text-[var(--color-text-secondary)] mr-1">
-              Hi, <strong className="text-[var(--color-text)]">{patientName}</strong>
+              {t('nav.greeting')} <strong className="text-[var(--color-text)]">{patientName}</strong>
             </span>
             <div className="sm:hidden w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-black">
               {initial}
             </div>
+            <LangToggle />
             <button
               onClick={toggle}
               className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] transition-colors"
-              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              title={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
               onClick={handleLogout}
               className="p-2 rounded-[var(--radius)] text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-50 transition-colors"
-              title="Logout"
+              title={t('common.logout')}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -111,7 +115,7 @@ export default function PatientLayout({ children }) {
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] text-sm font-medium text-[var(--color-text-secondary)] hover:bg-red-50 hover:text-red-500 transition-all"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
-                Logout
+                {t('common.logout')}
               </button>
             </div>
           </div>

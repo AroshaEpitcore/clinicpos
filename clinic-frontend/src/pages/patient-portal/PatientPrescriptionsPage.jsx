@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { FileText, ChevronDown, ChevronUp, CheckCircle, Clock, Pill } from 'lucide-react';
 
 export default function PatientPrescriptionsPage() {
+  const { t } = useLang();
   const [list,    setList]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [open,    setOpen]    = useState(null);
@@ -13,14 +15,14 @@ export default function PatientPrescriptionsPage() {
   useEffect(() => {
     patientPortalApi.getPrescriptions()
       .then(r => setList(r.data.data))
-      .catch(() => { toast.error("Something went wrong. Please try again."); })
+      .catch(() => { toast.error(t('common.somethingWrong')); })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-black text-[var(--color-text)]">Prescriptions</h1>
+        <h1 className="text-lg font-black text-[var(--color-text)]">{t('rx.title')}</h1>
 
         {loading ? (
           <div className="space-y-3">
@@ -39,7 +41,7 @@ export default function PatientPrescriptionsPage() {
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <FileText className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No prescriptions on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{t('rx.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -57,10 +59,10 @@ export default function PatientPrescriptionsPage() {
                       <span className="text-sm font-bold text-[var(--color-text)]">{rx.rx_number}</span>
                       {rx.is_dispensed
                         ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">
-                            <CheckCircle className="w-3 h-3" />Dispensed
+                            <CheckCircle className="w-3 h-3" />{t('rx.dispensed')}
                           </span>
                         : <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
-                            <Clock className="w-3 h-3" />Pending
+                            <Clock className="w-3 h-3" />{t('rx.notDispensed')}
                           </span>
                       }
                     </div>

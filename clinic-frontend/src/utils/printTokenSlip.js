@@ -26,6 +26,7 @@ export function printTokenSlip(slip) {
     date         = '',
     time         = null,
     type         = 'walkin',
+    visitType    = null,
   } = slip;
 
   const formatDate = (d) => {
@@ -39,10 +40,17 @@ export function printTokenSlip(slip) {
   const typeLabel = type === 'emergency' ? '⚡ EMERGENCY' : type === 'booked' ? 'BOOKED' : 'WALK-IN';
   const typeColor = type === 'emergency' ? '#dc2626' : type === 'booked' ? '#2563eb' : '#059669';
 
-  const tokenBlock = tokenNumber
+  // Dual-queue: prefix tokens for new patients and color the number
+  const isNew       = visitType === 'new';
+  const isReturning = visitType === 'returning';
+  const tokenColor  = isNew ? '#dc2626' : isReturning ? '#2563eb' : '#000';
+  const tokenPrefix = isNew ? 'N-' : '';
+  const tokenLabel  = isNew ? 'NEW PATIENT · TOKEN' : isReturning ? 'RETURNING · TOKEN' : 'TOKEN';
+
+  const tokenBlock = tokenNumber != null
     ? `<div class="token-box">
-         <div class="token-label">TOKEN</div>
-         <div class="token-number">${String(tokenNumber).padStart(2, '0')}</div>
+         <div class="token-label">${tokenLabel}</div>
+         <div class="token-number" style="color:${tokenColor}">${tokenPrefix}${String(tokenNumber).padStart(2, '0')}</div>
        </div>`
     : bookingRef
       ? `<div class="token-box">

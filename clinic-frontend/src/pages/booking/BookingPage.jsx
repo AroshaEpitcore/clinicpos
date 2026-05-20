@@ -20,6 +20,8 @@ import { portalApi } from '../../api/portal';
 import { formatPhoneInput } from '../../utils/format';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { useTheme } from '../../store/ThemeContext';
+import { useLang } from '../../i18n/LangContext';
+import { LangToggle } from '../../components/ui/LangToggle';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function todayStr() {
@@ -409,17 +411,21 @@ function downloadBookingImage(booking, clinicName) {
   if (booking.token_number != null) {
     const halfW = (innerW - gap) / 2;
 
-    // Token box (blue)
-    ctx.fillStyle = '#2563eb';
+    // Token box — red for new patients, blue for returning, blue default
+    const isNew = booking.dual_queue_enabled && booking.patient_visit_type === 'new';
+    ctx.fillStyle = isNew ? '#dc2626' : '#2563eb';
     roundRect(ctx, pad, cy, halfW, boxH, 8);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.font = `bold 10px ${font}`;
     ctx.letterSpacing = '2px';
-    ctx.fillText('YOUR TOKEN', pad + halfW / 2, cy + 22);
+    ctx.fillText(isNew ? 'NEW · TOKEN' : 'YOUR TOKEN', pad + halfW / 2, cy + 22);
     ctx.font = `bold 44px ${font}`;
-    ctx.fillText(String(booking.token_number).padStart(2, '0'), pad + halfW / 2, cy + 64);
+    ctx.fillText(
+      `${isNew ? 'N-' : ''}${String(booking.token_number).padStart(2, '0')}`,
+      pad + halfW / 2, cy + 64
+    );
     ctx.letterSpacing = '0px';
 
     // Ref box
@@ -512,7 +518,7 @@ function downloadBookingImage(booking, clinicName) {
 }
 
 // ── Confirmation Card ─────────────────────────────────────────────────────────
-function ConfirmationCard({ booking, clinicName }) {
+function ConfirmationCard({ booking, clinicName, t }) {
   return (
     <div
       id="confirmation-card"
@@ -531,7 +537,7 @@ function ConfirmationCard({ booking, clinicName }) {
           <CheckCircle className="w-6 h-6" style={{ color: 'var(--color-success)' }} />
         </div>
         <div>
-          <p className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>Booking Confirmed!</p>
+          <p className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>{t('book.confirmed')}</p>
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{clinicName || 'Clinic'}</p>
         </div>
       </div>
@@ -539,16 +545,26 @@ function ConfirmationCard({ booking, clinicName }) {
       {/* Token + Reference */}
       <div className="flex gap-3 mb-6">
         {booking.token_number != null && (
-          <div
-            className="flex-1 rounded-[var(--radius)] p-4 text-center text-white"
-            style={{ background: 'var(--color-primary)' }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-80 mb-1">Your Token</p>
-            <p className="text-5xl font-black leading-none">
-              {String(booking.token_number).padStart(2, '0')}
-            </p>
-            <p className="text-xs opacity-70 mt-1">Queue number</p>
-          </div>
+          (() => {
+            const isNew = booking.dual_queue_enabled && booking.patient_visit_type === 'new';
+            const isReturning = booking.dual_queue_enabled && booking.patient_visit_type === 'returning';
+            const bg = isNew ? '#dc2626' : isReturning ? '#2563eb' : 'var(--color-primary)';
+            const label = isNew ? t('book.tokenNew') : isReturning ? t('book.tokenReturning') : t('book.yourToken');
+            return (
+              <div
+                className="flex-1 rounded-[var(--radius)] p-4 text-center text-white"
+                style={{ background: bg }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-widest opacity-80 mb-1">
+                  {label}
+                </p>
+                <p className="text-5xl font-black leading-none">
+                  {isNew ? 'N-' : ''}{String(booking.token_number).padStart(2, '0')}
+                </p>
+                <p className="text-xs opacity-70 mt-1">{t('book.queueNumber')}</p>
+              </div>
+            );
+          })()
         )}
         <div
           className={`${booking.token_number != null ? 'flex-1' : 'w-full'} rounded-[var(--radius)] p-4 text-center border`}
@@ -558,13 +574,13 @@ function ConfirmationCard({ booking, clinicName }) {
           }}
         >
           <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-primary)' }}>
-            Booking Reference
+            {t('book.bookingRef')}
           </p>
           <p className="text-2xl font-black tracking-wider" style={{ color: 'var(--color-primary)' }}>
             {booking.booking_reference}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-            Keep for your records
+            {t('book.keepRef')}
           </p>
         </div>
       </div>
@@ -573,7 +589,7 @@ function ConfirmationCard({ booking, clinicName }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
           {
-            label: 'Patient',
+            label: t('book.patient'),
             content: (
               <>
                 <p className="font-semibold" style={{ color: 'var(--color-text)' }}>{booking.patient_name}</p>
@@ -584,7 +600,7 @@ function ConfirmationCard({ booking, clinicName }) {
             ),
           },
           {
-            label: 'Doctor',
+            label: t('book.doctor'),
             content: (
               <>
                 <p className="font-semibold" style={{ color: 'var(--color-text)' }}>{booking.doctor_name}</p>
@@ -595,7 +611,7 @@ function ConfirmationCard({ booking, clinicName }) {
             ),
           },
           {
-            label: 'Date',
+            label: t('book.date'),
             content: (
               <p className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
                 <Calendar className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
@@ -604,7 +620,7 @@ function ConfirmationCard({ booking, clinicName }) {
             ),
           },
           {
-            label: 'Time',
+            label: t('book.time'),
             content: (
               <p className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
                 <Clock className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
@@ -624,7 +640,7 @@ function ConfirmationCard({ booking, clinicName }) {
         {booking.reason && (
           <div className="col-span-full flex flex-col gap-1">
             <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
-              Reason for Visit
+              {t('book.reasonLabel')}
             </p>
             <p className="text-sm" style={{ color: 'var(--color-text)' }}>{booking.reason}</p>
           </div>
@@ -635,7 +651,7 @@ function ConfirmationCard({ booking, clinicName }) {
         className="text-xs text-center mt-5 border-t pt-4"
         style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }}
       >
-        Please arrive 10 minutes before your appointment time. Bring this reference number.
+        {t('book.arrivalNotice')}
       </p>
     </div>
   );
@@ -644,6 +660,7 @@ function ConfirmationCard({ booking, clinicName }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function BookingPage() {
   const { theme, toggle: toggleTheme } = useTheme();
+  const { t } = useLang();
 
   const [step, setStep] = useState(1);
   const [clinicInfo, setClinicInfo] = useState(null);
@@ -672,11 +689,14 @@ export default function BookingPage() {
   // Step 4
   const [booking, setBooking] = useState(null);
 
+  const [dualQueueOn, setDualQueueOn] = useState(false);
+
   useEffect(() => {
     portalApi.getInfo()
       .then(r => {
         setClinicInfo(r.data.data || {});
         setPortalEnabled(r.data.data?.patient_portal_enabled !== false);
+        setDualQueueOn(!!r.data.data?.dual_queue_enabled);
       })
       .catch(() => setPortalEnabled(false));
   }, []);
@@ -699,17 +719,17 @@ export default function BookingPage() {
     try {
       const r = await portalApi.getSlots(selectedDoctor.id, selectedDate);
       if (r.data.holiday) {
-        setSlotsMsg('This date is a clinic holiday. Please choose another date.');
+        setSlotsMsg(t('book.holidayMsg'));
         setSlots([]);
       } else if (r.data.noSchedule) {
-        setSlotsMsg('The doctor is not available on this day. Please choose another date.');
+        setSlotsMsg(t('book.noScheduleMsg'));
         setSlots([]);
       } else {
         setSlots(r.data.data || []);
-        if (!r.data.data?.length) setSlotsMsg('No slots configured for this date.');
+        if (!r.data.data?.length) setSlotsMsg(t('book.noSlotsConfigured'));
       }
     } catch {
-      setSlotsMsg('Could not load available slots. Please try again.');
+      setSlotsMsg(t('book.slotsLoadFail'));
     } finally {
       setLoadingSlots(false);
     }
@@ -720,9 +740,9 @@ export default function BookingPage() {
   }, [step, loadSlots]);
 
   async function handleSubmit() {
-    if (!patientName.trim()) { setSubmitError('Please enter your full name.'); return; }
-    if (!patientPhone.trim()) { setSubmitError('Please enter your phone number.'); return; }
-    if (patientPhone.replace(/\D/g, '').length !== 10) { setSubmitError('Phone number must be 10 digits.'); return; }
+    if (!patientName.trim()) { setSubmitError(t('book.errNameRequired')); return; }
+    if (!patientPhone.trim()) { setSubmitError(t('book.errPhoneRequired')); return; }
+    if (patientPhone.replace(/\D/g, '').length !== 10) { setSubmitError(t('book.errPhoneDigits')); return; }
 
     setSubmitError('');
     setSubmitting(true);
@@ -739,7 +759,7 @@ export default function BookingPage() {
       setBooking(r.data.data);
       setStep(4);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Booking failed. Please try again.';
+      const msg = err.response?.data?.message || t('book.bookingFailed');
       setSubmitError(msg);
       if (err.response?.status === 409) {
         setTimeout(() => { setStep(2); setSubmitError(''); }, 2000);
@@ -786,10 +806,10 @@ export default function BookingPage() {
         >
           <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--color-text-secondary)' }} />
           <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
-            Online Booking Unavailable
+            {t('book.unavailable')}
           </h2>
           <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-            This clinic has not enabled online booking. Please call the clinic to schedule an appointment.
+            {t('book.unavailableMsg')}
           </p>
           {clinicInfo?.clinic_phone && (
             <a
@@ -841,9 +861,11 @@ export default function BookingPage() {
               {clinicInfo?.clinic_name || 'Clinic'}
             </p>
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              Online Appointment Booking
+              {t('book.title')}
             </p>
           </div>
+
+          <LangToggle />
 
           {/* Dark mode toggle */}
           <button
@@ -855,7 +877,7 @@ export default function BookingPage() {
               borderColor: 'var(--color-border)',
               color: 'var(--color-text-secondary)',
             }}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
           >
             {theme === 'dark'
               ? <Sun className="w-4 h-4" />
@@ -872,7 +894,7 @@ export default function BookingPage() {
           {step < 4 && (
             <StepIndicator
               current={step}
-              steps={['Doctor', 'Date & Time', 'Your Details', 'Confirmed']}
+              steps={[t('book.stepDoctor'), t('book.stepDateTime'), t('book.stepDetails'), t('book.stepConfirmed')]}
             />
           )}
 
@@ -880,10 +902,10 @@ export default function BookingPage() {
           {step === 1 && (
             <Card>
               <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
-                Choose a Doctor
+                {t('book.chooseDoctor')}
               </h2>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                Select the doctor you'd like to see
+                {t('book.chooseDoctorSub')}
               </p>
 
               {loadingDoctors ? (
@@ -892,7 +914,7 @@ export default function BookingPage() {
                 </div>
               ) : doctors.length === 0 ? (
                 <p className="text-center py-12 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                  No doctors available at this time.
+                  {t('book.noDoctors')}
                 </p>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -909,7 +931,7 @@ export default function BookingPage() {
 
               <div className="mt-6 flex justify-end">
                 <PrimaryButton disabled={!selectedDoctor} onClick={() => setStep(2)}>
-                  Next — Date &amp; Time <ChevronLeft className="w-4 h-4 rotate-180" />
+                  {t('book.nextDateTime')} <ChevronLeft className="w-4 h-4 rotate-180" />
                 </PrimaryButton>
               </div>
             </Card>
@@ -921,10 +943,10 @@ export default function BookingPage() {
               <BackButton onClick={() => setStep(1)} />
 
               <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
-                Pick a Date &amp; Time
+                {t('book.pickDateTime')}
               </h2>
               <p className="text-sm mb-5" style={{ color: 'var(--color-text-secondary)' }}>
-                With {selectedDoctor?.full_name}
+                {t('book.with')} {selectedDoctor?.full_name}
                 {selectedDoctor?.specialization && ` · ${selectedDoctor.specialization}`}
               </p>
 
@@ -932,7 +954,7 @@ export default function BookingPage() {
               <div className="mb-6">
                 <p className="text-sm font-medium mb-3 flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
                   <Calendar className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
-                  Select Date
+                  {t('book.selectDate')}
                 </p>
                 <DateStrip
                   value={selectedDate}
@@ -945,7 +967,7 @@ export default function BookingPage() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
                     <Clock className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
-                    Available Times
+                    {t('book.availableTimes')}
                   </p>
                   {!loadingSlots && (
                     <button
@@ -954,7 +976,7 @@ export default function BookingPage() {
                       className="text-xs font-medium transition-opacity hover:opacity-70"
                       style={{ color: 'var(--color-primary)' }}
                     >
-                      Refresh
+                      {t('common.refresh')}
                     </button>
                   )}
                 </div>
@@ -974,14 +996,14 @@ export default function BookingPage() {
                           className="inline-block w-3 h-3 rounded-sm border"
                           style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
                         />
-                        Available
+                        {t('book.available')}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span
                           className="inline-block w-3 h-3 rounded-sm line-through"
                           style={{ background: 'var(--color-border)' }}
                         />
-                        Taken
+                        {t('book.taken')}
                       </span>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -1001,7 +1023,7 @@ export default function BookingPage() {
 
               <div className="mt-6 flex justify-end">
                 <PrimaryButton disabled={!selectedSlot} onClick={() => setStep(3)}>
-                  Next — Your Details <ChevronLeft className="w-4 h-4 rotate-180" />
+                  {t('book.nextDetails')} <ChevronLeft className="w-4 h-4 rotate-180" />
                 </PrimaryButton>
               </div>
             </Card>
@@ -1013,7 +1035,7 @@ export default function BookingPage() {
               <BackButton onClick={() => setStep(2)} />
 
               <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
-                Your Details
+                {t('book.yourDetails')}
               </h2>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
                 {selectedDoctor?.full_name} · {formatDateDisplay(selectedDate)} · {formatTime(selectedSlot)}
@@ -1021,30 +1043,35 @@ export default function BookingPage() {
 
               <div className="flex flex-col gap-4">
                 <FormInput
-                  label="Full Name" required
+                  label={t('book.fullName')} required
                   value={patientName}
                   onChange={setPatientName}
-                  placeholder="e.g. Maria Perera"
+                  placeholder={t('book.fullNamePlaceholder')}
                 />
                 <FormInput
-                  label="Phone Number" required type="tel"
+                  label={t('auth.phone')} required type="tel"
                   value={patientPhone}
                   onChange={v => setPatientPhone(formatPhoneInput(v))}
-                  placeholder="077 123 4567"
+                  placeholder={t('auth.phonePlaceholder')}
                 />
+                {dualQueueOn && (
+                  <p className="text-xs -mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t('book.dualQueueHint')}
+                  </p>
+                )}
                 <FormInput
-                  label="Date of Birth (optional)" type="date"
+                  label={t('book.dob')} type="date"
                   value={patientDob}
                   onChange={setPatientDob}
                 />
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                    Reason for Visit <span style={{ color: 'var(--color-text-secondary)' }}>(optional)</span>
+                    {t('book.reason')} <span style={{ color: 'var(--color-text-secondary)' }}>({t('common.optional')})</span>
                   </label>
                   <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="Brief description of your concern..."
+                    placeholder={t('book.reasonPlaceholder')}
                     rows={3}
                     className="px-4 py-2.5 rounded-[var(--radius)] border text-sm focus:outline-none resize-none transition-colors"
                     style={{
@@ -1065,9 +1092,9 @@ export default function BookingPage() {
               <div className="mt-6 flex justify-end">
                 <PrimaryButton variant="success" disabled={submitting} onClick={handleSubmit}>
                   {submitting ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" /> Confirming...</>
+                    <><RefreshCw className="w-4 h-4 animate-spin" /> {t('book.confirming')}</>
                   ) : (
-                    <><CheckCircle className="w-4 h-4" /> Confirm Booking</>
+                    <><CheckCircle className="w-4 h-4" /> {t('book.confirmBooking')}</>
                   )}
                 </PrimaryButton>
               </div>
@@ -1077,7 +1104,7 @@ export default function BookingPage() {
           {/* ── Step 4: Confirmation ───────────────────────────────────── */}
           {step === 4 && booking && (
             <div>
-              <ConfirmationCard booking={booking} clinicName={clinicInfo?.clinic_name} />
+              <ConfirmationCard booking={booking} clinicName={clinicInfo?.clinic_name} t={t} />
 
               {/* Reception notice */}
               <div
@@ -1086,17 +1113,16 @@ export default function BookingPage() {
               >
                 <MapPin className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
                 <p className="text-sm" style={{ color: 'var(--color-text)' }}>
-                  When you arrive at the clinic, show your <strong>booking reference</strong> at the
-                  reception counter to collect your queue token slip.
+                  {t('book.receptionNotice')}
                 </p>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3 justify-center">
                 <PrimaryButton onClick={() => downloadBookingImage(booking, clinicInfo?.clinic_name)}>
-                  <Download className="w-4 h-4" /> Download Confirmation
+                  <Download className="w-4 h-4" /> {t('book.download')}
                 </PrimaryButton>
                 <PrimaryButton variant="outline" onClick={resetFlow}>
-                  Book Another Appointment
+                  {t('book.bookAnother')}
                 </PrimaryButton>
               </div>
             </div>
@@ -1108,7 +1134,7 @@ export default function BookingPage() {
       {step < 4 && (
         <footer className="py-6">
           <p className="text-xs text-center" style={{ color: 'var(--color-text-secondary)' }}>
-            Powered by Doctor POS — Secure Online Booking
+            {t('book.footer')}
           </p>
         </footer>
       )}

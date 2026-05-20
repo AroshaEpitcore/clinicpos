@@ -8,15 +8,30 @@ const router = express.Router();
 router.use(tenantMiddleware, authMiddleware);
 
 // ── Helper: next token number for a doctor on a date ─────────────────────────
-async function nextToken(schema, doctorId, date) {
+// When `visitType` is provided, the token series is scoped to that type so that
+// NEW and RETURNING patients each get their own counter (1, 2, 3 …).
+// Pass null for the legacy single-series behavior (used when dual_queue is off).
+async function nextToken(schema, doctorId, date, visitType = null) {
+  const sql = visitType
+    ? `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
+       FROM appointments
+       WHERE doctor_id = $1 AND appointment_date = $2 AND patient_visit_type = $3`
+    : `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
+       FROM appointments
+       WHERE doctor_id = $1 AND appointment_date = $2`;
+  const params = visitType ? [doctorId, date, visitType] : [doctorId, date];
+  const r = await queryTenant(schema, sql, params);
+  return r.rows[0].next;
+}
+
+// ── Helper: detect visit type from prior consultation history ────────────────
+async function detectVisitType(schema, patientId) {
   const r = await queryTenant(
     schema,
-    `SELECT COALESCE(MAX(token_number), 0) + 1 AS next
-     FROM appointments
-     WHERE doctor_id = $1 AND appointment_date = $2`,
-    [doctorId, date]
+    `SELECT 1 FROM consultations WHERE patient_id = $1 LIMIT 1`,
+    [patientId]
   );
-  return r.rows[0].next;
+  return r.rows.length > 0 ? 'returning' : 'new';
 }
 
 // ── GET /api/v1/appointments ──────────────────────────────────────────────────
@@ -36,7 +51,7 @@ router.get('/', async (req, res) => {
       `SELECT
          a.id, a.token_number, a.appointment_date, a.appointment_time,
          a.type, a.status, a.reason, a.notes, a.booked_online,
-         a.booking_reference, a.booking_source,
+         a.booking_reference, a.booking_source, a.patient_visit_type,
          p.id           AS patient_id,
          p.patient_code,
          p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,
@@ -74,7 +89,11 @@ router.get('/', async (req, res) => {
 
 // ── POST /api/v1/appointments ─────────────────────────────────────────────────
 router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
-  const { patient_id, doctor_id, appointment_date, appointment_time, type = 'walkin', reason, notes } = req.body;
+  const {
+    patient_id, doctor_id, appointment_date, appointment_time,
+    type = 'walkin', reason, notes,
+    patient_visit_type: requestedVisitType,
+  } = req.body;
 
   if (!patient_id || !doctor_id || !appointment_date) {
     return res.status(400).json({ status: 'error', message: 'Please fill in all required fields' });
@@ -118,8 +137,34 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'This date is a clinic holiday. Booking not allowed.' });
     }
 
-    // Assign token for all appointment types
-    const token = await nextToken(req.tenantSchema, doctor_id, appointment_date);
+    // ── Dual-queue logic ──────────────────────────────────────────────────────
+    // When the flag is on we maintain two independent token series (new/returning).
+    // When off, the legacy single-series behavior runs and patient_visit_type
+    // is left at the default ('returning') for backward-compatibility.
+    const dualQueueOn = !!req.tenantFlags?.dual_queue;
+    let visitType = 'returning';
+    if (dualQueueOn) {
+      const detected = await detectVisitType(req.tenantSchema, patient_id);
+      if (requestedVisitType === 'new' || requestedVisitType === 'returning') {
+        visitType = requestedVisitType;
+        // Audit override when reception's selection disagrees with detection
+        if (requestedVisitType !== detected) {
+          await queryTenant(
+            req.tenantSchema,
+            `INSERT INTO audit_logs (staff_id, action, table_name, old_value, new_value)
+             VALUES ($1, 'visit_type_override', 'appointments', $2, $3)`,
+            [req.user.id, JSON.stringify({ detected }), JSON.stringify({ chosen: requestedVisitType, patient_id })]
+          ).catch(() => {});
+        }
+      } else {
+        visitType = detected;
+      }
+    }
+
+    // Assign token — emergency gets 0 (top of queue) regardless of series
+    const token = type === 'emergency'
+      ? 0
+      : await nextToken(req.tenantSchema, doctor_id, appointment_date, dualQueueOn ? visitType : null);
 
     // Generate booking reference for booked appointments (staff or online)
     let bookingRef = null;
@@ -135,19 +180,36 @@ router.post('/', requireRole('receptionist', 'admin'), async (req, res) => {
       `INSERT INTO appointments
          (patient_id, doctor_id, appointment_date, appointment_time,
           token_number, type, status, reason, notes, booked_by,
-          booking_reference, booking_source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          booking_reference, booking_source, patient_visit_type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING id`,
       [patient_id, doctor_id, appointment_date, appointment_time || null,
        token, type, initialStatus, reason || null, notes || null, req.user.id,
-       bookingRef, bookingRef ? 'staff' : 'admin']
+       bookingRef, bookingRef ? 'staff' : 'admin', visitType]
     );
 
     res.status(201).json({
       status: 'success',
       message: type === 'emergency' ? 'Emergency patient added to queue' : 'Appointment created successfully',
-      data: { id: result.rows[0].id, token_number: token, booking_reference: bookingRef },
+      data: {
+        id: result.rows[0].id,
+        token_number: token,
+        booking_reference: bookingRef,
+        patient_visit_type: visitType,
+      },
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /api/v1/appointments/detect-visit-type/:patientId ────────────────────
+// Lightweight endpoint so the POS modal can show the auto-default before submit.
+router.get('/detect-visit-type/:patientId', requireRole('receptionist', 'admin'), async (req, res) => {
+  try {
+    const visitType = await detectVisitType(req.tenantSchema, req.params.patientId);
+    res.json({ status: 'success', data: { patient_visit_type: visitType } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
@@ -236,7 +298,7 @@ router.get('/my-day', requireRole('doctor'), async (req, res) => {
       queryTenant(schema, `
         SELECT
           a.id, a.token_number, a.appointment_time, a.type, a.status,
-          a.reason, a.notes, a.booked_online, a.booking_source,
+          a.reason, a.notes, a.booked_online, a.booking_source, a.patient_visit_type,
           p.id           AS patient_id,
           p.patient_code,
           p.first_name || COALESCE(' ' || p.last_name, '') AS patient_name,

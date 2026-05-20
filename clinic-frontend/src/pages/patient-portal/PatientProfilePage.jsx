@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
@@ -33,6 +34,7 @@ function Field({ label, value, onChange, type = 'text', readOnly = false, inputM
 }
 
 export default function PatientProfilePage() {
+  const { t } = useLang();
   const [profile,  setProfile]  = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
@@ -79,10 +81,10 @@ export default function PatientProfilePage() {
     setSaving(true);
     try {
       await patientPortalApi.updateMe(form);
-      toast.success('Changes saved successfully');
+      toast.success(t('profile.updated'));
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+      toast.error(err.response?.data?.message || t('common.somethingWrong'));
     } finally {
       setSaving(false);
     }
@@ -104,10 +106,10 @@ export default function PatientProfilePage() {
     setSavingPw(true);
     try {
       await patientPortalApi.changePassword({ current_password: currentPw, new_password: newPw });
-      toast.success('Password changed successfully');
+      toast.success(t('profile.pwChanged'));
       setCurrentPw(''); setNewPw(''); setShowPwForm(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+      toast.error(err.response?.data?.message || t('common.somethingWrong'));
     } finally {
       setSavingPw(false);
     }
@@ -128,7 +130,7 @@ export default function PatientProfilePage() {
   return (
     <PatientLayout>
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold text-[var(--color-text)]">My Profile</h1>
+        <h1 className="text-lg font-semibold text-[var(--color-text)]">{t('profile.title')}</h1>
 
         {/* ── Patient card ─────────────────────────────────────────────── */}
         {profile && (
@@ -188,43 +190,43 @@ export default function PatientProfilePage() {
 
         {/* ── Editable personal details ─────────────────────────────────── */}
         <form onSubmit={handleSave} className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-5 space-y-4">
-          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">Personal Details</p>
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">{t('profile.personal')}</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field
-              label="First Name" required
+              label={t('profile.firstName')} required
               value={form.first_name}
               onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); setFormErrors(v => ({ ...v, first_name: undefined })); }}
               error={formErrors.first_name}
             />
             <Field
-              label="Last Name"
+              label={t('profile.lastName')}
               value={form.last_name}
               onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
             />
             <Field
-              label="Email"
+              label={t('profile.email')}
               value={form.email}
               onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFormErrors(v => ({ ...v, email: undefined })); }}
               type="email" inputMode="email"
               error={formErrors.email}
             />
             <Field
-              label="Address"
+              label={t('profile.address')}
               value={form.address}
               onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
             />
           </div>
 
-          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">Emergency Contact</p>
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">{t('profile.emergency')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field
-              label="Contact Name"
+              label={t('profile.emName')}
               value={form.emergency_name}
               onChange={e => setForm(f => ({ ...f, emergency_name: e.target.value }))}
             />
             <Field
-              label="Contact Phone"
+              label={t('profile.emPhone')}
               value={form.emergency_phone}
               onChange={e => setForm(f => ({ ...f, emergency_phone: e.target.value }))}
               type="tel" inputMode="tel"
@@ -239,7 +241,7 @@ export default function PatientProfilePage() {
           </div>
 
           <Button type="submit" loading={saving} className="w-full">
-            Save Changes
+            {t('profile.update')}
           </Button>
         </form>
 
@@ -252,7 +254,7 @@ export default function PatientProfilePage() {
             <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4 text-[var(--color-text-secondary)]" />
             </div>
-            <span className="flex-1 text-sm font-medium text-[var(--color-text)]">Change Password</span>
+            <span className="flex-1 text-sm font-medium text-[var(--color-text)]">{t('profile.changePw')}</span>
             <ChevronRight className={`w-4 h-4 text-[var(--color-text-secondary)] transition-transform ${showPwForm ? 'rotate-90' : ''}`} />
           </button>
 
@@ -261,7 +263,7 @@ export default function PatientProfilePage() {
               {/* Current password */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-[var(--color-text)]">
-                  Current Password <span className="text-[var(--color-danger)]">*</span>
+                  {t('profile.currentPw')} <span className="text-[var(--color-danger)]">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -287,7 +289,7 @@ export default function PatientProfilePage() {
               {/* New password */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-[var(--color-text)]">
-                  New Password <span className="text-[var(--color-danger)]">*</span>
+                  {t('profile.newPw')} <span className="text-[var(--color-danger)]">*</span>
                 </label>
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -305,7 +307,7 @@ export default function PatientProfilePage() {
               </div>
 
               <Button type="submit" loading={savingPw} variant="secondary" className="w-full">
-                Update Password
+                {t('profile.changePw')}
               </Button>
             </form>
           )}

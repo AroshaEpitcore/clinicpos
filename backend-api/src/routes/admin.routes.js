@@ -204,7 +204,7 @@ router.post('/tenants', async (req, res) => {
     const tenant = tenantRes.rows[0];
 
     // Default feature flags (all OFF)
-    const defaultModules = ['pharmacy', 'lab', 'insurance', 'online_booking', 'multi_branch', 'custom_domain'];
+    const defaultModules = ['pharmacy', 'lab', 'insurance', 'online_booking', 'multi_branch', 'custom_domain', 'dual_queue'];
     for (const module of defaultModules) {
       await client.query(
         `INSERT INTO public.feature_flags (tenant_id, module, enabled) VALUES ($1,$2,FALSE)`,

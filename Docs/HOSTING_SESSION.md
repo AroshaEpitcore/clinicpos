@@ -479,5 +479,137 @@ DROP SCHEMA IF EXISTS tenant_testclinic CASCADE;
 
 ---
 
+# Update Session — 2026-05-20
+
+> Adds: dual-queue (NEW/RETURNING patient tokens), patient-portal i18n (English/Sinhala toggle), backend Jest+Supertest tests for the dual-queue logic.
+
+## What's in this release
+
+1. **Dual-queue (NEW vs RETURNING patients)** — per-clinic feature flag, two independent token series (red `N-XX` for new, blue `XX` for returning), POS + online booking + queue display all aware.
+2. **Patient portal i18n** — English / Sinhala toggle on `/booking` and `/patient/*`. Choice persists per-browser in `localStorage`.
+3. **Backend integration tests** — Jest + Supertest covering the dual-queue logic. `npm test` from `backend-api/`.
+
+No new prod runtime dependencies. Only devDeps (`jest`, `supertest`) for tests.
+
+## Deploy commands — run on server (in order)
+
+```bash
+cd /var/www/clinicpos
+git pull origin development
+
+# ── 1. Backend ─────────────────────────────────────────────────────────────
+cd backend-api
+npm install --no-audit --no-fund
+
+# One-time migration: adds appointments.patient_visit_type + index in every
+# tenant schema, and registers the `dual_queue` feature flag (default OFF).
+node src/db/migrate_dual_queue.js
+
+# (Optional) Verify nothing regressed
+npm test
+
+pm2 restart clinicpos-api
+pm2 logs clinicpos-api --lines 30   # confirm clean boot
+
+# ── 2. Clinic frontend ─────────────────────────────────────────────────────
+cd ../clinic-frontend
+npm install --no-audit --no-fund
+npm run build
+pm2 restart clinicpos-clinic
+
+# ── 3. Admin frontend ──────────────────────────────────────────────────────
+cd ../admin-frontend
+npm install --no-audit --no-fund
+npm run build
+pm2 restart clinicpos-admin
+```
+
+## Post-deploy smoke test
+
+### Dual-queue
+
+1. Super-admin → open any clinic → **Feature Flags** card. A new row "Dual Queue" appears. Leave OFF first and confirm legacy POS still works.
+2. Toggle ON for a test clinic → "Login as Clinic" to impersonate.
+3. **Appointments → + Add to Queue**:
+   - Pick an existing patient with prior consultations → segmented control defaults to **Returning (blue)**.
+   - Submit → slip shows blue token, e.g. `03`.
+4. Register a brand-new patient inline → submit → slip shows **red** token, e.g. `N-01`.
+5. **Override test**: pick a returning patient, click **New (Red)** manually → submit. Verify audit log:
+   ```sql
+   SET search_path TO tenant_<subdomain>;
+   SELECT created_at, action, old_value, new_value FROM audit_logs
+   WHERE action = 'visit_type_override'
+   ORDER BY created_at DESC LIMIT 5;
+   ```
+6. **Queue display** (`/display`) — "Next Up" splits into "New Patients" / "Returning" columns when flag is on.
+
+### Online booking dual-queue
+
+1. `<subdomain>.healthcenter.lk/book` — step 3 phone field shows dual-queue hint.
+2. Book with an existing patient's phone → blue token in confirmation.
+3. Book with a fresh phone → red `N-XX` token in confirmation.
+4. Toggle flag OFF → everything reverts to single-series; no breakage.
+
+### Sinhala toggle
+
+1. On `/book` — language pill in header next to dark-mode toggle. Click → full page flips to Sinhala. Click again → back to English.
+2. Reload page → choice persists (`patient_lang` in localStorage).
+3. Login as a patient at `/patient/login` — same toggle on every page (dashboard, appointments, prescriptions, labs, invoices, profile).
+4. Some deeply-nested form labels remain English (fallback); this is expected and non-breaking.
+
+### Test suite
+
+```bash
+cd /var/www/clinicpos/backend-api
+npm test
+```
+Expected: `Tests: 12 passed, 12 total`.
+
+## Rollback
+
+If the dual-queue migration causes issues, run per tenant:
+
+```sql
+ALTER TABLE tenant_<subdomain>.appointments
+  DROP CONSTRAINT IF EXISTS appointments_patient_visit_type_check;
+ALTER TABLE tenant_<subdomain>.appointments
+  DROP COLUMN IF EXISTS patient_visit_type;
+DROP INDEX IF EXISTS tenant_<subdomain>.idx_appointments_doc_date_type;
+
+-- And remove the new feature flag
+DELETE FROM public.feature_flags WHERE module = 'dual_queue';
+```
+
+The legacy single-series code path is preserved, so simply leaving the flag OFF disables the new behavior without code changes.
+
+## File-level summary of this release
+
+**Backend** — `backend-api/`
+- `src/db/migrate_dual_queue.js` (new)
+- `src/db/createTenantSchema.js` — `patient_visit_type` + index for new clinics
+- `src/routes/admin.routes.js` — `dual_queue` in default flags
+- `src/routes/appointment.routes.js` — type-scoped tokens, auto-detect, override audit, `/detect-visit-type/:patientId`
+- `src/routes/portal.routes.js` — phone-match drives visit type, `dual_queue_enabled` exposed on `/info`, `/booking/:ref`, `/queue-display`
+- `__tests__/dual_queue/*.test.js` + `__tests__/helpers/testApp.js` (new)
+- `package.json` — `test` script + jest/supertest devDeps + jest config block
+
+**Admin frontend** — `admin-frontend/`
+- `src/pages/ClinicDetailPage.jsx` — "Dual Queue" row added to feature-flags list
+
+**Clinic frontend** — `clinic-frontend/`
+- `src/i18n/translations.js` (new) — EN + SI dictionaries
+- `src/i18n/LangContext.jsx` (new) — provider + `useLang()` + `t()` helper
+- `src/components/ui/LangToggle.jsx` (new)
+- `src/main.jsx` — `LangProvider` wrap
+- `src/pages/appointments/AppointmentsPage.jsx` — colored token column for dual-queue rows
+- `src/pages/appointments/components/AppointmentModal.jsx` — visit-type toggle, auto-detect via API, colored confirmation slip
+- `src/pages/display/DisplayPage.jsx` — two-column "Next Up" + colored tokens
+- `src/pages/booking/BookingPage.jsx` — i18n, dual-queue hint, colored confirmation card + downloadable image
+- `src/pages/patient-portal/*` (Layout, Login, Register, Dashboard, Appointments, Consultations, Prescriptions, Labs, Invoices, Profile) — i18n wiring
+- `src/utils/printTokenSlip.js` — supports `visitType` for `N-` prefix and red color on thermal slip
+- `src/api/appointments.js` — `detectVisitType(patientId)` added
+
+---
+
 *HOSTING_SESSION.md — ClinicPOS Production Deployment*  
-*Server: DigitalOcean Singapore · Domain: healthcenter.lk · Date: 2026-04-21*
+*Server: DigitalOcean Singapore · Domain: healthcenter.lk · Initial deploy: 2026-04-21 · Last update: 2026-05-20*

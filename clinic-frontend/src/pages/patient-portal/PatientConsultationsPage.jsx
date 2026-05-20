@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { patientPortalApi } from '../../api/patientPortal';
+import { useLang } from '../../i18n/LangContext';
 import PatientLayout from './PatientLayout';
 import { Stethoscope, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 
@@ -18,6 +19,7 @@ function VitalPill({ label, value, unit }) {
 }
 
 export default function PatientConsultationsPage() {
+  const { t } = useLang();
   const [list,    setList]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [open,    setOpen]    = useState(null);
@@ -25,7 +27,7 @@ export default function PatientConsultationsPage() {
   useEffect(() => {
     patientPortalApi.getConsultations()
       .then(r => setList(r.data.data))
-      .catch(() => { toast.error("Something went wrong. Please try again."); })
+      .catch(() => { toast.error(t('common.somethingWrong')); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -33,8 +35,7 @@ export default function PatientConsultationsPage() {
     <PatientLayout>
       <div className="space-y-4">
         <div>
-          <h1 className="text-lg font-black text-[var(--color-text)]">Visit History</h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">Your consultations and clinical notes</p>
+          <h1 className="text-lg font-black text-[var(--color-text)]">{t('visit.title')}</h1>
         </div>
 
         {loading ? (
@@ -54,7 +55,7 @@ export default function PatientConsultationsPage() {
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-gray-50 flex items-center justify-center mx-auto mb-3">
               <Stethoscope className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No consultations on record</p>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{t('visit.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -91,7 +92,7 @@ export default function PatientConsultationsPage() {
                     {/* Vitals */}
                     {(c.bp_systolic || c.pulse || c.temperature || c.weight) && (
                       <div>
-                        <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Vitals</p>
+                        <p className="text-[0.65rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">{t('visit.notes')}</p>
                         <div className="flex flex-wrap gap-2">
                           {c.bp_systolic && c.bp_diastolic && (
                             <VitalPill label="BP" value={`${c.bp_systolic}/${c.bp_diastolic}`} unit="mmHg" />
@@ -137,7 +138,7 @@ export default function PatientConsultationsPage() {
                       <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-[var(--radius)] px-4 py-2.5">
                         <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
                         <p className="text-sm font-semibold text-[var(--color-primary)]">
-                          Follow-up: {format(new Date(c.follow_up_date), 'd MMM yyyy')}
+                          {t('visit.followUp')} {format(new Date(c.follow_up_date), 'd MMM yyyy')}
                         </p>
                       </div>
                     )}
